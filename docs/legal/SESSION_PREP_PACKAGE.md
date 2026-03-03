@@ -1,125 +1,92 @@
-# Session Prep Package (Reference + Advisory Demo)
+# Session Prep Package (Commercial + Technical Discussion)
 
 ## Goal
 
-Run a structured demo/discovery call that:
-- demonstrates your capability and working style
-- captures actionable feedback from a senior security/red-team engineer
-- preserves your IP leverage while exploring collaboration options
+Run a structured session that:
+- demonstrates current technical reality clearly
+- protects both parties with explicit scope and rights terms
+- lands on a fair commercial path (Option 1/2/3)
 
-## Operating Principle
+## Operating Principles
 
-- Ownership remains with you by default.
-- No code rights are granted without a signed license.
-- Recording is done only with explicit consent and signed release.
-- Commercial or enterprise-core use of the IP requires separate signed commercial rights.
+- Scope truth first: current repository is a hardened Phase 0/1 scaffold.
+- Rights only by signed writing: no implied transfer from demo/discussion access.
+- Fair pricing should reflect delivered value and remaining roadmap risk.
 
 ## What To Send 24-48 Hours Before Session
 
-1. Project context packet
+1. Technical packet
 - `README.md`
 - `HARDENING_REVIEW.md`
 - `SECURITY_FINDINGS.md`
 
-2. Legal/commercial packet
+2. Commercial packet
 - `LICENSE`
 - `docs/legal/DEMO_EVALUATION_TERMS.md`
-- `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md`
 - `docs/legal/COMMERCIAL_RIGHTS_OPTIONS.md`
-- `docs/legal/FORK_LICENSE_TEMPLATE.md` (discussion draft only)
-- `docs/legal/SESSION_RUN_SCRIPT.md`
-- `docs/legal/PRE_SESSION_EMAIL_TEMPLATE.md`
+- `docs/legal/PRICING_AND_EFFORT_ESTIMATE.md`
+- `docs/legal/FORK_LICENSE_TEMPLATE.md` (terms draft)
 
-3. Session logistics
-- date/time + meeting link
-- explicit notice if recording is requested
-- request signed recording/release form before call if recording is planned
+3. Recording packet (if needed)
+- `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md`
 
-## Required Gating Checklist (Before Joining Call)
+## Required Gating Checklist
 
-- [ ] `docs/legal/DEMO_EVALUATION_TERMS.md` sent
-- [ ] `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md` signed (if recording)
-- [ ] session objective confirmed (advisory, implementation support, or license discussion)
-- [ ] legal entity name captured if licensing could be discussed
+- [ ] Evaluation terms sent before call
+- [ ] Scope truth acknowledged (Phase 0/1 scaffold)
+- [ ] Rights boundary acknowledged (no transfer without signed agreement)
+- [ ] Recording consent signed if recording requested
+- [ ] Client legal entity captured if rights discussion expected
 
 ## Default Session Agenda (60-75 min)
 
-1. Problem framing by client (15 min)
-- What problem were you solving?
-- What did you try?
-- What worked/failed?
-- How did you use AI/Codex/other tools?
-- Where did engineering/security confidence break down?
+1. Context and goals (15 min)
+- client problem, constraints, desired outcomes
 
-2. Demo walkthrough (20 min)
-- architecture and scope boundaries
-- clean bootstrap, health checks, test posture
-- governance artifacts and hardening decisions
+2. Technical walkthrough (20 min)
+- implemented architecture and hardening evidence
+- known gaps and deferred feature scope
 
-3. Codebase and implementation review (15 min)
-- module layout and current capabilities
-- known limitations and gaps
-- why certain controls were implemented now vs deferred
+3. Commercial options (15 min)
+- Option 1: snapshot assignment
+- Option 2: hybrid license + revenue share (recommended)
+- Option 3: partnership/JV
 
-4. Open Q&A (10-15 min)
-- answer targeted code/security questions live
-- show reasoning and tradeoff process
+4. Q&A and objections (10-15 min)
+- capture exact terms to finalize
 
-5. Commercial/reference next step (5-10 min)
-- advisory-only option
-- scoped implementation option
-- one-off negotiated fork option
+5. Close and next steps (5 min)
+- confirm option path and drafting timeline
 
-## Discovery Questions To Ask During Session
+## Discovery Questions
 
-Product/problem:
-- What is the operational pain today?
-- What outcomes would make this successful in 90 days?
+- What outcome matters most in 90 days?
+- Do you want ownership now or lower-entry commercial access with shared upside?
+- How much ongoing technical governance do you want from us?
+- What budget model fits better: higher upfront or hybrid economics?
 
-Engineering/security:
-- Which controls are non-negotiable for you?
-- Which risks are acceptable in prototype phase?
+## Guardrails
 
-Tooling/workflow:
-- How are you currently using AI coding tools?
-- What quality/security failures have you seen from AI-assisted development?
+- Do not imply the package is feature-complete secure file-sharing runtime.
+- Do not grant rights verbally.
+- Do not mix service scope and IP rights into a single ambiguous statement.
+- Always bind rights to commit hash + included/excluded asset schedules.
 
-Commercial:
-- Do you want advisory only, build support, or license + services?
-- Do you need internal-use rights only, or customer-facing deployment rights?
+## Decision Framework
 
-## Live Demo Checklist
+Option 1:
+- best when client needs independent control now
+- higher upfront, simpler long-term economics
 
-- Confirm recording consent status on-record.
-- Confirm non-confidential baseline unless otherwise agreed.
-- Confirm software ownership and licensing boundary on-record.
-- Run health/status checks.
-- Show tests and current pass/fail reality.
-- Show known limitations plainly.
-- Capture client feedback and objections in real time.
+Option 2 (recommended default):
+- best when client wants lower upfront cost plus collaborative quality control
+- balances fairness: client gets usable rights; creator retains upside
 
-## Decision Framework You Can Use At End
+Option 3:
+- use only for strategic joint execution with clear governance appetite
 
-Option A: Advisory engagement
-- architecture/security reviews, implementation guidance, no code license grant needed
+## Follow-Up Within 24 Hours
 
-Option B: Advisory + implementation support
-- time-boxed workstream, services SOW, no transfer of ownership
-
-Option C: One-off negotiated fork license
-- internal use only, pinned commit, no redistribution/SaaS rights unless expanded in signed terms
-
-Use `docs/legal/SESSION_RUN_SCRIPT.md` for exact phrasing and sequence.
-
-## Follow-Up Email Template
-
-Use `docs/legal/PRE_SESSION_EMAIL_TEMPLATE.md` follow-up section.
-
-## Guardrails For Leverage Preservation
-
-- Do not publish under permissive open-source license unless intentionally choosing to.
-- Do not grant fork rights verbally; always require signed written terms.
-- Keep services scope and code rights in separate documents.
-- Keep reference/testimonial rights explicit and written.
-- Do not rely on attendance-only assent for recording or IP rights.
-- Treat commercialization and ownership-transfer rights as separate negotiated instruments.
+- Send recap and selected option
+- Send draft terms with exact commit hash and asset schedule
+- If Option 2, include revenue-share definitions and reporting model

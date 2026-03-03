@@ -1,29 +1,30 @@
 # Pre-Session Email Template
 
-Subject: Secure File Lab demo session + prep package
+Subject: Secure File Lab discussion + prep package
 
 Hi <Name>,
 
 Looking forward to our session on <DATE/TIME>.
 
 Goal for the call:
-- understand your problem framing and prior attempts
-- walk through the governed prototype and security posture
-- identify whether advisory support, implementation support, or optional fork licensing is the best next step
+- validate your problem framing and constraints
+- walk through current repository reality (hardened Phase 0/1 scaffold)
+- select a commercial path that is fair for both sides
 
 Prep package:
 - `README.md`
 - `HARDENING_REVIEW.md`
 - `SECURITY_FINDINGS.md`
 - `docs/legal/DEMO_EVALUATION_TERMS.md`
-- `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md`
 - `docs/legal/COMMERCIAL_RIGHTS_OPTIONS.md`
-- `docs/legal/FORK_LICENSE_TEMPLATE.md` (discussion draft only)
+- `docs/legal/PRICING_AND_EFFORT_ESTIMATE.md`
+- `docs/legal/FORK_LICENSE_TEMPLATE.md` (draft template)
 
 Important:
-- The software remains proprietary and owned by me unless we sign a separate license.
-- Any commercial use or enterprise-core use of this IP requires a separate signed commercial rights agreement.
-- If we record the session, please return the signed recording/release form before the call.
+- Software remains proprietary unless rights are explicitly transferred/licensed in a signed agreement.
+- Current scope is Phase 0/1 scaffold (not full feature-complete secure file-sharing runtime).
+- Any commercial use requires signed terms defining scope, ownership, and obligations.
+- If recording is requested, please return signed `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md` before the call.
 
 Meeting link: <LINK>
 
@@ -34,7 +35,7 @@ Thanks,
 
 # Post-Session Follow-Up Template
 
-Subject: Session recap + next-step options
+Subject: Session recap + proposed commercial path
 
 Hi <Name>,
 
@@ -44,20 +45,20 @@ Thanks for the session today. Recap below:
 - <bullet>
 - <bullet>
 
-2) What we validated in the prototype
+2) What we validated in current package
 - <bullet>
 - <bullet>
 
-3) Risks/gaps identified
+3) Gaps and risks discussed
 - <bullet>
 - <bullet>
 
-4) Next-step options
-- Option 1: Advisory only
-- Option 2: Advisory + implementation support
-- Option 3: Royalty-free internal-use fork license (pinned commit, separate signed agreement)
+4) Proposed path (choose one)
+- Option 1: Snapshot assignment (implemented code ownership)
+- Option 2: Hybrid license + revenue share + collaboration governance
+- Option 3: Partnership/JV structure
 
-If you want to proceed, reply with option 1/2/3 and I will send the matching agreement draft and execution plan.
+Reply with option 1/2/3 and I will send matching terms with commit-bound asset schedules.
 
 Thanks,
 <Your Name>

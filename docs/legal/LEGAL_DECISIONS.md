@@ -2,69 +2,71 @@
 
 ## Purpose
 
-This file defines the default legal/commercial posture for advisory discovery, live demo, and optional licensing.
+Define the default legal/commercial posture for discovery, demo, licensing, and implementation support.
 
-This is an operational template for execution. It is not legal advice.
+This is an operational template, not legal advice.
 
-## Default Decisions
+## Baseline Position
 
-1. Ownership model
-- Source code and all project IP are proprietary and retained by Licensor.
-- Default license posture is `All Rights Reserved`.
-- No open-source grant unless explicitly and separately chosen.
-- Client-provided source materials stored under `docs/client-source/` remain 100% owned by the client.
+1. Ownership default
+- repository IP is proprietary and retained by Licensor unless a signed agreement states otherwise
+- default license posture is `All Rights Reserved`
+- client-provided materials under `docs/client-source/` remain 100% client-owned
 
-2. Demo and discovery posture
-- Initial discovery/demo is non-confidential by default.
-- NDA is not required for first discovery unless either party requires confidential exchange.
-- If confidential discussion is needed, execute NDA before that exchange.
+2. Scope truth default
+- delivered artifact is currently a hardened Phase 0/1 scaffold
+- agreements must not imply feature-complete secure-file-sharing functionality
 
-3. Recording and reuse posture
-- Recording requires explicit consent.
-- Required default: signed `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md` before call, plus verbal confirmation on recording at call start.
-- If signed consent is not available, default to no recording.
-- Target right set: consultant owns recording and may edit, publish, and reuse recording and derivatives.
+3. Services default
+- advisory, implementation, and support are sold through separate written services agreements
+- services fees do not imply IP transfer
 
-4. Reference/testimonial posture
-- No assumed testimonial/reference rights.
-- Rights to use name, title, company, logo, and quotes must be explicitly granted in writing.
-- If not granted, only anonymous references are permitted.
+4. Recording and reference default
+- recording only with explicit signed consent plus on-call verbal confirmation
+- testimonial/reference rights require explicit written permission
 
-5. Fork licensing posture
-- Optional offer: one-off negotiated fork license.
-- Scope: one legal entity, one pinned commit/snapshot, internal use only.
-- No redistribution, sublicensing, white-label resale, or third-party hosted offering unless separately granted.
-- Support/updates are excluded unless covered by separate services/support agreement.
+## Commercial Options Standard
 
-6. Commercialization and enterprise-formation posture
-- If the IP is used commercially, productized, monetized, or used to form/fund/operate an enterprise as a core asset, that use requires a separate signed agreement.
-- Default state remains owner-controlled: all ownership and derivative rights are retained by Licensor.
-- Pre-negotiated commercial path may be offered with structured options:
-  - Option A: internal-use fork only (terms negotiated, no external commercialization unless expressly granted).
-  - Option B: commercial license grant (scope/territory/field negotiated).
-  - Option C: full assignment/ownership transfer, only if Licensor explicitly agrees in a separate signed definitive agreement.
+Use the three-option framework in `docs/legal/COMMERCIAL_RIGHTS_OPTIONS.md`:
 
-7. Services posture
-- Advisory, implementation, and support are sold via separate written agreements.
-- Service fees do not imply transfer of ownership or source-code commercial rights.
+1. Option 1: Implemented code assignment (snapshot ownership)
+2. Option 2: Hybrid license + revenue share + collaborative repo access (recommended default)
+3. Option 3: Full partnership/JV (case-by-case)
+
+Use pricing and effort baseline from:
+- `docs/legal/PRICING_AND_EFFORT_ESTIMATE.md`
 
 ## Operational Rule Set
 
 Before session:
-1. Send `docs/legal/PRE_SESSION_EMAIL_TEMPLATE.md` content with session packet links.
-2. Send `docs/legal/DEMO_EVALUATION_TERMS.md`.
-3. Send `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md` and require signed copy if recording is desired.
-4. If commercial rights may be discussed, include `docs/legal/COMMERCIAL_RIGHTS_OPTIONS.md`.
-5. If fork rights may be discussed, include `docs/legal/FORK_LICENSE_TEMPLATE.md` as draft-only.
+1. Send:
+- `README.md`
+- `HARDENING_REVIEW.md`
+- `SECURITY_FINDINGS.md`
+- `docs/legal/DEMO_EVALUATION_TERMS.md`
+- `docs/legal/COMMERCIAL_RIGHTS_OPTIONS.md`
+- `docs/legal/PRICING_AND_EFFORT_ESTIMATE.md`
+- `docs/legal/FORK_LICENSE_TEMPLATE.md` (draft if rights discussion is expected)
+2. If recording is planned, require signed `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md`.
 
 During session:
-1. Verify recording consent on camera with explicit yes/no.
-2. State that software remains proprietary unless signed license is executed.
-3. State commercialization trigger: no commercial/entity-core use without signed commercial rights grant.
-4. Capture whether reference rights are granted, denied, or deferred.
+1. Confirm recording consent status on record.
+2. Confirm ownership boundary: no rights transfer without signed agreement.
+3. Confirm scope truth: current asset is Phase 0/1 scaffold.
+4. Select commercial path (Option 1/2/3) and capture open points.
 
 After session:
-1. Send written recap with decisions, next steps, and unresolved legal/commercial points.
-2. If fork rights requested, issue final agreement with exact commit hash.
-3. If commercial usage is requested, issue commercial license or assignment draft with explicit scope.
-4. Archive signed consent and any approved testimonial wording in client record.
+1. Send recap with chosen option and unresolved terms.
+2. If Option 1 selected, issue assignment terms with commit hash and asset schedule.
+3. If Option 2 selected, issue hybrid license terms with revenue-share and governance clauses.
+4. If Option 3 selected, issue partnership term sheet.
+
+## Required Contract Schedules
+
+Every signed deal must include:
+1. Pinned commit hash / delivery snapshot
+2. Included assets schedule
+3. Excluded assets schedule
+4. Support/maintenance scope (if any)
+5. Payment model and milestones
+6. If revenue share applies: revenue definition, reporting, audit, payment dates

@@ -1,6 +1,6 @@
-# Fork License (Template, Negotiated Terms)
+# Commercial License / Assignment Term Sheet Template
 
-Use this when you decide to grant a client a one-off fork right.
+Use this template to finalize Option 1 or Option 2 terms.
 
 Note: template only, not legal advice.
 
@@ -8,102 +8,116 @@ Note: template only, not legal advice.
 
 ## 1. Parties
 
-This License is between:
-
 - Licensor: __________________
-- Licensee (legal entity): __________________
+- Licensee / Assignee legal entity: __________________
 - Effective Date: __________________
 
-## 2. Licensed Materials
+## 2. Delivered Snapshot
 
-Licensed repository/project: __________________
+- Repository/project: __________________
+- Commit hash: __________________
+- Delivery date: __________________
 
-Licensed snapshot is strictly limited to:
-- Git commit hash: __________________
-- Delivery method/date: __________________
+No rights apply to future commits/branches/tags unless explicitly added in writing.
 
-No future commits, branches, tags, or updates are included unless separately agreed in writing.
+## 3. Deal Mode (Select One)
 
-## 3. Grant Of Rights
+- [ ] **Option 1 - Snapshot Assignment** (client ownership of listed implemented code)
+- [ ] **Option 2 - Hybrid Commercial License** (creator retains IP; client licensed for commercial use)
 
-Subject to this License, Licensor grants Licensee a non-exclusive, worldwide, perpetual,
-non-transferable, non-sublicensable license to:
+## 4. Included Assets (Required Schedule)
 
-- copy and use the Licensed Materials internally
-- modify the Licensed Materials internally
-- create internal derivative works for Licensee's own business operations
+List exact paths/files granted under this agreement.
 
-Commercial consideration for this grant (select one):
-- [ ] Paid fixed fee
-- [ ] Paid recurring fee
-- [ ] Hybrid fee structure
-- [ ] Royalty-free (only if expressly selected and signed)
+Example structure:
+- `apps/**`
+- `packages/**`
+- `infra/**`
+- selected docs explicitly listed: __________________
 
-## 4. Restrictions
+## 5. Excluded Assets (Required Schedule)
 
-Licensee may not, without Licensor's prior written consent:
+List assets excluded from transfer/license.
 
-- redistribute or publish source or binaries to third parties
-- sublicense, sell, lease, or otherwise commercialize the Licensed Materials as a product
-- provide a hosted/SaaS offering to third parties based on the Licensed Materials
-- remove Licensor copyright notices
-- use Licensor name, trademarks, or branding
+Default exclusions (unless explicitly included):
+- internal methodology, playbooks, and delivery frameworks
+- future improvements/commits after the pinned snapshot
+- third-party materials not owned by Licensor
 
-## 5. Ownership
+## 6. Commercial Consideration
 
-Licensor retains all ownership and IP rights not expressly granted.
+### Option 1 (Assignment) Typical Fields
+- One-time assignment fee: __________________
+- Payment milestone schedule: __________________
+- Transition support window (if any): __________________
 
-All derivative works, modifications, and improvements remain owned by Licensor unless this License or a later signed agreement explicitly states otherwise.
+### Option 2 (Hybrid) Typical Fields
+- Upfront fee: __________________
+- Revenue-share percentage: __________________
+- Revenue basis (gross/net definition): __________________
+- Allowed deductions (if any): __________________
+- Reporting cadence: __________________
+- Payment timing: __________________
+- Audit rights and frequency: __________________
+- Optional support retainer: __________________
 
-## 6. Support And Updates
+## 7. Ownership and Improvements
 
-No support, maintenance, security patching, or updates are included under this License.
-Any such services require a separate written services agreement.
+### If Option 1 selected
+- Ownership of included snapshot assets transfers to Licensee/Assignee.
+- Excluded assets remain Licensor-owned.
+- Ownership of future developments must be explicitly defined:
+  - [ ] Licensee-owned
+  - [ ] Licensor-owned
+  - [ ] Joint / as separately agreed per work order
 
-## 7. Warranty Disclaimer
+### If Option 2 selected
+- Licensor retains ownership of base IP and excluded assets.
+- Licensee receives commercial rights limited to this agreement.
+- Improvements ownership model:
+  - [ ] Licensor-owned with license-back to Licensee
+  - [ ] Licensee-owned with grant-back to Licensor
+  - [ ] Joint / dual license
 
-THE LICENSED MATERIALS ARE PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE,
-AND NON-INFRINGEMENT.
+## 8. Collaboration and Repo Governance (If Applicable)
 
-## 8. Limitation Of Liability
+- Shared repository access: [ ] yes [ ] no
+- Branch/merge approval model: __________________
+- Security review gates required before production release: __________________
+- Monitoring/reporting expectations: __________________
 
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, LICENSOR SHALL NOT BE LIABLE FOR ANY
-INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR EXEMPLARY DAMAGES.
+## 9. Restrictions
 
-## 9. Termination
+Unless explicitly granted, Licensee/Assignee may not:
+- sublicense or transfer rights beyond permitted scope
+- use Licensor trademarks/branding
+- claim rights to excluded assets
 
-If Licensee materially breaches this License and fails to cure within 30 days after written notice,
-this License terminates automatically.
+## 10. Support and Maintenance
 
-Upon termination, Licensee must cease use and destroy all copies, except where retention is required by law.
+- Included support: __________________
+- Excluded support: __________________
+- SLA expectations (if any): __________________
 
-## 10. Governing Law
+## 11. Warranties and Liability
 
-Governing law/jurisdiction: __________________
+Set warranty and liability terms in definitive agreement.
 
-## 11. Entire Agreement
+Common default:
+- provided "as is" unless expressly warranted
+- liability limitations per negotiated contract and governing law
 
-This License is the entire agreement regarding the Licensed Materials and supersedes prior
-oral or written statements on the same subject.
+## 12. Governing Law and Dispute Terms
 
-## 12. Commercial Expansion And Assignment Option (Optional)
+- Governing law/jurisdiction: __________________
+- Dispute process: __________________
 
-This License does not grant commercialization rights beyond internal use.
+## 13. Entire Agreement
 
-If Licensee wants to commercialize the Licensed Materials, use them as a core asset in forming/funding/operating an enterprise entity, or obtain ownership transfer, the parties may execute one of the following separate signed agreements:
-
-- Commercial License Addendum (scope/territory/field/use rights defined)
-- IP Assignment Agreement (full transfer of ownership and defined derivative rights)
-
-Optional pre-negotiated commercial path summary:
-- [ ] None at this time
-- [ ] Commercial license option pre-approved for future negotiation
-- [ ] Full assignment option pre-approved for future negotiation
-- [ ] Any royalty-free structure (license or assignment) is possible only if Licensor explicitly elects it in a signed definitive agreement
+This term sheet has no effect until incorporated into signed definitive agreement(s).
 
 ---
 
 Licensor Signature: __________________  Date: __________________
 
-Licensee Signature: __________________  Date: __________________
+Licensee/Assignee Signature: __________________  Date: __________________

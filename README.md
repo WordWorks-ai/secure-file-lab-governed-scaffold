@@ -166,6 +166,7 @@ Default licensing posture is proprietary (All Rights Reserved). See:
 - `docs/legal/DEMO_EVALUATION_TERMS.md`
 - `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md`
 - `docs/legal/COMMERCIAL_RIGHTS_OPTIONS.md`
+- `docs/legal/PRICING_AND_EFFORT_ESTIMATE.md`
 - `docs/legal/FORK_LICENSE_TEMPLATE.md`
 - `docs/legal/SESSION_PREP_PACKAGE.md`
 - `docs/legal/CLIENT_MEETING_CHECKLIST.md`
@@ -178,7 +179,7 @@ Commercialization or enterprise-core use of this IP requires a separate signed c
 ## Current Status
 
 - Completed: Phase 0 and Phase 1.
-- In progress: hardening validation pass for scaffold.
+- Completed: hardening validation pass for scaffold.
 - Not started: feature phases (auth, files, shares, audit, worker scan pipeline).
 
 Detailed evidence is tracked in `docs/status`.

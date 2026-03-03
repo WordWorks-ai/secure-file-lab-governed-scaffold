@@ -1,108 +1,79 @@
 # Live Session Run Script (60-75 Minutes)
 
-Use this script verbatim or adapt lightly. It is designed to preserve IP leverage, validate fit, and produce a usable reference outcome.
+Use this script to keep the discussion clear, fair, and enforceable.
 
-## 0) Pre-Call Gate (Do Not Skip)
+## 0) Pre-Call Gate
 
 Required before recording:
-- Signed `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md`.
-- Sent `docs/legal/DEMO_EVALUATION_TERMS.md`.
-- If fork rights may be discussed, sent `docs/legal/FORK_LICENSE_TEMPLATE.md` as draft-only.
+- signed `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md`
 
-If signed recording consent is missing: run session unrecorded.
+Required before commercial discussion:
+- sent `docs/legal/DEMO_EVALUATION_TERMS.md`
+- sent `docs/legal/COMMERCIAL_RIGHTS_OPTIONS.md`
+- sent `docs/legal/PRICING_AND_EFFORT_ESTIMATE.md`
 
 ## 1) Opening Script (2-3 Minutes)
 
 Read:
 
-"Thanks for joining. Before we start, I want to confirm three things on record:
-1. You consent to recording this session.
-2. You understand this discussion is evaluation/advisory and does not transfer software ownership or license rights.
-3. Any code usage or fork rights require a separate signed license.
-4. Any commercial use or enterprise-core use of this IP requires a separate signed commercial rights agreement.
-Is that all correct?"
-
-If yes:
-
-"Great. Today I want to do three things: understand your problem deeply, walk you through the implementation and security posture, and identify whether advisory, build support, or a licensed fork makes sense."
+"Before we start, I want to confirm four points:
+1. This package is currently a hardened Phase 0/1 scaffold.
+2. It is not yet a feature-complete secure file-sharing runtime.
+3. No ownership or license rights transfer without signed written terms.
+4. If we proceed commercially, we will choose Option 1, 2, or 3 and bind rights to a commit hash and asset schedule.
+Is that correct?"
 
 ## 2) Discovery Script (15 Minutes)
 
-Read:
+Ask:
+1. "What business outcome do you need in the next 90 days?"
+2. "Do you prefer full ownership now or lower-upfront shared-upside structure?"
+3. "How much ongoing governance/support do you want from us?"
+4. "What are your non-negotiable security controls before launch?"
 
-"I want to start with your context before I show anything."
+## 3) Technical Walkthrough Script (20 Minutes)
 
-Ask in this order:
-1. "What problem were you solving when you started this effort?"
-2. "What have you tried already and where did it break down?"
-3. "How did AI tools or coding agents help, and where did they fail you?"
-4. "What security or governance requirements are non-negotiable for you?"
-5. "If this went well, what outcome would matter most in the next 90 days?"
+Say:
 
-Close discovery:
+"I’ll show what is implemented, what is hardened, and what remains roadmap scope."
 
-"I’m hearing [summarize in 30 seconds]. I’ll now map the demo directly to those concerns."
-
-## 3) Demo Script (20 Minutes)
-
-### 3.1 Architecture
-
-"This is a governed prototype scaffold, not an overbuilt enterprise mesh. Core services are Caddy, API, worker, Postgres, Redis, MinIO, Vault, ClamAV, MailHog, and backup."
-
-### 3.2 Deterministic bootstrap and validation
-
-"I’ll show deterministic startup, health checks, and test posture first, then code organization and hardening artifacts."
-
-Suggested commands to run:
+Suggested command:
 
 ```bash
 ./infra/scripts/demo-session.sh
 ```
 
-### 3.3 Code/governance walkthrough
-
-"Now I’ll show how architecture decisions, threat model, and runbooks are encoded in-repo so implementation stays disciplined."
-
 Open and walk:
-- `IMPLEMENTATION_PLAN.md`
-- `docs/adr/*`
-- `docs/threat-model.md`
-- `docs/security-baseline.md`
+- `README.md`
 - `HARDENING_REVIEW.md`
 - `SECURITY_FINDINGS.md`
+- `docs/status/hardening-pass.md`
 
-## 4) Technical Q&A Script (10-15 Minutes)
-
-"Ask anything you want in the codebase and I’ll answer directly with evidence and tradeoffs."
-
-When challenged, use:
-
-"That’s a fair critique. Current behavior is [fact]. The risk is [risk]. The controlled fix is [fix path]."
-
-## 5) Commercial Positioning Script (5-10 Minutes)
+## 4) Commercial Script (15 Minutes)
 
 Read:
 
-"Here are the collaboration paths:
-1. Advisory only: architecture/security guidance, no code license grant.
-2. Advisory + implementation support: scoped build work under services agreement.
-3. Optional internal-use fork license: one legal entity, pinned commit, with terms negotiated in writing.
-4. Optional commercial expansion: separate commercial license or full assignment agreement, only if I explicitly approve in a signed definitive agreement.
+"We can proceed in one of three ways:
+1. Option 1: snapshot assignment of implemented code (higher upfront, full ownership of listed assets).
+2. Option 2: hybrid license + revenue share + collaboration governance (recommended default).
+3. Option 3: partnership/JV structure if both sides want deeper strategic alignment.
 
-I retain ownership by default. Any fork or broader commercial rights are explicit and signed, not implied."
+For fairness, we anchor scope to the current implemented package and leave future phases as separate roadmap work."
 
-## 6) Reference Close Script (2 Minutes)
+## 5) Objection Handling Script (10 Minutes)
 
-Read:
+"That concern is valid. Current behavior is [fact]. The remaining risk is [risk].
+We can address it with [specific term, scope clause, or roadmap slice]."
 
-"If this was useful, I’d like your permission to use this as a reference. We can do named reference, anonymous testimonial, or no external reference. What are you comfortable with?"
+## 6) Close Script (2-3 Minutes)
 
-Capture exact answer in writing after the call.
+"Based on today, my recommended next step is [Option 1/2/3].
+I’ll send terms with commit-bound asset schedules and pricing within 24 hours."
 
-## 7) Post-Call Script (Email Within 24 Hours)
+## 7) Post-Call Deliverables
 
-Use `docs/legal/PRE_SESSION_EMAIL_TEMPLATE.md` follow-up section and include:
-- Problem summary (their words)
-- Risks/gaps identified
-- Recommended next step option (1/2/3)
-- Any required signature documents
+Send:
+- written recap
+- selected option summary
+- draft terms using `docs/legal/FORK_LICENSE_TEMPLATE.md`
+- if Option 2: explicit revenue-share reporting and audit terms

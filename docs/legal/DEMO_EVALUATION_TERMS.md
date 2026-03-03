@@ -1,71 +1,63 @@
-# Demo And Evaluation Terms (Default)
+# Demo and Evaluation Terms (Default)
 
-These terms govern advisory discovery calls, architecture walkthroughs, and prototype demos unless superseded by a signed agreement.
+These terms govern discovery calls, architecture walkthroughs, and prototype demos unless superseded by a signed agreement.
 
 Note: operational template only, not legal advice.
 
-## 1. Evaluation Purpose Only
+## 1. Evaluation Purpose
 
-Materials and demonstrations are provided only to assess feasibility and potential commercial engagement.
+Materials and demonstrations are provided to evaluate technical fit and potential commercial engagement.
 
-## 2. Ownership
+## 2. Scope Reality
 
-All IP remains solely with Licensor. No ownership transfer or implied right occurs by access, meeting attendance, or evaluation activity.
+Current deliverable is a hardened **Phase 0/1 scaffold** and not a feature-complete secure file-sharing runtime.
 
-## 3. Limited Evaluation Permission
+## 3. Ownership Default
 
-Licensee/Evaluator may:
-- attend demo sessions
-- review shared non-confidential materials
-- discuss architecture, controls, and implementation approach
+All repository IP remains with Licensor unless explicitly transferred or licensed in a signed written agreement.
 
-Evaluator may not, without signed written license:
-- copy, redistribute, or publish source/materials
-- use software in production
-- sublicense, resell, or white-label any component
-- create commercial derivative offerings
+## 4. Evaluation Permission
 
-## 4. Commercial Rights Are Separate
+Evaluator may:
+- attend sessions
+- review shared evaluation materials
+- discuss architecture, controls, and roadmap
 
-Any source-code usage rights, fork rights, support rights, or delivery commitments require a separate signed agreement.
+Evaluator may not, without signed rights agreement:
+- deploy as production product
+- redistribute source/binaries
+- sublicense or resell components
+- claim ownership rights to repository IP
 
-## 5. Commercialization Trigger And Enterprise Formation
+## 5. Commercial Rights Are Separate
 
-Evaluator may not use this IP as a commercial product, revenue-generating service, or a core asset for forming/funding/operating an enterprise entity unless Licensor signs a separate commercial license or assignment agreement.
+Any code usage, ownership transfer, commercial license, support obligations, or revenue-share arrangement requires a separate signed agreement.
 
-All derivatives, modifications, and improvements remain under Licensor ownership unless a signed agreement explicitly transfers or grants such rights.
+## 6. Commercial Path Framework
 
-Pre-negotiated options may be offered by Licensor, including:
-- limited internal-use fork rights
-- scoped commercial license rights
-- full ownership transfer by separate signed definitive instrument; any royalty-free structure is possible only if expressly approved by Licensor
+Commercial terms may be negotiated under one of:
+- Option 1: snapshot assignment of implemented code
+- Option 2: hybrid commercial license + revenue share + collaboration governance
+- Option 3: partnership/JV structure
 
-## 6. Confidentiality Baseline
+Exact rights depend on signed schedules and commit-bound assets.
 
-Default baseline is professional but non-confidential. If confidential exchange is needed, execute NDA before that exchange.
+## 7. Confidentiality Baseline
 
-## 7. Recording And Session Media
+Default is professional but non-confidential unless NDA is executed.
 
-Recording is allowed only where all required participants provide explicit consent.
+## 8. Recording
 
-If recording is enabled, use `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md` for signed permission and scope.
-
-## 8. Acceptance Mechanics
-
-Preferred acceptance is signed written acceptance before session.
-
-If a participant proceeds with the session after on-record verbal confirmation, that participation is treated as acknowledgment of these evaluation restrictions and ownership boundaries.
-
-If a session proceeds without signed acceptance, these terms may be reiterated verbally on-record for operational clarity, but signed documents remain required for reliable rights transfer (including recording ownership, testimonial rights, and code license grants).
+Recording only with explicit consent and signed release.
 
 ## 9. No Warranty
 
-Provided "as is" without warranties of any kind, express or implied.
+Materials are provided "as is" unless a signed agreement states otherwise.
 
 ## 10. Limitation Of Liability
 
-To the maximum extent permitted by law, Licensor is not liable for indirect, incidental, special, or consequential damages arising from evaluation use.
+To the maximum extent permitted by law, Licensor is not liable for indirect or consequential damages from evaluation use.
 
-## 11. No Implied Partnership Or Commitment
+## 11. No Implied Partnership
 
-No meeting, demo, or follow-up discussion creates a partnership, joint venture, employment relationship, or commitment to proceed commercially.
+Evaluation activity does not create partnership, joint venture, employment, or commitment to transact.

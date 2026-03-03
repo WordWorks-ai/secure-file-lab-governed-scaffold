@@ -1,38 +1,44 @@
 # Initial Engagement Email Draft
 
-Subject: Secure File Lab - Initial Engagement Package
+Subject: Secure File Lab - Current Package, Pricing, and Rights Options
 
 Hi [Client Name],
 
-Sharing the initial engagement package for the Secure File Sharing Lab build.
+Sharing the current Secure File Lab package and commercial options.
 
 What is included now:
-
 - Hardened, deterministic Phase 0/1 self-hosted scaffold
-- Reproducible Docker startup/bootstrap path
-- Security baseline controls and hardening checks
+- Reproducible compose startup/bootstrap path
+- Security and hardening guardrails with CI checks
 - Backup artifact generation + restore smoke validation
-- Governance, threat model, and runbook documentation
-- Add-on hardening/reproducibility upgrade changelog
+- Governance package (ADRs, threat model, runbooks, status)
 
-Key scope note:
+Scope truth note:
+- This package is Phase 0/1 infrastructure + governance foundation.
+- Core runtime product workflows (auth/session, file pipeline, share runtime, full audit coverage) are Phase 2+ work.
 
-This package is intentionally Phase 0/1 infrastructure and governance foundation. Core product workflows (auth/session runtime, file ingest/download pipeline, share runtime, full audit emission) remain Phase 2+ implementation scope.
+Commercial options:
+1. Option 1 - Implemented code assignment (snapshot ownership)
+   - Typical range: **$75,000 to $120,000** one-time
+2. Option 2 - Hybrid commercial license + revenue share (recommended)
+   - Upfront: **$30,000 to $55,000**
+   - Revenue share: **5% to 12%** of defined commercialization revenue
+   - Optional support retainer: **$2,500 to $8,000/month**
+3. Option 3 - Full partnership/JV
+   - Structured separately if strategic alignment justifies it
 
-Artifacts:
+Estimate baseline for work represented in the current package:
+- effort range: **340 to 560 hours**
+- likely team shape: **2 to 4 contributors**
 
+Reference docs:
 - `README.md`
-- `docs/addons/ADDON-001-HARDENING-REPRODUCIBILITY-CHANGELOG.md`
-- `docs/client-source/CLIENT-PROVIDED-SOURCE.md` (client-owned source)
 - `HARDENING_REVIEW.md`
 - `SECURITY_FINDINGS.md`
+- `docs/legal/COMMERCIAL_RIGHTS_OPTIONS.md`
+- `docs/legal/PRICING_AND_EFFORT_ESTIMATE.md`
 
-Commercial anchor for this delivered artifact package:
-
-- Anchor: $65,000
-- Initial conversation band: $50,000-$85,000 (depending on rights/support model)
-
-If aligned, next step is a short scoping session to define Phase 2 implementation slices and delivery plan.
+If aligned, next step is a short commercial scoping session to finalize Option 1/2/3 terms and the exact asset schedule.
 
 Best,
 [Your Name]

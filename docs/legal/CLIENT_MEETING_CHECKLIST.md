@@ -2,29 +2,30 @@
 
 ## Before The Meeting
 
-- [ ] Confirm meeting objective (reference, advisory discovery, licensing discussion).
+- [ ] Confirm objective (advisory review, implementation scope, commercial terms).
 - [ ] Send prep packet from `docs/legal/SESSION_PREP_PACKAGE.md`.
 - [ ] Send `docs/legal/PRE_SESSION_EMAIL_TEMPLATE.md` content.
-- [ ] Request signed `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md` before call if recording.
-- [ ] Decide your default offer for this meeting:
-  - [ ] advisory only
-  - [ ] advisory + implementation
-  - [ ] optional negotiated internal fork license
+- [ ] If recording, collect signed `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md`.
+- [ ] Choose your default recommended path:
+  - [ ] Option 1: snapshot assignment
+  - [ ] Option 2: hybrid license + revenue share (recommended)
+  - [ ] Option 3: partnership/JV
 
 ## During The Meeting
 
-- [ ] Confirm recording consent verbally.
-- [ ] Confirm non-confidential baseline.
-- [ ] Confirm ownership boundary: no code rights without signed license.
-- [ ] Let client explain problem + prior attempts first.
-- [ ] Run demo and code walkthrough.
-- [ ] Capture objections, risks, and desired outcomes.
-- [ ] Confirm whether reference/testimonial permission is granted.
-- [ ] Capture next-step option (1 advisory / 2 services / 3 fork license).
+- [ ] Confirm recording consent verbally (if recording).
+- [ ] Confirm scope truth: current asset is hardened Phase 0/1 scaffold.
+- [ ] Confirm ownership boundary: no rights transfer without signed agreement.
+- [ ] Let client explain goals and constraints first.
+- [ ] Walk through implementation evidence and known gaps.
+- [ ] Confirm commercial direction (Option 1/2/3).
+- [ ] Capture open terms (asset schedule, pricing, support, governance).
 
 ## After The Meeting
 
 - [ ] Send recap within 24 hours.
-- [ ] If licensing interest exists, issue draft from `docs/legal/FORK_LICENSE_TEMPLATE.md`.
-- [ ] If services interest exists, issue separate advisory/services proposal.
-- [ ] Archive signed consent forms and approved reference wording.
+- [ ] Issue matching terms template:
+  - Option 1 -> assignment terms
+  - Option 2 -> hybrid license + revenue-share terms
+  - Option 3 -> partnership term sheet
+- [ ] Archive signed consent forms and commercial notes.
