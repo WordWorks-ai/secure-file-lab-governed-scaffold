@@ -2,6 +2,12 @@
 
 Use this document during client discussions to keep scope, rights, and pricing explicit.
 
+## Baseline Note (2026-03-03)
+
+For current live pitch numbers and the default meeting script, use:
+- `docs/legal/COMMERCIAL_POSITION_BASELINE.md`
+- `docs/legal/CLIENT_PRICING_TALK_TRACK.md`
+
 ## Scope Truth (Read First)
 
 Current repository state is a **hardened Phase 0/1 scaffold**, not a feature-complete secure file-sharing product.

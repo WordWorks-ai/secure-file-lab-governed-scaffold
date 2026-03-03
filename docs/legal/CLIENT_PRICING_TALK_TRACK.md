@@ -1,138 +1,97 @@
-# Client Pricing Talk Track (Data-Driven, No Emotion)
+# Client Pricing Talk Track (Current Baseline)
 
 ## Purpose
 
-Use this document as a factual script during client pricing/rights discussion.
+Use this script for client pricing and rights conversations.
+
+This talk track aligns to `docs/legal/COMMERCIAL_POSITION_BASELINE.md`.
 
 ## 1) Ground Truth (State First)
 
 Current repository scope:
 - hardened **Phase 0/1 scaffold**
-- not feature-complete secure file-sharing runtime
+- not yet a feature-complete secure file-sharing runtime
 
 Implemented value:
-- deterministic compose/bootstrap automation
+- deterministic bootstrap and infrastructure orchestration
 - runtime hardening controls
-- backup + restore smoke validation
+- backup and restore-smoke validation
 - quality/security guard tests
-- governance/legal/runbook package
+- governance and legal documentation package
 
-Source evidence:
-- `README.md`
-- `HARDENING_REVIEW.md`
-- `SECURITY_FINDINGS.md`
-- `docs/status/hardening-pass.md`
+Not implemented yet:
+- auth/session lifecycle runtime
+- full file ingest/download pipeline
+- complete encryption/scan/share/audit runtime coverage
 
-## 2) Effort Baseline (Use As Cost Anchor)
+## 2) Conversation Frame
 
-Estimated effort represented by current package:
-- **340 to 560 hours**
-- likely team shape: **2 to 4 contributors**
+Present two products, not one blended bundle:
 
-Source:
-- `docs/legal/PRICING_AND_EFFORT_ESTIMATE.md`
+1. **Product A: Snapshot Transfer**
+   - commit-bound repository snapshot rights
+   - no implied future roadmap delivery
+2. **Product B: Authored Delivery**
+   - expedited direct buildout by author
+   - priced for speed, judgment, and delivery responsibility
 
-## 3) Pricing Math (Use These Formulas Live)
+## 3) Pricing Baseline (Pitch Numbers)
 
-Formulas:
-- `Guaranteed Value = Upfront + (Monthly Retainer x Committed Months)`
-- `Upside Value = Revenue Share % x Revenue Base`
-- `All-In Value = Guaranteed Value + Upside Value`
-- `Guaranteed Hourly Realization = Guaranteed Value / Hours`
+### Product A: Snapshot Transfer
 
-Hours range for realization math:
-- low hour case: `340`
-- high hour case: `560`
+- pitch anchor: **$59,000**
+- likely close band: **$45,000 to $55,000**
+- walk-away floor: **$40,000**
 
-## 4) Decision Options (Client-Facing)
+### Product B: License + Stewardship
 
-### Option 1 - Snapshot Ownership Transfer
+- upfront license: **$30,000**
+- stewardship retainer: **$3,500/month**
+- minimum baseline term: **6 months**
 
-Commercial shape:
-- one-time assignment fee
-- ownership of listed implemented snapshot assets only
-- excluded assets remain excluded unless listed
+### Product C: Emergency Authored Build (4-6 weeks scoped)
 
-Target range:
-- `$75,000 to $120,000`
+- pitch anchor: **$85,000**
+- likely close band: **$65,000 to $75,000**
+- walk-away floor: **$60,000**
 
-Minimum acceptable:
-- **$90,000 one-time**
+## 4) Final Value Prompt (Read Verbatim)
 
-Guaranteed hourly realization at minimum:
-- `$90,000 / 560 = $161/hr`
-- `$90,000 / 340 = $265/hr`
+"Here are the two products.
+Product A is the current commit-bound scaffold snapshot, with full scope truth and transfer terms.
+Product B is expedited authored delivery where I prioritize your roadmap and deliver under compressed timelines.
+If you want only the snapshot, that's one price. If you want speed, judgment, and direct authored execution, that's a premium price."
 
-### Option 2 - Hybrid License + Revenue Share (Recommended)
+## 5) Why This Pricing Is Defensible
 
-Commercial shape:
-- upfront fee
-- revenue share
-- optional support/monitoring retainer
-- shared governance for contribution/security quality
+1. Replacement burden is substantial:
+   - existing baseline estimate is 340 to 560 hours across multiple specialties
+2. Maturity discount is already applied:
+   - snapshot pricing is below full-product pricing because core runtime features are unfinished
+3. Premium is conditional:
+   - urgency and direct authored involvement are priced separately, not hidden in snapshot pricing
+4. Opportunity-cost discipline:
+   - floor prices protect against diverting from higher-upside internal roadmap work
 
-Target range:
-- upfront: `$30,000 to $55,000`
-- revenue share: `5% to 12%`
-- retainer: `$2,500 to $8,000/month`
+## 6) Hard Acceptance Gates
 
-Minimum acceptable:
-- **$40,000 upfront + 8% revenue share**
-- if ongoing monitoring/support requested: **$3,000/month minimum**
-
-Guaranteed hourly realization at minimum upfront only:
-- `$40,000 / 560 = $71/hr`
-- `$40,000 / 340 = $118/hr`
-
-Guaranteed hourly realization with 12-month minimum support:
-- `($40,000 + ($3,000 x 12)) / 560 = $136/hr`
-- `($40,000 + ($3,000 x 12)) / 340 = $224/hr`
-
-### Option 3 - Partnership/JV
-
-Commercial shape:
-- custom governance/equity/revenue design
-- use only if strategic long-horizon alignment is real
-
-Default posture:
-- do not force for this deal unless both sides explicitly want deep partnership
-
-## 5) Hard Acceptance Gates (Binary)
-
-Proceed only if all are true:
-1. Scope truth is acknowledged in writing (Phase 0/1 scaffold reality).
-2. Rights are bound to commit hash + included/excluded asset schedule.
+1. Scope truth is acknowledged in writing (Phase 0/1 scaffold).
+2. Rights are bound to a specific commit hash and explicit include/exclude schedule.
 3. Payment terms are explicit and enforceable.
-4. Minimum economics are met:
-- Option 1: at least `$90,000`.
-- Option 2: at least `$40,000 + 8%` (and `$3,000/month` if monitoring/support is expected).
-5. Commercial reporting and audit rights are defined for revenue share.
+4. Snapshot and authored delivery economics are negotiated separately.
+5. No implicit commitment to deliver full roadmap under snapshot pricing.
 
-## 6) Walk-Away Rule
-
-If guaranteed value is below **$60,000 equivalent**, decline.
-
-## 7) Meeting Script (Read Verbatim)
-
-"I want to keep this factual and simple.
-
-The current package is a hardened Phase 0/1 scaffold with validated infrastructure, hardening, and governance controls. It is not yet a full feature-complete secure file-sharing runtime.
-
-The build represented here is estimated at 340 to 560 hours across multiple specialties. We can structure this three ways:
-
-Option 1: ownership transfer of the implemented snapshot, minimum 90,000.
-Option 2: hybrid license with shared upside, minimum 40,000 upfront plus 8 percent revenue share, with 3,000 per month if ongoing monitoring/support is requested.
-Option 3: partnership model only if we both want long-horizon joint execution.
-
-I am happy to choose the structure that is best for your business, but I need the agreement tied to a commit-bound asset schedule and minimum economics that are fair to both sides."
-
-## 8) Quick Objection Responses (Neutral)
+## 7) Objection Responses (Neutral)
 
 If client says "too expensive":
-- "Understood. We can switch structure rather than discount scope truth. Option 2 lowers upfront and aligns upside."
+- "We can separate the products. Snapshot has one price; expedited authored delivery has another."
 
-If client says "we want full ownership but lower price":
-- "We can discuss staged buyout terms, but full transfer requires Option 1 economics."
+If client says "we want ownership plus urgent build support at snapshot price":
+- "That combines transfer and emergency execution. We can price those as separate scopes."
 
-If client says "no revenue share":
-- "Then we can do pure assignment economics or increase upfront license value to preserve fair equivalence."
+If client says "we do not want monthly stewardship":
+- "Then we can do snapshot-only economics or a fixed-scope emergency build with no ongoing retainer."
+
+## 8) Internal Rule
+
+If terms fall below floors while support/urgency expectations remain high, decline and continue internal buildout.

@@ -154,6 +154,14 @@ See:
 
 - `docs/addons/ADDON-001-HARDENING-REPRODUCIBILITY-CHANGELOG.md`
 
+## Valuation Artifacts
+
+- `docs/valuation/INDEPENDENT_VALUATION_REPORT.md`
+- `docs/valuation/CONVERSATION_REVIEW_AND_FORWARD_POSITION.md`
+- `docs/valuation/AUTHORSHIP_MODEL_COMMERCIAL_POSITION.md`
+- `docs/valuation/verify-valuation-claims.sh`
+- `docs/valuation/verify-history-and-authorship-signals.sh`
+
 ## Client-Provided Source Materials
 
 - `docs/client-source/CLIENT-PROVIDED-SOURCE.md`
@@ -171,6 +179,7 @@ Default licensing posture is proprietary (All Rights Reserved). See:
 - `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md`
 - `docs/legal/COMMERCIAL_RIGHTS_OPTIONS.md`
 - `docs/legal/PRICING_AND_EFFORT_ESTIMATE.md`
+- `docs/legal/COMMERCIAL_POSITION_BASELINE.md`
 - `docs/legal/CLIENT_PRICING_TALK_TRACK.md`
 - `docs/legal/FORK_LICENSE_TEMPLATE.md`
 - `docs/legal/SESSION_PREP_PACKAGE.md`

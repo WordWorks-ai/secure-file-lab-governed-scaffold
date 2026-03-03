@@ -11,6 +11,14 @@ Scope basis for this estimate:
 
 This document is a commercial planning aid, not legal or tax advice.
 
+## Baseline Note (2026-03-03)
+
+For current live pitch numbers and meeting script, use:
+- `docs/legal/COMMERCIAL_POSITION_BASELINE.md`
+- `docs/legal/CLIENT_PRICING_TALK_TRACK.md`
+
+This document remains useful for effort framing and option design, but it is not the primary source for current anchor/floor pricing.
+
 ## Current Asset Reality
 
 What is implemented and demonstrable now:
