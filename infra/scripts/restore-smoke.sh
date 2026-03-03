@@ -61,12 +61,18 @@ if ! docker exec "$SMOKE_DB_CONTAINER" pg_isready -U "$SMOKE_DB_USER" -d postgre
 fi
 
 # Ensure requested restore database exists even if entrypoint init order lags.
-if ! docker exec "$SMOKE_DB_CONTAINER" psql \
-  -U "$SMOKE_DB_USER" \
-  -d postgres \
-  -v ON_ERROR_STOP=1 \
-  -v smoke_db_name="$SMOKE_DB_NAME" \
-  -tAc "SELECT 1 FROM pg_database WHERE datname = :'smoke_db_name'" | grep -q '^1$'; then
+db_exists="$(
+  docker exec "$SMOKE_DB_CONTAINER" psql \
+    -U "$SMOKE_DB_USER" \
+    -d postgres \
+    -v ON_ERROR_STOP=1 \
+    -v smoke_db_name="$SMOKE_DB_NAME" \
+    -tA <<'SQL'
+SELECT 1 FROM pg_database WHERE datname = :'smoke_db_name';
+SQL
+)"
+
+if [[ "$(tr -d '[:space:]' <<<"$db_exists")" != "1" ]]; then
   docker exec "$SMOKE_DB_CONTAINER" psql \
     -U "$SMOKE_DB_USER" \
     -d postgres \
