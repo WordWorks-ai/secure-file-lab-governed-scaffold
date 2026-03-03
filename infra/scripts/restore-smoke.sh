@@ -9,6 +9,13 @@ SMOKE_DB_USER="${SMOKE_DB_USER:-sfl}"
 SMOKE_DB_NAME="${SMOKE_DB_NAME:-sfl}"
 SMOKE_DB_PASSWORD="${SMOKE_DB_PASSWORD:-sfl}"
 SMOKE_DB_WAIT_SECONDS="${SMOKE_DB_WAIT_SECONDS:-60}"
+SMOKE_MINIO_CONTAINER="restore-smoke-minio"
+SMOKE_MINIO_IMAGE="${SMOKE_MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-02-07T23-21-09Z}"
+SMOKE_MC_IMAGE="${SMOKE_MC_IMAGE:-minio/mc:RELEASE.2025-02-08T19-14-21Z}"
+SMOKE_MINIO_WAIT_SECONDS="${SMOKE_MINIO_WAIT_SECONDS:-60}"
+SMOKE_MINIO_ROOT_USER="${SMOKE_MINIO_ROOT_USER:-minioadmin}"
+SMOKE_MINIO_ROOT_PASSWORD="${SMOKE_MINIO_ROOT_PASSWORD:-minioadmin}"
+SMOKE_MINIO_BUCKET="${SMOKE_MINIO_BUCKET:-secure-files}"
 ENV_LIB="$ROOT_DIR/infra/scripts/lib/env.sh"
 
 if [[ -f "$ROOT_DIR/.env" ]]; then
@@ -16,6 +23,9 @@ if [[ -f "$ROOT_DIR/.env" ]]; then
   load_env_file "$ROOT_DIR/.env"
   SMOKE_DB_USER="${POSTGRES_USER:-$SMOKE_DB_USER}"
   SMOKE_DB_NAME="${POSTGRES_DB:-$SMOKE_DB_NAME}"
+  SMOKE_MINIO_ROOT_USER="${MINIO_ROOT_USER:-$SMOKE_MINIO_ROOT_USER}"
+  SMOKE_MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-$SMOKE_MINIO_ROOT_PASSWORD}"
+  SMOKE_MINIO_BUCKET="${MINIO_BUCKET:-$SMOKE_MINIO_BUCKET}"
 fi
 
 if [[ -z "$LATEST_DIR" ]]; then
@@ -38,7 +48,23 @@ if [[ ! -d "$LATEST_DIR/minio" ]]; then
   exit 1
 fi
 
-trap 'docker rm -f "$SMOKE_DB_CONTAINER" >/dev/null 2>&1 || true' EXIT
+wait_for_minio() {
+  local timeout_seconds="$1"
+  local i
+  for ((i = 1; i <= timeout_seconds; i++)); do
+    if docker run --rm \
+      --network "container:$SMOKE_MINIO_CONTAINER" \
+      --entrypoint /bin/sh \
+      "$SMOKE_MC_IMAGE" \
+      -c "mc alias set local http://127.0.0.1:9000 \"$SMOKE_MINIO_ROOT_USER\" \"$SMOKE_MINIO_ROOT_PASSWORD\" >/dev/null 2>&1 && mc ls local >/dev/null 2>&1"; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+trap 'docker rm -f "$SMOKE_DB_CONTAINER" "$SMOKE_MINIO_CONTAINER" >/dev/null 2>&1 || true' EXIT
 
 docker rm -f "$SMOKE_DB_CONTAINER" >/dev/null 2>&1 || true
 docker run -d --name "$SMOKE_DB_CONTAINER" \
@@ -97,4 +123,44 @@ if [[ -f "$LATEST_DIR/SHA256SUMS" ]]; then
   )
 fi
 
-echo "restore smoke passed for backup at $LATEST_DIR"
+docker rm -f "$SMOKE_MINIO_CONTAINER" >/dev/null 2>&1 || true
+docker run -d --name "$SMOKE_MINIO_CONTAINER" \
+  -e MINIO_ROOT_USER="$SMOKE_MINIO_ROOT_USER" \
+  -e MINIO_ROOT_PASSWORD="$SMOKE_MINIO_ROOT_PASSWORD" \
+  "$SMOKE_MINIO_IMAGE" server /data --console-address ':9001' >/dev/null
+
+if ! wait_for_minio "$SMOKE_MINIO_WAIT_SECONDS"; then
+  echo "restore smoke failed: temporary minio did not become ready within ${SMOKE_MINIO_WAIT_SECONDS}s" >&2
+  docker logs "$SMOKE_MINIO_CONTAINER" >&2 || true
+  exit 1
+fi
+
+docker run --rm \
+  --network "container:$SMOKE_MINIO_CONTAINER" \
+  -v "$LATEST_DIR/minio:/restore:ro" \
+  --entrypoint /bin/sh \
+  "$SMOKE_MC_IMAGE" \
+  -c "mc alias set local http://127.0.0.1:9000 \"$SMOKE_MINIO_ROOT_USER\" \"$SMOKE_MINIO_ROOT_PASSWORD\" && mc mb --ignore-existing local/\"$SMOKE_MINIO_BUCKET\" && mc mirror /restore local/\"$SMOKE_MINIO_BUCKET\""
+
+backup_object_count="$(find "$LATEST_DIR/minio" -type f | wc -l | tr -d '[:space:]')"
+restored_object_count="$(
+  docker run --rm \
+    --network "container:$SMOKE_MINIO_CONTAINER" \
+    --entrypoint /bin/sh \
+    "$SMOKE_MC_IMAGE" \
+    -c "set -e; mc alias set local http://127.0.0.1:9000 \"$SMOKE_MINIO_ROOT_USER\" \"$SMOKE_MINIO_ROOT_PASSWORD\" >/dev/null; mc ls --recursive local/\"$SMOKE_MINIO_BUCKET\" | wc -l" \
+    | tr -d '[:space:]'
+)"
+
+if [[ "$restored_object_count" != "$backup_object_count" ]]; then
+  echo "restore smoke failed: minio object count mismatch (expected $backup_object_count, got $restored_object_count)" >&2
+  exit 1
+fi
+
+docker run --rm \
+  --network "container:$SMOKE_MINIO_CONTAINER" \
+  --entrypoint /bin/sh \
+  "$SMOKE_MC_IMAGE" \
+  -c "mc alias set local http://127.0.0.1:9000 \"$SMOKE_MINIO_ROOT_USER\" \"$SMOKE_MINIO_ROOT_PASSWORD\" >/dev/null && mc ls local/\"$SMOKE_MINIO_BUCKET\" >/dev/null"
+
+echo "restore smoke passed for backup at $LATEST_DIR (postgres + minio)"

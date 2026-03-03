@@ -34,8 +34,9 @@ Current restore smoke path:
 1. Select latest backup directory.
 2. Verify required artifacts exist (`postgres.sql`, `manifest.json`, `minio/`).
 3. Restore `postgres.sql` into an ephemeral PostgreSQL container.
-4. Verify DB query succeeds.
-5. Verify checksums when `SHA256SUMS` is present.
+4. Restore `minio/` snapshot into an ephemeral MinIO container.
+5. Verify DB query succeeds and MinIO object count parity.
+6. Verify checksums when `SHA256SUMS` is present.
 
 ## Vault Recovery Notes
 
@@ -43,7 +44,7 @@ Prototype mode may use dev initialization; production-grade unseal/shamir backup
 
 ## Known Limitations (Current Scaffold)
 
-- Restore smoke does **not** restore MinIO objects back into a running MinIO target.
+- Restore smoke validates MinIO restore against an ephemeral container, not the long-running compose MinIO service.
 - Restore smoke does **not** validate login/file-download business workflows because auth/file features are not implemented yet.
 - Vault recovery is documentation-only in current scaffold.
 
