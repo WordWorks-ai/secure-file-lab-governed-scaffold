@@ -8,6 +8,11 @@ BOOTSTRAP_SCRIPT="$ROOT_DIR/infra/scripts/bootstrap.sh"
 SEED_SCRIPT="$ROOT_DIR/infra/scripts/seed-admin.sh"
 BACKUP_SCRIPT="$ROOT_DIR/infra/scripts/backup.sh"
 RESTORE_SCRIPT="$ROOT_DIR/infra/scripts/restore-smoke.sh"
+ENV_LIB="$ROOT_DIR/infra/scripts/lib/env.sh"
+API_DOCKERFILE="$ROOT_DIR/apps/api/Dockerfile"
+WORKER_DOCKERFILE="$ROOT_DIR/apps/worker/Dockerfile"
+CI_FILE="$ROOT_DIR/.github/workflows/ci.yml"
+LOCKFILE="$ROOT_DIR/pnpm-lock.yaml"
 
 for required_file in \
   "$COMPOSE_FILE" \
@@ -15,7 +20,12 @@ for required_file in \
   "$BOOTSTRAP_SCRIPT" \
   "$SEED_SCRIPT" \
   "$BACKUP_SCRIPT" \
-  "$RESTORE_SCRIPT"; do
+  "$RESTORE_SCRIPT" \
+  "$ENV_LIB" \
+  "$API_DOCKERFILE" \
+  "$WORKER_DOCKERFILE" \
+  "$CI_FILE" \
+  "$LOCKFILE"; do
   if [[ ! -f "$required_file" ]]; then
     echo "required file missing: $required_file" >&2
     exit 1
@@ -100,6 +110,18 @@ if rg -n 'image: .*:latest$' "$COMPOSE_FILE" >/dev/null; then
   exit 1
 fi
 
+for install_file in "$API_DOCKERFILE" "$WORKER_DOCKERFILE" "$CI_FILE"; do
+  if ! rg -n 'pnpm install --frozen-lockfile' "$install_file" >/dev/null; then
+    echo "expected frozen lockfile install command missing in $install_file" >&2
+    exit 1
+  fi
+done
+
+if rg -n -- '--no-frozen-lockfile|--frozen-lockfile=false' "$API_DOCKERFILE" "$WORKER_DOCKERFILE" "$CI_FILE" >/dev/null; then
+  echo "non-deterministic pnpm install flags detected in docker/ci files" >&2
+  exit 1
+fi
+
 for header_line in \
   'X-Content-Type-Options "nosniff"' \
   'X-Frame-Options "DENY"' \
@@ -154,5 +176,22 @@ for restore_guard in \
     exit 1
   fi
 done
+
+for env_script in \
+  "$BOOTSTRAP_SCRIPT" \
+  "$BACKUP_SCRIPT" \
+  "$RESTORE_SCRIPT" \
+  "$ROOT_DIR/infra/scripts/health.sh" \
+  "$ROOT_DIR/infra/scripts/tests/ops-reproducibility.sh"; do
+  if ! rg -n 'load_env_file' "$env_script" >/dev/null; then
+    echo "safe env loader not used in $env_script" >&2
+    exit 1
+  fi
+done
+
+if rg -n --glob '!infra/scripts/tests/hardening-baseline.sh' 'source[[:space:]]+.+\.env' "$ROOT_DIR/infra/scripts" >/dev/null; then
+  echo "direct .env sourcing detected under infra/scripts" >&2
+  exit 1
+fi
 
 echo "hardening baseline checks passed"

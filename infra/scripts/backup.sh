@@ -7,15 +7,15 @@ BACKUP_ROOT="${BACKUP_ROOT:-$ROOT_DIR/backups}"
 RETENTION_COUNT="${RETENTION_COUNT:-7}"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="$BACKUP_ROOT/$TIMESTAMP"
+ENV_LIB="$ROOT_DIR/infra/scripts/lib/env.sh"
 
 if [[ ! -f "$ROOT_DIR/.env" ]]; then
   echo ".env not found" >&2
   exit 1
 fi
 
-set -a
-source "$ROOT_DIR/.env"
-set +a
+source "$ENV_LIB"
+load_env_file "$ROOT_DIR/.env"
 
 required_vars=(
   POSTGRES_USER

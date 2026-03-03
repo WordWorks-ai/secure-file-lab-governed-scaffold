@@ -12,6 +12,7 @@ This is an operational template for execution. It is not legal advice.
 - Source code and all project IP are proprietary and retained by Licensor.
 - Default license posture is `All Rights Reserved`.
 - No open-source grant unless explicitly and separately chosen.
+- Client-provided source materials stored under `docs/client-source/` remain 100% owned by the client.
 
 2. Demo and discovery posture
 - Initial discovery/demo is non-confidential by default.

@@ -146,6 +146,17 @@ See:
 - `docs/runbooks/backup-and-restore.md`
 - `docs/runbooks/local-development.md`
 
+## Commercial Add-On Artifacts
+
+- `docs/addons/ADDON-001-HARDENING-REPRODUCIBILITY-CHANGELOG.md`
+
+## Client-Provided Source Materials
+
+- `docs/client-source/CLIENT-PROVIDED-SOURCE.md`
+- `docs/client-source/README.md`
+
+Client-provided materials in this directory remain 100% owned by the client.
+
 ## Legal And Demo Package
 
 Default licensing posture is proprietary (All Rights Reserved). See:
