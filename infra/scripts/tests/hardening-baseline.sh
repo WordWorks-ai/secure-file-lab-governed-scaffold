@@ -134,6 +134,28 @@ for header_line in \
   fi
 done
 
+for caddy_tls_line in \
+  'https://localhost' \
+  'tls internal'; do
+  if ! grep -Fq -- "$caddy_tls_line" "$CADDY_FILE"; then
+    echo "missing caddy tls baseline config: $caddy_tls_line" >&2
+    exit 1
+  fi
+done
+
+for vite_tmpfs_path in \
+  '/workspace/node_modules/.vite-temp' \
+  '/workspace/apps/api/node_modules/.vite-temp' \
+  '/workspace/packages/shared/node_modules/.vite-temp'; do
+  assert_in_block "$api_block" "$vite_tmpfs_path" "api vite temp tmpfs"
+done
+
+for vite_tmpfs_path in \
+  '/workspace/node_modules/.vite-temp' \
+  '/workspace/apps/worker/node_modules/.vite-temp'; do
+  assert_in_block "$worker_block" "$vite_tmpfs_path" "worker vite temp tmpfs"
+done
+
 for bootstrap_guard in \
   'BOOTSTRAP_ADMIN_PASSWORD_HASH must be set to a real Argon2id hash' \
   'BOOTSTRAP_ADMIN_PASSWORD_HASH must begin with \$argon2id\$'; do

@@ -15,5 +15,7 @@ load_env_file "$ROOT_DIR/.env"
 
 curl -fsS "http://localhost:${CADDY_HTTP_PORT}/v1/health/live" >/dev/null
 curl -fsS "http://localhost:${CADDY_HTTP_PORT}/v1/health/ready" >/dev/null
+curl -kfsS "https://localhost:${CADDY_HTTPS_PORT}/v1/health/live" >/dev/null
+curl -kfsS "https://localhost:${CADDY_HTTPS_PORT}/v1/health/ready" >/dev/null
 
 docker compose -f "$COMPOSE_FILE" ps

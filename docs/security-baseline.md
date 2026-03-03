@@ -68,7 +68,7 @@ Not implemented yet:
 - Secrets are injected via environment placeholders; real secrets are not committed.
 - `.env.example` provides placeholders only.
 - Bootstrap scripts are idempotent where practical and enforce admin hash guardrails.
-- Backup artifacts include checksum manifest; restore smoke verifies backup shape and DB-level restoration.
+- Backup artifacts include checksum manifest; restore smoke verifies backup shape plus PostgreSQL and MinIO restore integrity.
 - API and worker run as non-root with read-only filesystems and dropped Linux capabilities.
 
 ## Safe Failure Behavior
