@@ -15,6 +15,7 @@ required_files=(
   "docs/runbooks/local-development.md"
   "docs/status/phase-00.md"
   "docs/status/phase-01.md"
+  "infra/scripts/tests/scope-accuracy.sh"
   "package.json"
   "pnpm-lock.yaml"
   "pnpm-workspace.yaml"
