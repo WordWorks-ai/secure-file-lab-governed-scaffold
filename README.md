@@ -18,7 +18,7 @@ Implemented now:
 - API and worker health endpoints.
 - Basic Prisma schema (`users`, `bootstrap_state`, `audit_events`).
 - Shared file lifecycle helper (library only; not wired to API persistence/authorization paths).
-- Backup artifact generation and restore smoke for database-level verification.
+- Backup artifact generation and restore smoke for PostgreSQL + MinIO verification.
 
 Not implemented yet:
 
@@ -63,7 +63,7 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
   - non-hardcoded environment placeholders in `.env.example`
   - bootstrap guardrails for Argon2id admin hash format
   - non-root/read-only runtime for API and worker with dropped capabilities
-  - Caddy basic security headers
+  - Caddy security headers and local HTTPS termination (`tls internal`)
   - scaffold file lifecycle transition helper in `packages/shared`
 - Planned controls (not yet implemented in runtime flows):
   - JWT auth and rotating refresh tokens
