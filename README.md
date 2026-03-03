@@ -167,6 +167,7 @@ Default licensing posture is proprietary (All Rights Reserved). See:
 - `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md`
 - `docs/legal/COMMERCIAL_RIGHTS_OPTIONS.md`
 - `docs/legal/PRICING_AND_EFFORT_ESTIMATE.md`
+- `docs/legal/CLIENT_PRICING_TALK_TRACK.md`
 - `docs/legal/FORK_LICENSE_TEMPLATE.md`
 - `docs/legal/SESSION_PREP_PACKAGE.md`
 - `docs/legal/CLIENT_MEETING_CHECKLIST.md`

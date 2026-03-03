@@ -18,6 +18,7 @@ Prep package:
 - `docs/legal/DEMO_EVALUATION_TERMS.md`
 - `docs/legal/COMMERCIAL_RIGHTS_OPTIONS.md`
 - `docs/legal/PRICING_AND_EFFORT_ESTIMATE.md`
+- `docs/legal/CLIENT_PRICING_TALK_TRACK.md`
 - `docs/legal/FORK_LICENSE_TEMPLATE.md` (draft template)
 
 Important:
