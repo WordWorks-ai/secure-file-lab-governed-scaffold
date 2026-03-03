@@ -38,10 +38,12 @@ test-scaffold:
 	bash infra/scripts/tests/bootstrap-scripts.sh
 	bash infra/scripts/tests/phase1-compose.sh
 	bash infra/scripts/tests/secrets-hygiene.sh
+	bash infra/scripts/tests/env-loader-safety.sh
 	bash infra/scripts/tests/backup-restore-guards.sh
 
 test-hardening:
 	bash infra/scripts/tests/hardening-baseline.sh
+	bash infra/scripts/tests/env-loader-safety.sh
 	bash infra/scripts/tests/backup-restore-guards.sh
 
 test-ops-smoke:

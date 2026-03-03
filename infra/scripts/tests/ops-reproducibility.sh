@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/infra/compose/docker-compose.yml}"
+ENV_LIB="$ROOT_DIR/infra/scripts/lib/env.sh"
 
 if [[ ! -f "$ROOT_DIR/.env" ]]; then
   echo ".env not found. Copy .env.example to .env before running ops reproducibility test." >&2
@@ -11,9 +12,8 @@ fi
 
 bootstrap_admin_hash_override="${BOOTSTRAP_ADMIN_PASSWORD_HASH:-}"
 
-set -a
-source "$ROOT_DIR/.env"
-set +a
+source "$ENV_LIB"
+load_env_file "$ROOT_DIR/.env"
 
 if [[ -n "$bootstrap_admin_hash_override" ]]; then
   BOOTSTRAP_ADMIN_PASSWORD_HASH="$bootstrap_admin_hash_override"

@@ -9,11 +9,11 @@ SMOKE_DB_USER="${SMOKE_DB_USER:-sfl}"
 SMOKE_DB_NAME="${SMOKE_DB_NAME:-sfl}"
 SMOKE_DB_PASSWORD="${SMOKE_DB_PASSWORD:-sfl}"
 SMOKE_DB_WAIT_SECONDS="${SMOKE_DB_WAIT_SECONDS:-60}"
+ENV_LIB="$ROOT_DIR/infra/scripts/lib/env.sh"
 
 if [[ -f "$ROOT_DIR/.env" ]]; then
-  set -a
-  source "$ROOT_DIR/.env"
-  set +a
+  source "$ENV_LIB"
+  load_env_file "$ROOT_DIR/.env"
   SMOKE_DB_USER="${POSTGRES_USER:-$SMOKE_DB_USER}"
   SMOKE_DB_NAME="${POSTGRES_DB:-$SMOKE_DB_NAME}"
 fi
@@ -61,8 +61,22 @@ if ! docker exec "$SMOKE_DB_CONTAINER" pg_isready -U "$SMOKE_DB_USER" -d postgre
 fi
 
 # Ensure requested restore database exists even if entrypoint init order lags.
-if ! docker exec "$SMOKE_DB_CONTAINER" psql -U "$SMOKE_DB_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$SMOKE_DB_NAME'" | grep -q '^1$'; then
-  docker exec "$SMOKE_DB_CONTAINER" psql -U "$SMOKE_DB_USER" -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE \"$SMOKE_DB_NAME\" OWNER \"$SMOKE_DB_USER\";" >/dev/null
+if ! docker exec "$SMOKE_DB_CONTAINER" psql \
+  -U "$SMOKE_DB_USER" \
+  -d postgres \
+  -v ON_ERROR_STOP=1 \
+  -v smoke_db_name="$SMOKE_DB_NAME" \
+  -tAc "SELECT 1 FROM pg_database WHERE datname = :'smoke_db_name'" | grep -q '^1$'; then
+  docker exec "$SMOKE_DB_CONTAINER" psql \
+    -U "$SMOKE_DB_USER" \
+    -d postgres \
+    -v ON_ERROR_STOP=1 \
+    -v smoke_db_name="$SMOKE_DB_NAME" \
+    -v smoke_db_user="$SMOKE_DB_USER" \
+    >/dev/null <<'SQL'
+SELECT format('CREATE DATABASE %I OWNER %I', :'smoke_db_name', :'smoke_db_user')
+\gexec
+SQL
 fi
 
 cat "$LATEST_DIR/postgres.sql" | docker exec -i "$SMOKE_DB_CONTAINER" \

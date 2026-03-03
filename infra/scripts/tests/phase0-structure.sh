@@ -16,6 +16,7 @@ required_files=(
   "docs/status/phase-00.md"
   "docs/status/phase-01.md"
   "package.json"
+  "pnpm-lock.yaml"
   "pnpm-workspace.yaml"
   "Makefile"
   ".github/workflows/ci.yml"
