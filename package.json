@@ -1,0 +1,31 @@
+{
+  "name": "schwass-secure-file-lab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Governed scaffold for a self-hosted secure file sharing prototype",
+  "packageManager": "pnpm@8.11.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:scaffold": "bash infra/scripts/tests/phase0-structure.sh && bash infra/scripts/tests/bootstrap-scripts.sh && bash infra/scripts/tests/phase1-compose.sh && bash infra/scripts/tests/secrets-hygiene.sh && bash infra/scripts/tests/backup-restore-guards.sh",
+    "test:hardening": "bash infra/scripts/tests/hardening-baseline.sh && bash infra/scripts/tests/backup-restore-guards.sh",
+    "test:ops-smoke": "bash infra/scripts/tests/ops-reproducibility.sh",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "compose:validate": "docker compose --env-file .env.example -f infra/compose/docker-compose.yml config > /dev/null"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@typescript-eslint/eslint-plugin": "^8.26.1",
+    "@typescript-eslint/parser": "^8.26.1",
+    "eslint": "^8.57.1",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
+  }
+}
