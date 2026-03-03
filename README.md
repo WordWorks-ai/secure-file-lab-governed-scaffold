@@ -87,6 +87,8 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 
 ## Quick Start
 
+For a step-by-step operator walkthrough, see `docs/runbooks/getting-started.md`.
+
 1. Copy environment template:
 
 ```bash
@@ -145,6 +147,8 @@ See:
 - `docs/runbooks/bootstrap.md`
 - `docs/runbooks/backup-and-restore.md`
 - `docs/runbooks/local-development.md`
+- `docs/runbooks/getting-started.md`
+- `CONTRIBUTING.md`
 
 ## Commercial Add-On Artifacts
 
