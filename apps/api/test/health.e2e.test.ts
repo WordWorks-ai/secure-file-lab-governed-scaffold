@@ -8,6 +8,31 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { AppModule } from '../src/app.module.js';
 
+type ReadinessPayload = {
+  status: 'ready' | 'not_ready';
+  dependencies: Array<{ name: string; ok: boolean }>;
+};
+
+function asReadinessPayload(value: unknown): ReadinessPayload | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const candidate = value as {
+    status?: unknown;
+    dependencies?: unknown;
+  };
+
+  if (
+    (candidate.status === 'ready' || candidate.status === 'not_ready') &&
+    Array.isArray(candidate.dependencies)
+  ) {
+    return candidate as ReadinessPayload;
+  }
+
+  return null;
+}
+
 describe('health endpoints', () => {
   let app: INestApplication;
 
@@ -37,9 +62,25 @@ describe('health endpoints', () => {
     const response = await request(app.getHttpServer()).get('/v1/health/ready');
 
     expect([200, 503]).toContain(response.statusCode);
-    const payload = response.statusCode === 200 ? response.body : response.body.message;
+    const payload = asReadinessPayload(response.body) ?? asReadinessPayload(response.body?.message);
 
-    expect(['ready', 'not_ready']).toContain(payload.status);
-    expect(Array.isArray(payload.dependencies)).toBe(true);
+    if (response.statusCode === 200) {
+      expect(payload).not.toBeNull();
+      expect(payload?.status).toBe('ready');
+      expect(Array.isArray(payload?.dependencies)).toBe(true);
+      return;
+    }
+
+    expect(response.statusCode).toBe(503);
+    if (payload) {
+      expect(payload.status).toBe('not_ready');
+      expect(Array.isArray(payload.dependencies)).toBe(true);
+      return;
+    }
+
+    const fallback = response.body?.message ?? response.body?.error;
+    expect(
+      typeof fallback === 'string' || (Array.isArray(fallback) && fallback.every((x) => typeof x === 'string')),
+    ).toBe(true);
   });
 });

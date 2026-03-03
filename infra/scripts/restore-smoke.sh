@@ -48,16 +48,21 @@ docker run -d --name "$SMOKE_DB_CONTAINER" \
   postgres:16-alpine >/dev/null
 
 for ((i = 1; i <= SMOKE_DB_WAIT_SECONDS; i++)); do
-  if docker exec "$SMOKE_DB_CONTAINER" pg_isready -U "$SMOKE_DB_USER" -d "$SMOKE_DB_NAME" >/dev/null 2>&1; then
+  if docker exec "$SMOKE_DB_CONTAINER" pg_isready -U "$SMOKE_DB_USER" -d postgres >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
 
-if ! docker exec "$SMOKE_DB_CONTAINER" pg_isready -U "$SMOKE_DB_USER" -d "$SMOKE_DB_NAME" >/dev/null 2>&1; then
+if ! docker exec "$SMOKE_DB_CONTAINER" pg_isready -U "$SMOKE_DB_USER" -d postgres >/dev/null 2>&1; then
   echo "restore smoke failed: temporary postgres did not become ready within ${SMOKE_DB_WAIT_SECONDS}s" >&2
   docker logs "$SMOKE_DB_CONTAINER" >&2 || true
   exit 1
+fi
+
+# Ensure requested restore database exists even if entrypoint init order lags.
+if ! docker exec "$SMOKE_DB_CONTAINER" psql -U "$SMOKE_DB_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$SMOKE_DB_NAME'" | grep -q '^1$'; then
+  docker exec "$SMOKE_DB_CONTAINER" psql -U "$SMOKE_DB_USER" -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE \"$SMOKE_DB_NAME\" OWNER \"$SMOKE_DB_USER\";" >/dev/null
 fi
 
 cat "$LATEST_DIR/postgres.sql" | docker exec -i "$SMOKE_DB_CONTAINER" \

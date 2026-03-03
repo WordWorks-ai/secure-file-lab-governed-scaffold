@@ -129,6 +129,7 @@ Before bootstrap, set a real Argon2id hash for `BOOTSTRAP_ADMIN_PASSWORD_HASH` i
 - `make bootstrap` - run deterministic first-run init
 - `make backup` - run local backup procedure
 - `make restore-smoke` - run smoke restore path
+- `./infra/scripts/demo-session.sh` - run end-to-end technical demo validation script
 
 ## Governance Documents
 
@@ -144,6 +145,23 @@ See:
 - `docs/runbooks/bootstrap.md`
 - `docs/runbooks/backup-and-restore.md`
 - `docs/runbooks/local-development.md`
+
+## Legal And Demo Package
+
+Default licensing posture is proprietary (All Rights Reserved). See:
+
+- `LICENSE`
+- `docs/legal/LEGAL_DECISIONS.md`
+- `docs/legal/DEMO_EVALUATION_TERMS.md`
+- `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md`
+- `docs/legal/COMMERCIAL_RIGHTS_OPTIONS.md`
+- `docs/legal/FORK_LICENSE_TEMPLATE.md`
+- `docs/legal/SESSION_PREP_PACKAGE.md`
+- `docs/legal/CLIENT_MEETING_CHECKLIST.md`
+- `docs/legal/SESSION_RUN_SCRIPT.md`
+- `docs/legal/PRE_SESSION_EMAIL_TEMPLATE.md`
+
+Commercialization or enterprise-core use of this IP requires a separate signed commercial rights agreement.
 
 ## Current Status
 
