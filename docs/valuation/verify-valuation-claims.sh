@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # =============================================================================
-# Valuation Evidence Verification Script
+# Valuation Evidence Verification Script (v2 — Authorship Model)
 # =============================================================================
 # This script programmatically verifies the factual claims made in the
-# Independent Valuation Report. Every assertion below corresponds to a
+# Independent Valuation Report (v2). Every assertion below corresponds to a
 # specific claim in the report. Failures indicate the report's evidence
 # basis has changed and the valuation should be re-examined.
 # =============================================================================
@@ -23,6 +23,14 @@ check_file() {
     pass "file exists: $1"
   else
     fail "file missing: $1"
+  fi
+}
+
+check_dir() {
+  if [[ -d "$ROOT_DIR/$1" ]]; then
+    pass "directory exists: $1"
+  else
+    fail "directory missing: $1"
   fi
 }
 
@@ -49,15 +57,64 @@ check_pattern_regex() {
 }
 
 echo "========================================"
-echo "Valuation Evidence Verification"
+echo "Valuation Evidence Verification (v2)"
+echo "Authorship Model Claims"
 echo "========================================"
 echo ""
 
 # ---------------------------------------------------------------------------
-echo "--- Section B: Application Code Artifacts ---"
+echo "--- Section B: Authorship Production Model Evidence ---"
 # ---------------------------------------------------------------------------
 
-# Claim: apps/api/src has 6 source files
+# Claim: codex/-prefixed branch name exists in git history
+if git -C "$ROOT_DIR" log --all --oneline | grep -q "codex/"; then
+  pass "codex/ branch reference in git history"
+else
+  fail "codex/ branch reference not found in git history"
+fi
+
+# Claim: Cursor IDE metadata directory exists
+if [[ -d "$ROOT_DIR/.git/cursor" ]]; then
+  pass "Cursor IDE metadata directory exists (.git/cursor/)"
+else
+  fail "Cursor IDE metadata directory not found"
+fi
+
+# Claim: All commits fall within a single day (2026-03-03)
+commit_dates="$(git -C "$ROOT_DIR" log --all --format='%ad' --date=short | sort -u)"
+commit_date_count="$(echo "$commit_dates" | wc -l | tr -d '[:space:]')"
+if [[ "$commit_date_count" -eq 1 ]]; then
+  pass "All commits on single date: $(echo "$commit_dates" | tr -d '[:space:]')"
+else
+  fail "Commits span multiple dates (expected 1 date, found $commit_date_count)"
+fi
+
+# Claim: All commits within ~3 hour window
+earliest_epoch="$(git -C "$ROOT_DIR" log --all --format='%at' | sort -n | head -1)"
+latest_epoch="$(git -C "$ROOT_DIR" log --all --format='%at' | sort -n | tail -1)"
+elapsed_hours=$(( (latest_epoch - earliest_epoch) / 3600 ))
+if [[ "$elapsed_hours" -le 4 ]]; then
+  pass "All commits within ${elapsed_hours}h window (claimed ~3h)"
+else
+  fail "Commit window is ${elapsed_hours}h (expected <=4h)"
+fi
+
+# Claim: Initial commit has ~84 files
+initial_commit="$(git -C "$ROOT_DIR" rev-list --max-parents=0 HEAD | head -1)"
+initial_file_count="$(git -C "$ROOT_DIR" show --stat --format='' "$initial_commit" | grep -c '|' || true)"
+if [[ "$initial_file_count" -ge 75 && "$initial_file_count" -le 95 ]]; then
+  pass "Initial commit file count: $initial_file_count (claimed ~84)"
+else
+  fail "Initial commit file count: $initial_file_count (expected ~84)"
+fi
+
+echo ""
+
+# ---------------------------------------------------------------------------
+echo "--- Section C: Application Code Artifacts ---"
+# ---------------------------------------------------------------------------
+
+# Claim: apps/api/src has ~6 source files
 api_src_count="$(find "$ROOT_DIR/apps/api/src" -type f -name '*.ts' | wc -l | tr -d '[:space:]')"
 if [[ "$api_src_count" -ge 5 && "$api_src_count" -le 8 ]]; then
   pass "API src file count: $api_src_count (claimed ~6)"
@@ -65,7 +122,7 @@ else
   fail "API src file count: $api_src_count (expected ~6)"
 fi
 
-# Claim: apps/worker/src has 5 source files
+# Claim: apps/worker/src has ~5 source files
 worker_src_count="$(find "$ROOT_DIR/apps/worker/src" -type f -name '*.ts' | wc -l | tr -d '[:space:]')"
 if [[ "$worker_src_count" -ge 4 && "$worker_src_count" -le 7 ]]; then
   pass "Worker src file count: $worker_src_count (claimed ~5)"
@@ -115,7 +172,7 @@ check_pattern "apps/worker/src/modules/jobs/jobs.service.ts" "Phase 5" "Worker j
 echo ""
 
 # ---------------------------------------------------------------------------
-echo "--- Section B: Infrastructure / IaC Artifacts ---"
+echo "--- Section C: Infrastructure / IaC Artifacts ---"
 # ---------------------------------------------------------------------------
 
 check_file "infra/compose/docker-compose.yml"
@@ -124,8 +181,7 @@ check_file "apps/api/Dockerfile"
 check_file "apps/worker/Dockerfile"
 check_file ".dockerignore"
 
-# Claim: 11 services in compose (10 runtime + 1 bootstrap-profile minio_init)
-# Count only entries under 'services:' block, excluding networks/volumes sections
+# Claim: 11 services in compose
 compose_service_count="$(awk '/^services:/{in_svc=1;next} /^[a-z]/{in_svc=0} in_svc && /^  [a-z_]+:/{count++} END{print count}' "$COMPOSE_FILE")"
 if [[ "$compose_service_count" -ge 10 && "$compose_service_count" -le 13 ]]; then
   pass "Compose service count: $compose_service_count (claimed 11)"
@@ -167,7 +223,7 @@ check_pattern "apps/worker/Dockerfile" "NODE_ENV=production" "Worker Dockerfile 
 echo ""
 
 # ---------------------------------------------------------------------------
-echo "--- Section B: Testing / Validation Artifacts ---"
+echo "--- Section C: Testing / Validation Artifacts ---"
 # ---------------------------------------------------------------------------
 
 # Claim: 9 shell test scripts
@@ -207,7 +263,7 @@ check_pattern ".github/workflows/ci.yml" "pnpm install --frozen-lockfile" "CI us
 echo ""
 
 # ---------------------------------------------------------------------------
-echo "--- Section B: Deployment / Operability Artifacts ---"
+echo "--- Section C: Deployment / Operability Artifacts ---"
 # ---------------------------------------------------------------------------
 
 check_file "infra/scripts/bootstrap.sh"
@@ -251,7 +307,7 @@ fi
 echo ""
 
 # ---------------------------------------------------------------------------
-echo "--- Section B: Governance / Documentation Artifacts ---"
+echo "--- Section C: Governance / Documentation Artifacts ---"
 # ---------------------------------------------------------------------------
 
 check_file "docs/adr/ADR-001-architecture-and-stack.md"
@@ -269,7 +325,7 @@ check_file "docs/addons/ADDON-001-HARDENING-REPRODUCIBILITY-CHANGELOG.md"
 echo ""
 
 # ---------------------------------------------------------------------------
-echo "--- Section B: Commercial / Legal Packaging Artifacts ---"
+echo "--- Section C: Commercial / Legal Packaging Artifacts ---"
 # ---------------------------------------------------------------------------
 
 legal_doc_count="$(find "$ROOT_DIR/docs/legal" -type f -name '*.md' | wc -l | tr -d '[:space:]')"
@@ -300,7 +356,7 @@ check_pattern "LICENSE" "docs/client-source/" "License has client-materials carv
 echo ""
 
 # ---------------------------------------------------------------------------
-echo "--- Section C: Implemented Scope Claims ---"
+echo "--- Section D: Implemented Scope Claims ---"
 # ---------------------------------------------------------------------------
 
 # Claim: Prisma schema has 3 models
@@ -320,7 +376,6 @@ else
 fi
 
 # Claim: File lifecycle has 8 states
-lifecycle_state_count="$(grep -c "'" "$ROOT_DIR/packages/shared/src/file-lifecycle.ts" | head -1 || true)"
 check_pattern "packages/shared/src/file-lifecycle.ts" "created" "Lifecycle state: created"
 check_pattern "packages/shared/src/file-lifecycle.ts" "stored" "Lifecycle state: stored"
 check_pattern "packages/shared/src/file-lifecycle.ts" "quarantined" "Lifecycle state: quarantined"
@@ -341,7 +396,7 @@ check_pattern "apps/api/src/tools/hash-password.ts" "argon2" "Hash utility uses 
 echo ""
 
 # ---------------------------------------------------------------------------
-echo "--- Section D: Documentation Fidelity Claims ---"
+echo "--- Section E: System Coherence Claims ---"
 # ---------------------------------------------------------------------------
 
 # Claim: Scope-accuracy is enforced by automated test
@@ -383,7 +438,7 @@ check_pattern "docs/legal/CLIENT_PRICING_TALK_TRACK.md" '$90,000' "Seller Option
 echo ""
 
 # ---------------------------------------------------------------------------
-echo "--- Section D: Dependency Hygiene Claims ---"
+echo "--- Dependency Hygiene Claims ---"
 # ---------------------------------------------------------------------------
 
 # Claim: pnpm-lock.yaml committed
