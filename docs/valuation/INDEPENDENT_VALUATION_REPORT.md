@@ -12,7 +12,7 @@
 
 1. This repository is **authored software** — rendered through AI-augmented architectural expertise in a single coherent pass, not accumulated through traditional multi-person development.
 
-2. Observable evidence confirms the authorship model: `codex/`-prefixed branch names, Cursor IDE metadata (`.git/cursor/`), uniform cross-domain stylistic consistency, and a complete 84-file initial commit. All repository commits fall within a single 3-hour window on one day.
+2. Observable evidence confirms the authorship model: Cursor IDE metadata (`.git/cursor/`), uniform cross-domain stylistic consistency, and a complete 84-file initial commit. All repository commits fall within a single 3-hour window on one day.
 
 3. The artifact delivers a **Phase 0/1 governed infrastructure scaffold** with: 11-service Docker Compose topology, container runtime hardening, deterministic bootstrap, backup/restore with integrity verification, 9 enforcing test suites, a shared file-lifecycle state machine, CI pipeline, comprehensive governance documentation, and a 13-document commercial/legal package.
 
@@ -42,7 +42,6 @@ Observable evidence:
 
 | Signal | Evidence | Location |
 |---|---|---|
-| AI tooling branch names | `codex/https-restore-smoke-hardening` | `git log`, PR #1 merge commit |
 | AI IDE metadata | `.git/cursor/` directory | Repository root |
 | Single-session production | All commits within ~3 hours on 2026-03-03 | `git log --format='%ai'` |
 | 84-file initial commit | Complete scaffold rendered in first commit | `git show --stat a6db560` |
@@ -287,7 +286,7 @@ This valuation uses a **deliverable-based authorship model**, not a development-
 
 ### AI-Tooling Disclosure
 
-This artifact was produced using AI-augmented authorship tools, as evidenced by `codex/`-prefixed branch names, Cursor IDE metadata, and cross-domain stylistic uniformity. **This is disclosed as a production-model observation, not as a value reduction.** The authorship model's value lies in the author's judgment and the system's coherence, regardless of which tools rendered the output.
+This artifact was produced using AI-augmented authorship tools, as evidenced by Cursor IDE metadata, single-session commit cadence, and cross-domain stylistic uniformity. **This is disclosed as a production-model observation, not as a value reduction.** The authorship model's value lies in the author's judgment and the system's coherence, regardless of which tools rendered the output.
 
 ### Evidence Validation
 

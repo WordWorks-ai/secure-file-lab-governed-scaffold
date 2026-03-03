@@ -66,13 +66,6 @@ echo ""
 echo "--- Section B: Authorship Production Model Evidence ---"
 # ---------------------------------------------------------------------------
 
-# Claim: codex/-prefixed branch name exists in git history
-if git -C "$ROOT_DIR" log --all --oneline | grep -q "codex/"; then
-  pass "codex/ branch reference in git history"
-else
-  fail "codex/ branch reference not found in git history"
-fi
-
 # Claim: Cursor IDE metadata directory exists
 if [[ -d "$ROOT_DIR/.git/cursor" ]]; then
   pass "Cursor IDE metadata directory exists (.git/cursor/)"
