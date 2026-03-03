@@ -171,6 +171,7 @@ Default licensing posture is proprietary (All Rights Reserved). See:
 - `docs/legal/CLIENT_MEETING_CHECKLIST.md`
 - `docs/legal/SESSION_RUN_SCRIPT.md`
 - `docs/legal/PRE_SESSION_EMAIL_TEMPLATE.md`
+- `docs/legal/INITIAL_ENGAGEMENT_EMAIL_DRAFT.md`
 
 Commercialization or enterprise-core use of this IP requires a separate signed commercial rights agreement.
 
