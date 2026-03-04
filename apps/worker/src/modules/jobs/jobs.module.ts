@@ -6,6 +6,7 @@ import { JobsService } from './jobs.service.js';
 import { ClamavScannerService } from './services/clamav-scanner.service.js';
 import { WorkerFileCryptoService } from './services/worker-file-crypto.service.js';
 import { WorkerMinioObjectStorageService } from './services/worker-minio-object-storage.service.js';
+import { WorkerOpenSearchIndexService } from './services/worker-opensearch-index.service.js';
 import { WorkerVaultTransitService } from './services/worker-vault-transit.service.js';
 
 @Module({
@@ -15,6 +16,7 @@ import { WorkerVaultTransitService } from './services/worker-vault-transit.servi
     ClamavScannerService,
     WorkerFileCryptoService,
     WorkerMinioObjectStorageService,
+    WorkerOpenSearchIndexService,
     WorkerVaultTransitService,
   ],
 })

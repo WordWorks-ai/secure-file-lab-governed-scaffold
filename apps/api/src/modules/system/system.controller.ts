@@ -9,7 +9,7 @@ export class SystemController {
   getInfo(): { service: string; phase: string } {
     return {
       service: 'api',
-      phase: 'phase-10-identity-and-policy-engine-baseline',
+      phase: 'phase-11-search-layer-baseline',
     };
   }
 
