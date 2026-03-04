@@ -2,7 +2,7 @@
 
 ## Status Note
 
-This document describes the target data model. Current implemented schema is a scaffold subset: `users`, `bootstrap_state`, and `audit_events`.
+This document describes the target data model. As of 2026-03-04, core schema baseline is implemented for `users`, `orgs`, `memberships`, `files`, `shares`, `refresh_tokens`, `bootstrap_state`, and `audit_events`.
 
 ## Core Entities
 

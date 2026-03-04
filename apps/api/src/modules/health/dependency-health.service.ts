@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Socket } from 'node:net';
+
+import { PrismaService } from '../persistence/prisma.service.js';
 
 type DependencyStatus = {
   name: string;
@@ -10,8 +12,11 @@ type DependencyStatus = {
 export class DependencyHealthService {
   private readonly timeoutMs = 1000;
 
+  constructor(@Inject(PrismaService) private readonly prismaService: PrismaService) {}
+
   async checkAll(): Promise<{ ok: boolean; dependencies: DependencyStatus[] }> {
     const dependencies = await Promise.all([
+      this.checkDatabase(),
       this.checkTcp('postgres', process.env.POSTGRES_HOST ?? 'postgres', Number(process.env.POSTGRES_PORT ?? 5432)),
       this.checkTcp('redis', process.env.REDIS_HOST ?? 'redis', Number(process.env.REDIS_PORT ?? 6379)),
       this.checkTcp('minio', process.env.MINIO_HOST ?? 'minio', Number(process.env.MINIO_PORT ?? 9000)),
@@ -23,6 +28,11 @@ export class DependencyHealthService {
       ok: dependencies.every((dependency) => dependency.ok),
       dependencies,
     };
+  }
+
+  private async checkDatabase(): Promise<DependencyStatus> {
+    const ok = await this.prismaService.checkConnection(this.timeoutMs);
+    return { name: 'database', ok };
   }
 
   private checkTcp(name: string, host: string, port: number): Promise<DependencyStatus> {

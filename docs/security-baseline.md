@@ -2,7 +2,7 @@
 
 ## Status Note
 
-This document defines target baseline controls for v1. As of 2026-03-03, many controls are still scaffolded and not yet enforced in end-to-end API flows.
+This document defines target baseline controls for v1. As of 2026-03-04, many controls are still scaffolded and not yet enforced in end-to-end API flows.
 
 ## Authentication and Identity
 
