@@ -4,7 +4,7 @@ Self-hosted secure file sharing prototype focused on deterministic local deploym
 
 ## Current Implementation Status (2026-03-04)
 
-This repository currently implements a **Phase 0/3 foundation + auth baseline**, not a complete secure file sharing prototype.
+This repository currently implements a **Phase 0/4 foundation + file ingest/encryption baseline**, not a complete secure file sharing prototype.
 
 Implemented now:
 
@@ -23,19 +23,23 @@ Implemented now:
   - `POST /v1/auth/logout`
   - `GET /v1/auth/me`
   - `GET /v1/auth/admin-check` (RBAC baseline)
+- File ingest/encryption baseline:
+  - `POST /v1/files/upload` (validated payload, size/type limits)
+  - encrypted object persistence to MinIO
+  - per-file DEK generation and Vault transit wrap/unwrap
+  - lifecycle progression to `scan_pending`
+  - download gate enforcement (non-`active` denied)
 - Core Prisma schema + migration baseline for `users`, `orgs`, `memberships`, `files`, `shares`, `refresh_tokens`, `bootstrap_state`, and `audit_events`.
 - Structured request logging interceptor and stricter global request validation baseline.
-- Runtime auth audit event emission (`auth.login`, `auth.refresh`, `auth.logout`).
-- Shared file lifecycle helper (library only; not wired to API persistence/authorization paths).
+- Runtime auth + file audit event emission.
 - Backup artifact generation and restore smoke for PostgreSQL + MinIO verification.
 
 Not implemented yet:
 
-- File ingest/download endpoints and MinIO object persistence flows.
-- Envelope encryption with per-file DEKs + Vault wrap/unwrap flow in file pipeline.
 - Malware scan queue/processors enforcing quarantine-to-active gate.
+- Automated clean/infected transition processing (worker-driven gate in Phase 5).
 - Share-link endpoints and runtime policy enforcement (schema exists; runtime flow pending).
-- Runtime audit event capture for file/share actions.
+- Complete runtime audit event capture for share and all async workflow actions.
 
 ## Purpose
 
@@ -60,7 +64,7 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 
 - Target architecture: NestJS modular monolith API + dedicated worker.
 - Implemented modules:
-  - API: `health`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 3 auth baseline)
+  - API: `health`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 4 ingest/encryption baseline)
   - Worker: `health`, `jobs` placeholder
 - PostgreSQL/Redis/MinIO/Vault/ClamAV are wired for infrastructure readiness, but domain workflows are pending.
 
@@ -73,11 +77,12 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
   - Caddy security headers and local HTTPS termination (`tls internal`)
   - JWT access token issuance and rotating refresh token flow
   - RBAC baseline enforcement on protected route (`admin` / `member`)
-  - auth audit emission for login/refresh/logout actions
-  - scaffold file lifecycle transition helper in `packages/shared`
+  - file upload encryption path with per-file DEK + Vault transit wrapping
+  - MinIO encrypted object persistence for uploaded payloads
+  - download gate blocks non-`active` file statuses
+  - auth + file audit emission for implemented runtime actions
 - Planned controls (not yet implemented in runtime flows):
   - malware scan gate in worker
-  - envelope encryption in file path
   - share-link policy enforcement
   - end-to-end audit trail for critical user actions
 
@@ -200,8 +205,8 @@ Commercialization or enterprise-core use of this IP requires a separate signed c
 
 ## Current Status
 
-- Completed: Phase 0, Phase 1, Phase 2, and Phase 3.
+- Completed: Phase 0, Phase 1, Phase 2, Phase 3, and Phase 4.
 - Completed: hardening validation pass for scaffold.
-- Remaining runtime phases: file ingest/encryption, worker malware gate, share runtime policy, and full non-auth audit coverage.
+- Remaining runtime phases: worker malware gate, share runtime policy, and full async/share audit coverage.
 
 Detailed evidence is tracked in `docs/status`.

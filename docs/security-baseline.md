@@ -45,9 +45,12 @@ This document defines target baseline controls for v1. As of 2026-03-04, many co
   - Infected files transition to `blocked` and remain non-downloadable.
 - Implemented now:
   - Infrastructure wiring for MinIO, Vault, and ClamAV in compose/bootstrap.
-  - Shared lifecycle enum/transition helper (library-level only).
+  - API-managed upload path with content type / size validation.
+  - Per-file DEK generation, AES-256-GCM encryption, and Vault transit wrap/unwrap.
+  - Encrypted object persistence in MinIO on upload path.
+  - Lifecycle progression to `scan_pending` with non-`active` download denial.
 - Not implemented yet:
-  - File API endpoints, encryption pipeline, queue-based scan gate, infected/active state persistence.
+  - Queue-based malware scan processing and automatic clean/infected state persistence.
 
 ## Audit and Traceability
 
@@ -63,10 +66,11 @@ Implemented now:
 
 - `audit_events` table exists in schema/migrations.
 - runtime auth event emission for login/refresh/logout outcomes.
+- runtime file event emission for upload initiation, encryption persistence, scan queueing, and download outcomes.
 
 Not implemented yet:
 
-- Runtime event emission for file/share actions.
+- Runtime event emission for share and all async worker actions.
 
 ## Operational Security
 

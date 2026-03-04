@@ -17,6 +17,7 @@ required_files=(
   "docs/status/phase-01.md"
   "docs/status/phase-02.md"
   "docs/status/phase-03.md"
+  "docs/status/phase-04.md"
   "infra/scripts/tests/scope-accuracy.sh"
   "package.json"
   "pnpm-lock.yaml"
