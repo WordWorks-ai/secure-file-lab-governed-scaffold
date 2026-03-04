@@ -57,6 +57,8 @@ This document defines target baseline controls for v1. As of 2026-03-04, auth, f
   - BullMQ queue producer and worker scanner for `scan_pending -> active|blocked`.
   - Retry behavior that fails closed to `blocked` on terminal scan errors.
   - Content derivation retry audit events and fail-closed blocking on terminal pipeline errors.
+  - DLP hardening with expanded PII/secret corpus and governed override controls.
+  - share/create DLP checks include derived artifact text corpus when available.
   - Worker maintenance jobs for expiration and cleanup transitions.
   - share link enforcement with expiry/password/max-download checks and revocation.
 - Not implemented yet:

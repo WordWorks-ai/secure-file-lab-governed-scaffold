@@ -8,12 +8,20 @@ describe('DlpService', () => {
   let originalPolicyId: string | undefined;
   let originalMaxScanBytes: string | undefined;
   let originalAdminOverrideEnabled: string | undefined;
+  let originalOverrideRequireReason: string | undefined;
+  let originalOverrideMinReasonLength: string | undefined;
+  let originalOverrideRequireTicket: string | undefined;
+  let originalOverrideTicketPattern: string | undefined;
 
   beforeEach(() => {
     originalEnabled = process.env.DLP_ENGINE_ENABLED;
     originalPolicyId = process.env.DLP_POLICY_ID;
     originalMaxScanBytes = process.env.DLP_MAX_SCAN_BYTES;
     originalAdminOverrideEnabled = process.env.DLP_ADMIN_OVERRIDE_ENABLED;
+    originalOverrideRequireReason = process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON;
+    originalOverrideMinReasonLength = process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH;
+    originalOverrideRequireTicket = process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET;
+    originalOverrideTicketPattern = process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN;
   });
 
   afterEach(() => {
@@ -39,6 +47,30 @@ describe('DlpService', () => {
       delete process.env.DLP_ADMIN_OVERRIDE_ENABLED;
     } else {
       process.env.DLP_ADMIN_OVERRIDE_ENABLED = originalAdminOverrideEnabled;
+    }
+
+    if (originalOverrideRequireReason === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON = originalOverrideRequireReason;
+    }
+
+    if (originalOverrideMinReasonLength === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH = originalOverrideMinReasonLength;
+    }
+
+    if (originalOverrideRequireTicket === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET = originalOverrideRequireTicket;
+    }
+
+    if (originalOverrideTicketPattern === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN = originalOverrideTicketPattern;
     }
   });
 
@@ -72,20 +104,42 @@ describe('DlpService', () => {
     expect(decision.verdict).toBe('deny');
     expect(decision.enforcementAction).toBe('block');
     expect(decision.matches).toContain('pii.ssn');
+    expect(decision.overridable).toBe(true);
   });
 
-  it('does not false-positive on benign numeric content', () => {
+  it('detects valid card-like data with luhn check and avoids false positives', () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+
+    const service = new DlpService();
+    const positive = service.evaluateUpload({
+      filename: 'billing.txt',
+      contentType: 'text/plain',
+      plaintext: Buffer.from('card=4111 1111 1111 1111', 'utf8'),
+    });
+    const negative = service.evaluateUpload({
+      filename: 'analytics.txt',
+      contentType: 'text/plain',
+      plaintext: Buffer.from('account=1234 5678 9012 3456', 'utf8'),
+    });
+
+    expect(positive.verdict).toBe('deny');
+    expect(positive.matches).toContain('pii.credit_card');
+    expect(negative.verdict).toBe('allow');
+  });
+
+  it('denies non-overridable secret markers for upload payloads', () => {
     process.env.DLP_ENGINE_ENABLED = 'true';
 
     const service = new DlpService();
     const decision = service.evaluateUpload({
-      filename: 'analytics.txt',
+      filename: 'keys.pem',
       contentType: 'text/plain',
-      plaintext: Buffer.from('account: 123456789, growth: 20%', 'utf8'),
+      plaintext: Buffer.from('-----BEGIN PRIVATE KEY-----\\nabc', 'utf8'),
     });
 
-    expect(decision.verdict).toBe('allow');
-    expect(decision.matches).toEqual([]);
+    expect(decision.verdict).toBe('deny');
+    expect(decision.matches).toContain('secret.private_key_block');
+    expect(decision.overridable).toBe(false);
   });
 
   it('denies share checks for sensitive filename markers', () => {
@@ -101,9 +155,11 @@ describe('DlpService', () => {
     expect(decision.matches).toContain('secret.sensitive_filename');
   });
 
-  it('supports admin override when enabled', () => {
+  it('allows governed admin override for overridable matches when reason is sufficient', () => {
     process.env.DLP_ENGINE_ENABLED = 'true';
     process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH = '20';
 
     const service = new DlpService();
     const decision = service.evaluateShare({
@@ -111,7 +167,94 @@ describe('DlpService', () => {
       contentType: 'text/plain',
     });
 
-    expect(service.shouldAllowAdminOverride(UserRole.admin, decision)).toBe(true);
-    expect(service.shouldAllowAdminOverride(UserRole.member, decision)).toBe(false);
+    const overrideEvaluation = service.evaluateAdminOverride({
+      role: UserRole.admin,
+      decision,
+      overrideReason: 'Security review approved controlled external transfer',
+    });
+
+    expect(overrideEvaluation.allowed).toBe(true);
+    expect(overrideEvaluation.reason).toBe('override_allowed');
+  });
+
+  it('blocks override when reason is missing or too short', () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH = '24';
+
+    const service = new DlpService();
+    const decision = service.evaluateShare({
+      filename: 'secret-plan.txt',
+      contentType: 'text/plain',
+    });
+
+    const missingReason = service.evaluateAdminOverride({
+      role: UserRole.admin,
+      decision,
+      overrideReason: '',
+    });
+    const shortReason = service.evaluateAdminOverride({
+      role: UserRole.admin,
+      decision,
+      overrideReason: 'approved by lead',
+    });
+
+    expect(missingReason.allowed).toBe(false);
+    expect(missingReason.reason).toBe('override_reason_required');
+    expect(shortReason.allowed).toBe(false);
+    expect(shortReason.reason).toBe('override_reason_too_short');
+  });
+
+  it('blocks override for non-overridable secret matches', () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'true';
+
+    const service = new DlpService();
+    const decision = service.evaluateUpload({
+      filename: 'sensitive.pem',
+      contentType: 'text/plain',
+      plaintext: Buffer.from('-----BEGIN PRIVATE KEY-----\\nabc', 'utf8'),
+    });
+
+    const overrideEvaluation = service.evaluateAdminOverride({
+      role: UserRole.admin,
+      decision,
+      overrideReason: 'Security approved transfer for controlled test exercise',
+    });
+
+    expect(overrideEvaluation.allowed).toBe(false);
+    expect(overrideEvaluation.reason).toBe('non_overridable_match');
+  });
+
+  it('enforces ticket requirements when configured', () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN = '^SEC-[0-9]{3,}$';
+
+    const service = new DlpService();
+    const decision = service.evaluateShare({
+      filename: 'secret-plan.txt',
+      contentType: 'text/plain',
+    });
+
+    const invalidTicket = service.evaluateAdminOverride({
+      role: UserRole.admin,
+      decision,
+      overrideReason: 'Security reviewed approved transfer for controlled external delivery',
+      overrideTicket: 'INC-42',
+    });
+    const validTicket = service.evaluateAdminOverride({
+      role: UserRole.admin,
+      decision,
+      overrideReason: 'Security reviewed approved transfer for controlled external delivery',
+      overrideTicket: 'SEC-1042',
+    });
+
+    expect(invalidTicket.allowed).toBe(false);
+    expect(invalidTicket.reason).toBe('override_ticket_invalid');
+    expect(validTicket.allowed).toBe(true);
   });
 });

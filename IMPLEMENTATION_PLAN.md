@@ -393,9 +393,29 @@ These stages are executed sequentially to minimize integration risk and keep eac
 - Content pipeline failures are observable and explicitly fail-safe when configured.
 - Preview/OCR extraction behavior is bounded and deterministic for mixed payload types.
 
+### Stage 19 - DLP Hardening Baseline
+
+#### Deliverables
+
+- Expanded DLP policy corpus for upload/share checks (PII + secret classes).
+- Deeper DLP enforcement for share creation using derived artifact text when available.
+- Governed admin override model with reason/ticket controls and non-overridable match handling.
+
+#### Validation
+
+- DLP unit tests cover expanded rule corpus and override-governance branches.
+- File/share integration tests cover governed override success/denial and non-overridable behavior.
+- Stage 19 scaffold checks validate env/config markers and CI wiring.
+
+#### Exit Criteria
+
+- DLP decisions distinguish overridable vs non-overridable matches.
+- Override actions are policy-gated and auditable with governance metadata.
+- Share/upload DLP enforcement depth covers both metadata and derived text sources.
+
 ## Priority Order for Remaining Spec Gaps
 
-1. Stage 19 - DLP hardening (expanded policy corpus, enforcement depth, and override governance).
+- None. Stage 19 closes the final scoped post-baseline gap from the initial expansion plan.
 
 ## Expansion Definition of Done
 

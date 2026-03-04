@@ -68,6 +68,12 @@ Post-v1 Stage 18 additions:
 - worker content-processing adds retry audit telemetry and fail-closed terminal blocking control.
 - preview/OCR derivative extraction adds bounded payload and normalization guardrails.
 
+Post-v1 Stage 19 additions:
+
+- API DLP service expanded with broader secret/PII match corpus.
+- Share creation DLP checks incorporate derived artifact text when available.
+- Admin DLP override path enforces governance controls (reason/ticket and non-overridable matches).
+
 ## Dependency Map
 
 Inbound:
@@ -147,6 +153,7 @@ Operational workflows:
 - Malware scan gate must transition files fail-closed on terminal scan errors.
 - Content derivation terminal failures can transition active files fail-closed to `blocked`.
 - DLP-sensitive upload/share actions deny by default when policy matches and override is not enabled.
+- DLP override path is restricted to governed admin actions and non-overridable matches always block.
 - Metrics endpoints remain read-only and expose process/service telemetry only.
 - Raw DEKs are not persisted in Postgres.
 - Critical actions emit audit events.

@@ -1,4 +1,4 @@
-# User Guide: Getting Started (Phase 8 + Stage 18 Baseline)
+# User Guide: Getting Started (Phase 8 + Stage 19 Baseline)
 
 ## What This Repository Is
 
@@ -17,7 +17,7 @@ Implemented now:
 
 Not implemented as production-grade flows yet:
 
-- Deep DLP policy/enforcement hardening.
+- None from the currently scoped post-baseline expansion plan.
 
 ## Prerequisites
 

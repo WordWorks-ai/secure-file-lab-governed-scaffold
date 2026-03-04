@@ -523,16 +523,28 @@ describe('files endpoints', () => {
   let contentQueueService: InMemoryContentQueueService;
   let originalDlpEngineEnabled: string | undefined;
   let originalDlpAdminOverrideEnabled: string | undefined;
+  let originalDlpAdminOverrideRequireReason: string | undefined;
+  let originalDlpAdminOverrideMinReasonLength: string | undefined;
+  let originalDlpAdminOverrideRequireTicket: string | undefined;
+  let originalDlpAdminOverrideTicketPattern: string | undefined;
   const jwtSecret = 'files-test-secret';
 
   beforeAll(async () => {
     originalDlpEngineEnabled = process.env.DLP_ENGINE_ENABLED;
     originalDlpAdminOverrideEnabled = process.env.DLP_ADMIN_OVERRIDE_ENABLED;
+    originalDlpAdminOverrideRequireReason = process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON;
+    originalDlpAdminOverrideMinReasonLength = process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH;
+    originalDlpAdminOverrideRequireTicket = process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET;
+    originalDlpAdminOverrideTicketPattern = process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN;
     process.env.JWT_ACCESS_SECRET = jwtSecret;
     process.env.FILE_UPLOAD_MAX_BYTES = '1024';
     process.env.FILE_UPLOAD_ALLOWED_MIME_TYPES = 'text/plain,application/json';
     process.env.DLP_ENGINE_ENABLED = 'false';
     process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'false';
+    process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH = '24';
+    process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET = 'false';
+    process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN = '^INC-[0-9]{4,}$';
 
     prisma = new InMemoryPrismaService();
     objectStorage = new InMemoryObjectStorageService();
@@ -575,6 +587,30 @@ describe('files endpoints', () => {
     } else {
       process.env.DLP_ADMIN_OVERRIDE_ENABLED = originalDlpAdminOverrideEnabled;
     }
+
+    if (originalDlpAdminOverrideRequireReason === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON = originalDlpAdminOverrideRequireReason;
+    }
+
+    if (originalDlpAdminOverrideMinReasonLength === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH = originalDlpAdminOverrideMinReasonLength;
+    }
+
+    if (originalDlpAdminOverrideRequireTicket === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET = originalDlpAdminOverrideRequireTicket;
+    }
+
+    if (originalDlpAdminOverrideTicketPattern === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN = originalDlpAdminOverrideTicketPattern;
+    }
   });
 
   beforeEach(() => {
@@ -583,6 +619,10 @@ describe('files endpoints', () => {
     contentQueueService.clear();
     process.env.DLP_ENGINE_ENABLED = 'false';
     process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'false';
+    process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH = '24';
+    process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET = 'false';
+    process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN = '^INC-[0-9]{4,}$';
   });
 
   it('uploads encrypted content, enforces lifecycle gate, and allows download after activation', async () => {
@@ -782,6 +822,89 @@ describe('files endpoints', () => {
         filename: 'payroll.txt',
         contentType: 'text/plain',
         contentBase64: Buffer.from('employee ssn 123-45-6789', 'utf8').toString('base64'),
+      });
+
+    expect(response.statusCode).toBe(403);
+  });
+
+  it('allows admin-governed DLP override on upload when reason is provided', async () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'true';
+    const admin = prisma.seedUser({
+      email: 'dlp-upload-admin@local.test',
+      role: UserRole.admin,
+    });
+    const token = signAccessToken({
+      sub: admin.id,
+      email: admin.email,
+      role: admin.role,
+      secret: jwtSecret,
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/v1/files/upload')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        filename: 'payroll.csv',
+        contentType: 'text/plain',
+        contentBase64: Buffer.from('employee ssn 123-45-6789', 'utf8').toString('base64'),
+        dlpOverrideReason:
+          'Approved secure transfer for compliance export with legal and security sign-off',
+        dlpOverrideTicket: 'INC-1942',
+      });
+
+    expect(response.statusCode).toBe(201);
+  });
+
+  it('denies admin DLP override on upload when governance reason is missing', async () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'true';
+    const admin = prisma.seedUser({
+      email: 'dlp-upload-admin-missing-reason@local.test',
+      role: UserRole.admin,
+    });
+    const token = signAccessToken({
+      sub: admin.id,
+      email: admin.email,
+      role: admin.role,
+      secret: jwtSecret,
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/v1/files/upload')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        filename: 'payroll.csv',
+        contentType: 'text/plain',
+        contentBase64: Buffer.from('employee ssn 123-45-6789', 'utf8').toString('base64'),
+      });
+
+    expect(response.statusCode).toBe(403);
+  });
+
+  it('denies admin DLP override on non-overridable upload matches', async () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'true';
+    const admin = prisma.seedUser({
+      email: 'dlp-upload-admin-nonoverridable@local.test',
+      role: UserRole.admin,
+    });
+    const token = signAccessToken({
+      sub: admin.id,
+      email: admin.email,
+      role: admin.role,
+      secret: jwtSecret,
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/v1/files/upload')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        filename: 'private-key.txt',
+        contentType: 'text/plain',
+        contentBase64: Buffer.from('-----BEGIN PRIVATE KEY-----\\nABC', 'utf8').toString('base64'),
+        dlpOverrideReason: 'Approved secure handling for controlled incident workflow and evidence retention',
+        dlpOverrideTicket: 'INC-2001',
       });
 
     expect(response.statusCode).toBe(403);

@@ -33,7 +33,7 @@ describe('system endpoints', () => {
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({
       service: 'api',
-      phase: 'phase-18-content-hardening-baseline',
+      phase: 'phase-19-dlp-hardening-baseline',
     });
   });
 

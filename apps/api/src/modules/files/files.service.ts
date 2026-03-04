@@ -94,7 +94,10 @@ export class FilesService {
       contentType: normalizedContentType,
       plaintext,
     });
-    const dlpOverrideApplied = await this.enforceUploadDlp(dlpDecision, user, org.id, context);
+    const dlpOverrideApplied = await this.enforceUploadDlp(dlpDecision, user, org.id, context, {
+      reason: payload.dlpOverrideReason,
+      ticket: payload.dlpOverrideTicket,
+    });
 
     const storageKey = `files/${org.id}/${randomUUID()}`;
     const now = new Date();
@@ -599,13 +602,22 @@ export class FilesService {
     user: AuthenticatedUser,
     orgId: string,
     context: RequestContext,
+    overrideRequest: {
+      reason?: string;
+      ticket?: string;
+    },
   ): Promise<boolean> {
     if (decision.verdict !== 'deny') {
       return false;
     }
 
-    const overrideApplied = this.dlpService.shouldAllowAdminOverride(user.role, decision);
-    if (!overrideApplied) {
+    const overrideEvaluation = this.dlpService.evaluateAdminOverride({
+      role: user.role,
+      decision,
+      overrideReason: overrideRequest.reason,
+      overrideTicket: overrideRequest.ticket,
+    });
+    if (!overrideEvaluation.allowed) {
       await this.auditService.recordEvent({
         action: 'file.upload.dlp.blocked',
         resourceType: 'file',
@@ -616,13 +628,11 @@ export class FilesService {
         orgId,
         ipAddress: context.ipAddress,
         userAgent: context.userAgent,
-        metadata: {
-          policyId: decision.policyId,
-          verdict: decision.verdict,
-          enforcementAction: decision.enforcementAction,
-          matches: decision.matches,
-          reason: decision.reason,
-        },
+        metadata: this.buildDlpMetadata(decision, decision.enforcementAction, {
+          overrideReason: overrideRequest.reason,
+          overrideTicket: overrideRequest.ticket,
+          overrideEvaluationReason: overrideEvaluation.reason,
+        }),
       });
       throw new ForbiddenException('Upload blocked by DLP policy');
     }
@@ -637,15 +647,48 @@ export class FilesService {
       orgId,
       ipAddress: context.ipAddress,
       userAgent: context.userAgent,
-      metadata: {
-        policyId: decision.policyId,
-        verdict: decision.verdict,
-        enforcementAction: 'override_allow',
-        matches: decision.matches,
-        reason: decision.reason,
-      },
+      metadata: this.buildDlpMetadata(decision, 'override_allow', {
+        overrideReason: overrideRequest.reason,
+        overrideTicket: overrideRequest.ticket,
+        overrideEvaluationReason: overrideEvaluation.reason,
+      }),
     });
 
     return true;
+  }
+
+  private buildDlpMetadata(
+    decision: DlpDecision,
+    enforcementAction: 'allow' | 'block' | 'override_allow',
+    override: {
+      overrideReason?: string;
+      overrideTicket?: string;
+      overrideEvaluationReason?: string;
+    },
+  ): {
+    policyId: string;
+    verdict: string;
+    enforcementAction: string;
+    matches: string[];
+    overridable: boolean;
+    reason: string;
+    overrideReason: string | null;
+    overrideTicket: string | null;
+    overrideEvaluationReason: string | null;
+  } {
+    const normalizedReason = (override.overrideReason ?? '').trim();
+    const normalizedTicket = (override.overrideTicket ?? '').trim();
+
+    return {
+      policyId: decision.policyId,
+      verdict: decision.verdict,
+      enforcementAction,
+      matches: decision.matches,
+      overridable: decision.overridable,
+      reason: decision.reason,
+      overrideReason: normalizedReason.length > 0 ? normalizedReason : null,
+      overrideTicket: normalizedTicket.length > 0 ? normalizedTicket : null,
+      overrideEvaluationReason: override.overrideEvaluationReason ?? null,
+    };
   }
 }

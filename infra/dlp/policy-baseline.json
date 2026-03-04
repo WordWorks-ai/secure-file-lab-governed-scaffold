@@ -5,19 +5,64 @@
       "id": "pii.ssn",
       "description": "US SSN pattern",
       "pattern": "\\b\\d{3}-\\d{2}-\\d{4}\\b",
-      "action": "block"
+      "action": "block",
+      "overridable": true
+    },
+    {
+      "id": "pii.credit_card",
+      "description": "Credit card-like payload with Luhn validation",
+      "pattern": "luhn://credit-card",
+      "action": "block",
+      "overridable": true
     },
     {
       "id": "secret.aws_access_key",
       "description": "AWS access key marker",
       "pattern": "\\bAKIA[0-9A-Z]{16}\\b",
-      "action": "block"
+      "action": "block",
+      "overridable": false
+    },
+    {
+      "id": "secret.aws_secret_access_key",
+      "description": "AWS secret access key assignment marker",
+      "pattern": "\\baws(.{0,20})?secret(.{0,20})?(access)?(.{0,20})?key\\s*[:=]\\s*[A-Za-z0-9/+]{32,}={0,2}\\b",
+      "action": "block",
+      "overridable": false
     },
     {
       "id": "secret.password_assignment",
       "description": "Password assignment marker",
-      "pattern": "\\bpassword\\s*[:=]\\s*\\S+",
-      "action": "block"
+      "pattern": "\\b(?:password|passwd|pwd)\\s*[:=]\\s*\\S+",
+      "action": "block",
+      "overridable": false
+    },
+    {
+      "id": "secret.private_key_block",
+      "description": "Private key block marker",
+      "pattern": "-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----",
+      "action": "block",
+      "overridable": false
+    },
+    {
+      "id": "secret.github_pat",
+      "description": "GitHub personal access token marker",
+      "pattern": "\\bgh[pousr]_[A-Za-z0-9]{36}\\b",
+      "action": "block",
+      "overridable": false
+    },
+    {
+      "id": "secret.api_token_assignment",
+      "description": "Generic API token assignment marker",
+      "pattern": "\\b(?:api[_-]?key|token|bearer)\\s*[:=]\\s*[A-Za-z0-9_\\-.]{16,}\\b",
+      "action": "block",
+      "overridable": false
+    },
+    {
+      "id": "secret.sensitive_filename",
+      "description": "Sensitive share filename marker",
+      "pattern": "\\b(secret|credential|api[_-]?key|token|private-key|key-material)\\b",
+      "action": "block",
+      "overridable": true
     }
   ]
 }

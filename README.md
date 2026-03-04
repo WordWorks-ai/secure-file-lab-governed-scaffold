@@ -80,7 +80,8 @@ Post-v1 expansion baselines completed:
 - Stage 16 baseline adds MFA enforcement with TOTP and WebAuthn registration/challenge flows.
 - Stage 17 baseline adds JWT-authenticated realtime WebSocket transport with delivery tests.
 - Stage 18 baseline hardens preview/OCR pipeline retries, bounded extraction fidelity, and fail-closed terminal behavior.
-- Remaining post-baseline completion work is prioritized as: DLP hardening.
+- Stage 19 baseline hardens DLP corpus depth, share/upload enforcement coverage, and governed override controls.
+- Remaining post-baseline completion work: none from the initial scoped expansion plan.
 
 ## Purpose
 

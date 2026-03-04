@@ -30,4 +30,16 @@ export class CreateShareDto {
   @MinLength(8)
   @MaxLength(128)
   password?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(12)
+  @MaxLength(256)
+  dlpOverrideReason?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(4)
+  @MaxLength(64)
+  dlpOverrideTicket?: string;
 }

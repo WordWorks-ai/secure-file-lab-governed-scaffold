@@ -62,6 +62,15 @@ type InMemoryFile = {
   updatedAt: Date;
 };
 
+type InMemoryFileArtifact = {
+  id: string;
+  fileId: string;
+  previewText: string | null;
+  ocrText: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type InMemoryShare = {
   id: string;
   fileId: string;
@@ -97,6 +106,7 @@ class InMemoryPrismaService {
   private readonly orgsById = new Map<string, InMemoryOrg>();
   private readonly membershipsById = new Map<string, InMemoryMembership>();
   private readonly filesById = new Map<string, InMemoryFile>();
+  private readonly fileArtifactsByFileId = new Map<string, InMemoryFileArtifact>();
   private readonly sharesById = new Map<string, InMemoryShare>();
   private readonly shareIdByTokenHash = new Map<string, string>();
   private readonly auditEvents: InMemoryAuditEvent[] = [];
@@ -190,6 +200,34 @@ class InMemoryPrismaService {
       }
 
       return this.cloneFile(row);
+    },
+  };
+
+  readonly fileArtifact = {
+    findUnique: async (args: {
+      where: { fileId: string };
+      select?: {
+        previewText?: true;
+        ocrText?: true;
+      };
+    }) => {
+      const row = this.fileArtifactsByFileId.get(args.where.fileId);
+      if (!row) {
+        return null;
+      }
+
+      if (!args.select) {
+        return { ...row };
+      }
+
+      const result: Record<string, unknown> = {};
+      if (args.select.previewText) {
+        result.previewText = row.previewText;
+      }
+      if (args.select.ocrText) {
+        result.ocrText = row.ocrText;
+      }
+      return result;
     },
   };
 
@@ -381,6 +419,7 @@ class InMemoryPrismaService {
     this.orgsById.clear();
     this.membershipsById.clear();
     this.filesById.clear();
+    this.fileArtifactsByFileId.clear();
     this.sharesById.clear();
     this.shareIdByTokenHash.clear();
     this.auditEvents.length = 0;
@@ -458,6 +497,23 @@ class InMemoryPrismaService {
     };
     this.filesById.set(row.id, row);
     return this.cloneFile(row);
+  }
+
+  seedFileArtifact(params: {
+    fileId: string;
+    previewText?: string | null;
+    ocrText?: string | null;
+  }): InMemoryFileArtifact {
+    const row: InMemoryFileArtifact = {
+      id: randomUUID(),
+      fileId: params.fileId,
+      previewText: params.previewText ?? null,
+      ocrText: params.ocrText ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.fileArtifactsByFileId.set(row.fileId, row);
+    return { ...row };
   }
 
   private cloneUser(row: InMemoryUser): InMemoryUser {
@@ -572,14 +628,26 @@ describe('shares and audit endpoints', () => {
   let vaultTransit: InMemoryVaultTransitService;
   let originalDlpEngineEnabled: string | undefined;
   let originalDlpAdminOverrideEnabled: string | undefined;
+  let originalDlpAdminOverrideRequireReason: string | undefined;
+  let originalDlpAdminOverrideMinReasonLength: string | undefined;
+  let originalDlpAdminOverrideRequireTicket: string | undefined;
+  let originalDlpAdminOverrideTicketPattern: string | undefined;
   const jwtSecret = 'shares-test-secret';
 
   beforeAll(async () => {
     originalDlpEngineEnabled = process.env.DLP_ENGINE_ENABLED;
     originalDlpAdminOverrideEnabled = process.env.DLP_ADMIN_OVERRIDE_ENABLED;
+    originalDlpAdminOverrideRequireReason = process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON;
+    originalDlpAdminOverrideMinReasonLength = process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH;
+    originalDlpAdminOverrideRequireTicket = process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET;
+    originalDlpAdminOverrideTicketPattern = process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN;
     process.env.JWT_ACCESS_SECRET = jwtSecret;
     process.env.DLP_ENGINE_ENABLED = 'false';
     process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'false';
+    process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH = '24';
+    process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET = 'false';
+    process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN = '^INC-[0-9]{4,}$';
 
     prisma = new InMemoryPrismaService();
     objectStorage = new InMemoryObjectStorageService();
@@ -618,12 +686,40 @@ describe('shares and audit endpoints', () => {
     } else {
       process.env.DLP_ADMIN_OVERRIDE_ENABLED = originalDlpAdminOverrideEnabled;
     }
+
+    if (originalDlpAdminOverrideRequireReason === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON = originalDlpAdminOverrideRequireReason;
+    }
+
+    if (originalDlpAdminOverrideMinReasonLength === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH = originalDlpAdminOverrideMinReasonLength;
+    }
+
+    if (originalDlpAdminOverrideRequireTicket === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET = originalDlpAdminOverrideRequireTicket;
+    }
+
+    if (originalDlpAdminOverrideTicketPattern === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN = originalDlpAdminOverrideTicketPattern;
+    }
   });
 
   beforeEach(() => {
     prisma.reset();
     process.env.DLP_ENGINE_ENABLED = 'false';
     process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'false';
+    process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH = '24';
+    process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET = 'false';
+    process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN = '^INC-[0-9]{4,}$';
   });
 
   it('creates password-protected shares and enforces usage limits', async () => {
@@ -898,10 +994,110 @@ describe('shares and audit endpoints', () => {
       .send({
         fileId: file.id,
         expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+        dlpOverrideReason:
+          'Approved external share for incident response under legal and security supervision',
+        dlpOverrideTicket: 'INC-2222',
       });
 
     expect(response.statusCode).toBe(201);
     expect(response.body.shareId).toBeTruthy();
+  });
+
+  it('denies admin DLP override on share creation when governance reason is missing', async () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'true';
+    const admin = prisma.seedUser({ email: 'dlp-admin-missing-reason@local.test', role: UserRole.admin });
+    const org = prisma.seedOrg({ name: 'Org DLP Admin Missing', slug: 'org-dlp-admin-missing' });
+    prisma.seedMembership({
+      userId: admin.id,
+      orgId: org.id,
+      role: MembershipRole.admin,
+    });
+
+    const plaintext = Buffer.from('dlp-admin-share-missing-reason', 'utf8');
+    const dek = randomBytes(32);
+    const encrypted = encryptAesGcm(plaintext, dek);
+    const storageKey = `files/${org.id}/${randomUUID()}`;
+    await objectStorage.putObject(storageKey, encrypted.ciphertext);
+    const wrappedDek = await vaultTransit.wrapDek(dek);
+    const file = prisma.seedFile({
+      orgId: org.id,
+      ownerUserId: admin.id,
+      filename: 'credential-secret.txt',
+      contentType: 'text/plain',
+      storageKey,
+      status: FileStatus.active,
+      wrappedDek,
+      encryptionIv: encrypted.iv.toString('base64'),
+      encryptionTag: encrypted.tag.toString('base64'),
+    });
+
+    const adminToken = signAccessToken({
+      sub: admin.id,
+      email: admin.email,
+      role: admin.role,
+      secret: jwtSecret,
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/v1/shares')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        fileId: file.id,
+        expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+      });
+
+    expect(response.statusCode).toBe(403);
+  });
+
+  it('denies share creation when DLP detects sensitive derived artifact text', async () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+    const owner = prisma.seedUser({ email: 'dlp-owner-derived@local.test', role: UserRole.member });
+    const org = prisma.seedOrg({ name: 'Org DLP Derived', slug: 'org-dlp-derived' });
+    prisma.seedMembership({
+      userId: owner.id,
+      orgId: org.id,
+      role: MembershipRole.admin,
+    });
+
+    const plaintext = Buffer.from('safe-share-content', 'utf8');
+    const dek = randomBytes(32);
+    const encrypted = encryptAesGcm(plaintext, dek);
+    const storageKey = `files/${org.id}/${randomUUID()}`;
+    await objectStorage.putObject(storageKey, encrypted.ciphertext);
+    const wrappedDek = await vaultTransit.wrapDek(dek);
+    const file = prisma.seedFile({
+      orgId: org.id,
+      ownerUserId: owner.id,
+      filename: 'operations-notes.txt',
+      contentType: 'text/plain',
+      storageKey,
+      status: FileStatus.active,
+      wrappedDek,
+      encryptionIv: encrypted.iv.toString('base64'),
+      encryptionTag: encrypted.tag.toString('base64'),
+    });
+    prisma.seedFileArtifact({
+      fileId: file.id,
+      previewText: 'rotation plan includes ghp_123456789012345678901234567890123456 token',
+    });
+
+    const ownerToken = signAccessToken({
+      sub: owner.id,
+      email: owner.email,
+      role: owner.role,
+      secret: jwtSecret,
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/v1/shares')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        fileId: file.id,
+        expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+      });
+
+    expect(response.statusCode).toBe(403);
   });
 
   it('revokes shares and blocks further access', async () => {

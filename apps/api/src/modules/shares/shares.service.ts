@@ -96,7 +96,29 @@ export class SharesService {
     if (file.status !== FileStatus.active) {
       throw new UnprocessableEntityException('Only active files can be shared');
     }
-    const dlpEvaluation = await this.enforceShareCreateDlp(file, user, context);
+
+    const artifact = await this.prismaService.fileArtifact.findUnique({
+      where: {
+        fileId: file.id,
+      },
+      select: {
+        previewText: true,
+        ocrText: true,
+      },
+    });
+
+    const dlpEvaluation = await this.enforceShareCreateDlp(
+      {
+        ...file,
+        derivedText: [artifact?.previewText ?? '', artifact?.ocrText ?? ''].join('\n').trim(),
+      },
+      user,
+      context,
+      {
+        reason: payload.dlpOverrideReason,
+        ticket: payload.dlpOverrideTicket,
+      },
+    );
 
     const expiresAt = this.parseShareExpiry(payload.expiresAt);
     const shareToken = this.generateShareToken();
@@ -500,13 +522,19 @@ export class SharesService {
       orgId: string;
       filename: string;
       contentType: string;
+      derivedText?: string;
     },
     user: AuthenticatedUser,
     context: RequestContext,
+    overrideRequest: {
+      reason?: string;
+      ticket?: string;
+    },
   ): Promise<{ policyId: string; verdict: string; matches: string[]; overrideApplied: boolean }> {
     const decision = this.dlpService.evaluateShare({
       filename: file.filename,
       contentType: file.contentType,
+      derivedText: file.derivedText,
     });
 
     if (decision.verdict !== 'deny') {
@@ -518,8 +546,13 @@ export class SharesService {
       };
     }
 
-    const overrideApplied = this.dlpService.shouldAllowAdminOverride(user.role, decision);
-    if (!overrideApplied) {
+    const overrideEvaluation = this.dlpService.evaluateAdminOverride({
+      role: user.role,
+      decision,
+      overrideReason: overrideRequest.reason,
+      overrideTicket: overrideRequest.ticket,
+    });
+    if (!overrideEvaluation.allowed) {
       await this.auditService.recordEvent({
         action: 'share.create.dlp.blocked',
         resourceType: 'share',
@@ -530,7 +563,11 @@ export class SharesService {
         orgId: file.orgId,
         ipAddress: context.ipAddress,
         userAgent: context.userAgent,
-        metadata: this.buildDlpMetadata(decision, 'block'),
+        metadata: this.buildDlpMetadata(decision, 'block', {
+          overrideReason: overrideRequest.reason,
+          overrideTicket: overrideRequest.ticket,
+          overrideEvaluationReason: overrideEvaluation.reason,
+        }),
       });
       throw new ForbiddenException('Share blocked by DLP policy');
     }
@@ -545,7 +582,11 @@ export class SharesService {
       orgId: file.orgId,
       ipAddress: context.ipAddress,
       userAgent: context.userAgent,
-      metadata: this.buildDlpMetadata(decision, 'override_allow'),
+      metadata: this.buildDlpMetadata(decision, 'override_allow', {
+        overrideReason: overrideRequest.reason,
+        overrideTicket: overrideRequest.ticket,
+        overrideEvaluationReason: overrideEvaluation.reason,
+      }),
     });
 
     return {
@@ -559,19 +600,35 @@ export class SharesService {
   private buildDlpMetadata(
     decision: DlpDecision,
     enforcementAction: 'block' | 'override_allow',
+    override: {
+      overrideReason?: string;
+      overrideTicket?: string;
+      overrideEvaluationReason?: string;
+    },
   ): {
     policyId: string;
     verdict: string;
     enforcementAction: string;
     matches: string[];
+    overridable: boolean;
     reason: string;
+    overrideReason: string | null;
+    overrideTicket: string | null;
+    overrideEvaluationReason: string | null;
   } {
+    const normalizedReason = (override.overrideReason ?? '').trim();
+    const normalizedTicket = (override.overrideTicket ?? '').trim();
+
     return {
       policyId: decision.policyId,
       verdict: decision.verdict,
       enforcementAction,
       matches: decision.matches,
+      overridable: decision.overridable,
       reason: decision.reason,
+      overrideReason: normalizedReason.length > 0 ? normalizedReason : null,
+      overrideTicket: normalizedTicket.length > 0 ? normalizedTicket : null,
+      overrideEvaluationReason: override.overrideEvaluationReason ?? null,
     };
   }
 }

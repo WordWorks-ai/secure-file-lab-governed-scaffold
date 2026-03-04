@@ -2,7 +2,7 @@
 
 ## Implementation Status Note
 
-This threat model captures target controls. Current codebase is Phase 0/8 with share-policy, audit-query/export, operational backup/restore baseline, and CI quality-gate baseline implemented. Stage 16 additionally introduces MFA baseline auth controls. Stage 17 additionally introduces authenticated realtime WebSocket transport. Stage 18 additionally hardens preview/OCR retry and fail-closed behavior.
+This threat model captures target controls. Current codebase is Phase 0/8 with share-policy, audit-query/export, operational backup/restore baseline, and CI quality-gate baseline implemented. Stage 16 additionally introduces MFA baseline auth controls. Stage 17 additionally introduces authenticated realtime WebSocket transport. Stage 18 additionally hardens preview/OCR retry and fail-closed behavior. Stage 19 additionally hardens DLP corpus depth and override governance.
 
 ## Scope
 
@@ -62,6 +62,7 @@ Prototype scope includes API, worker, and local infrastructure services (`postgr
 5. Refresh token rotation invalidates predecessor.
 6. Missing critical dependencies fail safe, not open.
 7. Terminal content-derivation failures fail closed to `blocked` when configured.
+8. DLP non-overridable secret matches always deny even for admin users.
 
 ## Residual Risks (Prototype)
 
