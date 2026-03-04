@@ -54,6 +54,17 @@ export type QueryAuditTimeseriesInput = {
   bucket?: 'hour' | 'day';
 };
 
+export type QueryAuditKpisInput = {
+  orgId?: string;
+  actorType?: AuditActorType;
+  action?: string;
+  resourceType?: string;
+  resourceId?: string;
+  result?: AuditResult;
+  limit?: number;
+  windowHours?: number;
+};
+
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
@@ -225,6 +236,105 @@ export class AuditService {
     };
   }
 
+  async queryKpis(input: QueryAuditKpisInput): Promise<{
+    sampleLimit: number;
+    windowHours: number;
+    currentWindow: { from: string; to: string };
+    previousWindow: { from: string; to: string };
+    current: {
+      sampledCount: number;
+      successCount: number;
+      failureCount: number;
+      deniedCount: number;
+      successRate: number;
+      failureRate: number;
+      deniedRate: number;
+    };
+    previous: {
+      sampledCount: number;
+      successCount: number;
+      failureCount: number;
+      deniedCount: number;
+      successRate: number;
+      failureRate: number;
+      deniedRate: number;
+    };
+    deltas: {
+      sampledCount: number;
+      successRate: number;
+      failureRate: number;
+      deniedRate: number;
+    };
+  }> {
+    const sampleLimit = this.normalizeSummaryLimit(input.limit);
+    const windowHours = this.normalizeWindowHours(input.windowHours);
+
+    const now = new Date();
+    const windowMs = windowHours * 60 * 60 * 1000;
+    const currentFrom = new Date(now.getTime() - windowMs);
+    const previousFrom = new Date(currentFrom.getTime() - windowMs);
+    const previousTo = currentFrom;
+
+    const currentWhere = this.buildWhereInput({
+      orgId: input.orgId,
+      actorType: input.actorType,
+      action: input.action,
+      resourceType: input.resourceType,
+      resourceId: input.resourceId,
+      result: input.result,
+      from: currentFrom,
+      to: now,
+    });
+
+    const previousWhere = this.buildWhereInput({
+      orgId: input.orgId,
+      actorType: input.actorType,
+      action: input.action,
+      resourceType: input.resourceType,
+      resourceId: input.resourceId,
+      result: input.result,
+      from: previousFrom,
+      to: previousTo,
+    });
+
+    const [currentEvents, previousEvents] = await Promise.all([
+      this.prismaService.auditEvent.findMany({
+        where: currentWhere,
+        orderBy: { createdAt: 'desc' },
+        take: sampleLimit,
+      }),
+      this.prismaService.auditEvent.findMany({
+        where: previousWhere,
+        orderBy: { createdAt: 'desc' },
+        take: sampleLimit,
+      }),
+    ]);
+
+    const current = this.computeResultMetrics(currentEvents.map((event) => event.result));
+    const previous = this.computeResultMetrics(previousEvents.map((event) => event.result));
+
+    return {
+      sampleLimit,
+      windowHours,
+      currentWindow: {
+        from: currentFrom.toISOString(),
+        to: now.toISOString(),
+      },
+      previousWindow: {
+        from: previousFrom.toISOString(),
+        to: previousTo.toISOString(),
+      },
+      current,
+      previous,
+      deltas: {
+        sampledCount: current.sampledCount - previous.sampledCount,
+        successRate: current.successRate - previous.successRate,
+        failureRate: current.failureRate - previous.failureRate,
+        deniedRate: current.deniedRate - previous.deniedRate,
+      },
+    };
+  }
+
   private normalizeLimit(rawLimit: number | undefined): number {
     if (rawLimit === undefined) {
       return 100;
@@ -267,6 +377,18 @@ export class AuditService {
     }
 
     return 'hour';
+  }
+
+  private normalizeWindowHours(rawWindowHours: number | undefined): number {
+    if (rawWindowHours === undefined) {
+      return 24;
+    }
+
+    if (Number.isFinite(rawWindowHours) && rawWindowHours >= 1) {
+      return Math.min(Math.floor(rawWindowHours), 720);
+    }
+
+    return 24;
   }
 
   private buildWhereInput(input: {
@@ -334,5 +456,52 @@ export class AuditService {
     }
 
     return floored;
+  }
+
+  private computeResultMetrics(results: AuditResult[]): {
+    sampledCount: number;
+    successCount: number;
+    failureCount: number;
+    deniedCount: number;
+    successRate: number;
+    failureRate: number;
+    deniedRate: number;
+  } {
+    const sampledCount = results.length;
+    let successCount = 0;
+    let failureCount = 0;
+    let deniedCount = 0;
+
+    for (const result of results) {
+      if (result === AuditResult.success) {
+        successCount += 1;
+      } else if (result === AuditResult.failure) {
+        failureCount += 1;
+      } else if (result === AuditResult.denied) {
+        deniedCount += 1;
+      }
+    }
+
+    if (sampledCount === 0) {
+      return {
+        sampledCount,
+        successCount,
+        failureCount,
+        deniedCount,
+        successRate: 0,
+        failureRate: 0,
+        deniedRate: 0,
+      };
+    }
+
+    return {
+      sampledCount,
+      successCount,
+      failureCount,
+      deniedCount,
+      successRate: successCount / sampledCount,
+      failureRate: failureCount / sampledCount,
+      deniedRate: deniedCount / sampledCount,
+    };
   }
 }
