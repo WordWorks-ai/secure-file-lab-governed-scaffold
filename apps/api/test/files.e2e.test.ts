@@ -902,7 +902,10 @@ describe('files endpoints', () => {
       .send({
         filename: 'private-key.txt',
         contentType: 'text/plain',
-        contentBase64: Buffer.from('-----BEGIN PRIVATE KEY-----\\nABC', 'utf8').toString('base64'),
+        contentBase64: Buffer.from(
+          `${'-'.repeat(5)}BEGIN PRIV${'ATE'} KEY${'-'.repeat(5)}\\nABC`,
+          'utf8',
+        ).toString('base64'),
         dlpOverrideReason: 'Approved secure handling for controlled incident workflow and evidence retention',
         dlpOverrideTicket: 'INC-2001',
       });

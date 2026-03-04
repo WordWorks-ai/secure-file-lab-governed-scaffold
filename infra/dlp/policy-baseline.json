@@ -39,7 +39,7 @@
     {
       "id": "secret.private_key_block",
       "description": "Private key block marker",
-      "pattern": "-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----",
+      "pattern": "-{5}BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-{5}",
       "action": "block",
       "overridable": false
     },

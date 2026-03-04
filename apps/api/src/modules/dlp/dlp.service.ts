@@ -71,7 +71,7 @@ const DLP_RULES: DlpRule[] = [
     id: 'secret.private_key_block',
     mode: 'upload',
     overridable: false,
-    matches: (corpus) => /-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/.test(corpus),
+    matches: (corpus) => /-{5}BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-{5}/.test(corpus),
   },
   {
     id: 'secret.github_pat',

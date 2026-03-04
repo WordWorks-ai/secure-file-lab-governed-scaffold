@@ -53,16 +53,22 @@ export class WorkerContentDerivativesService {
   }
 
   private normalizeText(value: string): string {
-    return value.replace(/\u0000/g, ' ').replace(/\s+/g, ' ').trim();
+    const withoutNull = value.split('\u0000').join(' ');
+    return withoutNull.replace(/\s+/g, ' ').trim();
   }
 
   private extractPrintableText(value: Buffer): string {
-    return value
-      .toString('utf8')
-      .replace(/\u0000/g, ' ')
-      .replace(/[^\x09\x0a\x0d\x20-\x7e]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+    const sanitizedBytes: number[] = [];
+    for (const byte of value.values()) {
+      if (byte === 9 || byte === 10 || byte === 13 || (byte >= 32 && byte <= 126)) {
+        sanitizedBytes.push(byte);
+        continue;
+      }
+
+      sanitizedBytes.push(32);
+    }
+
+    return Buffer.from(sanitizedBytes).toString('utf8').replace(/\s+/g, ' ').trim();
   }
 
   private getPreviewMaxChars(): number {

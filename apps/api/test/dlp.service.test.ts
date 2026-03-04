@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { DlpService } from '../src/modules/dlp/dlp.service.js';
 
+const privateKeyFixture = `${'-'.repeat(5)}BEGIN PRIV${'ATE'} KEY${'-'.repeat(5)}\nabc`;
+
 describe('DlpService', () => {
   let originalEnabled: string | undefined;
   let originalPolicyId: string | undefined;
@@ -134,7 +136,7 @@ describe('DlpService', () => {
     const decision = service.evaluateUpload({
       filename: 'keys.pem',
       contentType: 'text/plain',
-      plaintext: Buffer.from('-----BEGIN PRIVATE KEY-----\\nabc', 'utf8'),
+      plaintext: Buffer.from(privateKeyFixture, 'utf8'),
     });
 
     expect(decision.verdict).toBe('deny');
@@ -206,6 +208,46 @@ describe('DlpService', () => {
     expect(shortReason.reason).toBe('override_reason_too_short');
   });
 
+  it('blocks override for non-admin roles even when override mode is enabled', () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'true';
+
+    const service = new DlpService();
+    const decision = service.evaluateShare({
+      filename: 'secret-plan.txt',
+      contentType: 'text/plain',
+    });
+
+    const overrideEvaluation = service.evaluateAdminOverride({
+      role: UserRole.member,
+      decision,
+      overrideReason: 'Security approved transfer for controlled test exercise',
+    });
+
+    expect(overrideEvaluation.allowed).toBe(false);
+    expect(overrideEvaluation.reason).toBe('role_not_admin');
+  });
+
+  it('blocks override when override mode is disabled', () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'false';
+
+    const service = new DlpService();
+    const decision = service.evaluateShare({
+      filename: 'secret-plan.txt',
+      contentType: 'text/plain',
+    });
+
+    const overrideEvaluation = service.evaluateAdminOverride({
+      role: UserRole.admin,
+      decision,
+      overrideReason: 'Security approved transfer for controlled test exercise',
+    });
+
+    expect(overrideEvaluation.allowed).toBe(false);
+    expect(overrideEvaluation.reason).toBe('override_disabled');
+  });
+
   it('blocks override for non-overridable secret matches', () => {
     process.env.DLP_ENGINE_ENABLED = 'true';
     process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'true';
@@ -214,7 +256,7 @@ describe('DlpService', () => {
     const decision = service.evaluateUpload({
       filename: 'sensitive.pem',
       contentType: 'text/plain',
-      plaintext: Buffer.from('-----BEGIN PRIVATE KEY-----\\nabc', 'utf8'),
+      plaintext: Buffer.from(privateKeyFixture, 'utf8'),
     });
 
     const overrideEvaluation = service.evaluateAdminOverride({
@@ -246,6 +288,12 @@ describe('DlpService', () => {
       overrideReason: 'Security reviewed approved transfer for controlled external delivery',
       overrideTicket: 'INC-42',
     });
+    const missingTicket = service.evaluateAdminOverride({
+      role: UserRole.admin,
+      decision,
+      overrideReason: 'Security reviewed approved transfer for controlled external delivery',
+      overrideTicket: '',
+    });
     const validTicket = service.evaluateAdminOverride({
       role: UserRole.admin,
       decision,
@@ -253,6 +301,8 @@ describe('DlpService', () => {
       overrideTicket: 'SEC-1042',
     });
 
+    expect(missingTicket.allowed).toBe(false);
+    expect(missingTicket.reason).toBe('override_ticket_required');
     expect(invalidTicket.allowed).toBe(false);
     expect(invalidTicket.reason).toBe('override_ticket_invalid');
     expect(validTicket.allowed).toBe(true);

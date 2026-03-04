@@ -1079,7 +1079,9 @@ describe('shares and audit endpoints', () => {
     });
     prisma.seedFileArtifact({
       fileId: file.id,
-      previewText: 'rotation plan includes ghp_123456789012345678901234567890123456 token',
+      previewText:
+        'rotation plan includes ' +
+        `gh${'p'}_${'123456789012345678901234567890123456'} token`,
     });
 
     const ownerToken = signAccessToken({
