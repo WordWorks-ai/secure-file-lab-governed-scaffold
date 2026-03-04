@@ -4,11 +4,11 @@ Self-hosted secure file sharing prototype focused on deterministic local deploym
 
 ## Current Implementation Status (2026-03-04)
 
-This repository currently implements a **Phase 0/7 foundation + file + share + audit + backup/restore operations baseline**, not a complete secure file sharing prototype.
+This repository currently implements a **Phase 0/8 governed prototype baseline** with runtime flows, operational backup/restore readiness, and CI/handoff quality gates.
 
 Implemented now:
 
-- Monorepo tooling, CI skeleton, governance docs, and ADR scaffolding.
+- Monorepo tooling, CI quality-gate workflow, governance docs, and ADR scaffolding.
 - Docker Compose topology for required v1 services.
 - Deterministic bootstrap scripts for:
   - PostgreSQL migration SQL apply
@@ -49,10 +49,14 @@ Implemented now:
 - Backup artifact generation and restore smoke for PostgreSQL + MinIO verification.
 - Destructive live restore workflow for running compose `postgres` + `minio` with guardrails.
 - Destructive reset workflow for clean-volume rebuild scenarios.
+- CI split gates for lint, typecheck, unit tests, and integration tests.
+- Dependency audit baseline (`pnpm audit` high-severity gate) and secret-hygiene scan baseline.
+- Container build validation for `api` and `worker` images.
+- Architecture and service-map handoff documentation.
 
-Not implemented yet:
+Not implemented in v1 (intentionally out of scope):
 
-- CI/handoff polish items (dependency audit/secret scanning baseline and final service map) in Phase 8.
+- Enterprise identity/policy/search add-ons (Keycloak/OPA/OpenSearch/OCR/realtime/admin split/observability stack).
 
 ## Purpose
 
@@ -77,7 +81,7 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 
 - Target architecture: NestJS modular monolith API + dedicated worker.
 - Implemented modules:
-  - API: `health`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 7 runtime baseline)
+  - API: `health`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 8 handoff baseline)
   - Worker: `health`, `jobs` (file scan processor + expiration/cleanup jobs)
 - PostgreSQL/Redis/MinIO/Vault/ClamAV are wired for runtime workflows and operational backup/restore paths.
 
@@ -103,7 +107,7 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
   - live restore safety guards and post-restore health verification
 - Planned controls (not yet implemented in runtime flows):
   - deeper audit analytics/reporting workflows and long-retention operationalization
-  - final CI/handoff hardening milestone from Phase 8
+  - production-grade secret rotation, key custody, and externalized policy engines
 
 ## Repository Layout
 
@@ -158,6 +162,10 @@ Before bootstrap, set a real Argon2id hash for `BOOTSTRAP_ADMIN_PASSWORD_HASH` i
 ## Core Commands
 
 - `make validate` - lint, typecheck, tests, compose validation
+- `make test-unit` - run explicit unit test suites
+- `make test-integration` - run explicit integration/e2e suites
+- `make test-dependency-audit` - run high-severity dependency audit baseline
+- `make test-container-build` - validate container builds for api/worker
 - `make up` - start compose stack
 - `make down` - stop stack
 - `make bootstrap` - run deterministic first-run init
@@ -178,6 +186,7 @@ See:
 - `docs/threat-model.md`
 - `docs/security-baseline.md`
 - `docs/data-model.md`
+- `docs/architecture-service-map.md`
 - `docs/runbooks/bootstrap.md`
 - `docs/runbooks/backup-and-restore.md`
 - `docs/runbooks/reset-bootstrap-restore.md`
@@ -228,8 +237,8 @@ Commercialization or enterprise-core use of this IP requires a separate signed c
 
 ## Current Status
 
-- Completed: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, and Phase 7.
+- Completed: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and Phase 8.
 - Completed: hardening validation pass for scaffold.
-- Remaining runtime phase: CI/handoff polish (Phase 8).
+- Remaining work is out-of-scope v1 expansion only.
 
 Detailed evidence is tracked in `docs/status`.

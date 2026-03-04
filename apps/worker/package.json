@@ -9,7 +9,9 @@
     "start:dev": "tsx watch src/main.ts",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:unit": "vitest run \"test/jobs.service.test.ts\"",
+    "test:integration": "vitest run test/health.e2e.test.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.11",

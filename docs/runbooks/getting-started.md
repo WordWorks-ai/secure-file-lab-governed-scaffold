@@ -1,4 +1,4 @@
-# User Guide: Getting Started (Phase 7 Baseline)
+# User Guide: Getting Started (Phase 8 Baseline)
 
 ## What This Repository Is
 
@@ -15,9 +15,9 @@ Implemented now:
 - Audit event query and NDJSON export.
 - Backup generation, restore smoke, and destructive live restore path.
 
-Not implemented yet:
+Not implemented in v1 (intentional):
 
-- Final CI/handoff polish tasks in Phase 8.
+- Enterprise add-on services outside prototype scope (Keycloak/OPA/OpenSearch/OCR/realtime/admin split).
 
 ## Prerequisites
 

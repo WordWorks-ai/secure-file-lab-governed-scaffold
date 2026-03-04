@@ -37,8 +37,17 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Test
-        run: pnpm test
+      - name: Unit tests
+        run: pnpm test:unit
+
+      - name: Integration tests
+        run: pnpm test:integration
+
+      - name: Dependency audit
+        run: bash infra/scripts/tests/dependency-audit.sh
 
       - name: Validate compose
         run: docker compose --env-file .env.example -f infra/compose/docker-compose.yml config > /dev/null
+
+      - name: Container build validation
+        run: bash infra/scripts/tests/container-build-validation.sh

@@ -2,7 +2,7 @@
 
 ## Status Note
 
-This document defines target baseline controls for v1. As of 2026-03-04, auth, file malware-gate, share policy, audit query/export, and backup/restore operational baselines are implemented; final CI/handoff polish remains in later phases.
+This document defines target baseline controls for v1. As of 2026-03-04, auth, file malware-gate, share policy, audit query/export, backup/restore operational baselines, and CI security gates are implemented.
 
 ## Authentication and Identity
 
@@ -88,6 +88,7 @@ Not implemented yet:
 - Backup artifacts include checksum manifest; restore smoke verifies backup shape plus PostgreSQL and MinIO restore integrity.
 - Live restore and reset scripts require explicit destructive confirmations.
 - API and worker run as non-root with read-only filesystems and dropped Linux capabilities.
+- CI includes secret-hygiene scanning and high-severity dependency audit baseline.
 
 ## Safe Failure Behavior
 

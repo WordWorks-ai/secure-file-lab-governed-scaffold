@@ -10,6 +10,8 @@ BACKUP_SCRIPT="$ROOT_DIR/infra/scripts/backup.sh"
 RESTORE_SCRIPT="$ROOT_DIR/infra/scripts/restore-smoke.sh"
 RESTORE_LIVE_SCRIPT="$ROOT_DIR/infra/scripts/restore-live.sh"
 RESET_SCRIPT="$ROOT_DIR/infra/scripts/reset.sh"
+DEPENDENCY_AUDIT_SCRIPT="$ROOT_DIR/infra/scripts/tests/dependency-audit.sh"
+CONTAINER_BUILD_SCRIPT="$ROOT_DIR/infra/scripts/tests/container-build-validation.sh"
 ENV_LIB="$ROOT_DIR/infra/scripts/lib/env.sh"
 API_DOCKERFILE="$ROOT_DIR/apps/api/Dockerfile"
 WORKER_DOCKERFILE="$ROOT_DIR/apps/worker/Dockerfile"
@@ -25,6 +27,8 @@ for required_file in \
   "$RESTORE_SCRIPT" \
   "$RESTORE_LIVE_SCRIPT" \
   "$RESET_SCRIPT" \
+  "$DEPENDENCY_AUDIT_SCRIPT" \
+  "$CONTAINER_BUILD_SCRIPT" \
   "$ENV_LIB" \
   "$API_DOCKERFILE" \
   "$WORKER_DOCKERFILE" \
@@ -125,6 +129,17 @@ if rg -n -- '--no-frozen-lockfile|--frozen-lockfile=false' "$API_DOCKERFILE" "$W
   echo "non-deterministic pnpm install flags detected in docker/ci files" >&2
   exit 1
 fi
+
+for ci_expectation in \
+  'pnpm test:unit' \
+  'pnpm test:integration' \
+  'infra/scripts/tests/dependency-audit.sh' \
+  'infra/scripts/tests/container-build-validation.sh'; do
+  if ! rg -n "$ci_expectation" "$CI_FILE" >/dev/null; then
+    echo "ci hardening expectation missing: $ci_expectation" >&2
+    exit 1
+  fi
+done
 
 for header_line in \
   'X-Content-Type-Options "nosniff"' \

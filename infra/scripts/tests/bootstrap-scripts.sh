@@ -16,6 +16,8 @@ required_scripts=(
   "infra/scripts/tests/hardening-baseline.sh"
   "infra/scripts/tests/backup-restore-guards.sh"
   "infra/scripts/tests/restore-live-guards.sh"
+  "infra/scripts/tests/dependency-audit.sh"
+  "infra/scripts/tests/container-build-validation.sh"
 )
 
 required_files=(

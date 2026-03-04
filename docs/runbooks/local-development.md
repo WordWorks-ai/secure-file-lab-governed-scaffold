@@ -33,6 +33,10 @@ make bootstrap
 - `pnpm lint`
 - `pnpm typecheck`
 - `pnpm test`
+- `pnpm test:unit`
+- `pnpm test:integration`
+- `pnpm test:dependency-audit`
+- `pnpm test:container-build`
 - `make backup`
 - `make restore-smoke`
 - `RESTORE_CONFIRM=YES make restore-live` (destructive)

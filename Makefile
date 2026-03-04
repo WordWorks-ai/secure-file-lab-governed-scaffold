@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 COMPOSE_FILE := infra/compose/docker-compose.yml
 
-.PHONY: help install lint typecheck test test-scaffold test-hardening test-ops-smoke validate compose-validate up down logs bootstrap health backup restore-smoke restore-live reset clean
+.PHONY: help install lint typecheck test test-unit test-integration test-scaffold test-hardening test-dependency-audit test-container-build test-ops-smoke validate compose-validate up down logs bootstrap health backup restore-smoke restore-live reset clean
 
 help:
 	@echo "Available targets:"
@@ -10,8 +10,12 @@ help:
 	@echo "  lint             Run lint across workspaces"
 	@echo "  typecheck        Run typecheck across workspaces"
 	@echo "  test             Run tests across workspaces"
+	@echo "  test-unit        Run explicit unit-test suites"
+	@echo "  test-integration Run explicit integration/e2e test suites"
 	@echo "  test-scaffold    Run shell-based scaffold tests"
 	@echo "  test-hardening   Run shell-based hardening baseline checks"
+	@echo "  test-dependency-audit  Run dependency audit baseline (high severity gate)"
+	@echo "  test-container-build   Validate docker image builds for api/worker"
 	@echo "  test-ops-smoke   Run compose reproducibility smoke checks (destructive)"
 	@echo "  validate         Run lint, typecheck, tests, compose validation"
 	@echo "  up               Start docker compose stack"
@@ -35,6 +39,12 @@ typecheck:
 test:
 	pnpm test
 
+test-unit:
+	pnpm test:unit
+
+test-integration:
+	pnpm test:integration
+
 test-scaffold:
 	bash infra/scripts/tests/phase0-structure.sh
 	bash infra/scripts/tests/bootstrap-scripts.sh
@@ -51,6 +61,12 @@ test-hardening:
 	bash infra/scripts/tests/scope-accuracy.sh
 	bash infra/scripts/tests/backup-restore-guards.sh
 	bash infra/scripts/tests/restore-live-guards.sh
+
+test-dependency-audit:
+	bash infra/scripts/tests/dependency-audit.sh
+
+test-container-build:
+	bash infra/scripts/tests/container-build-validation.sh
 
 test-ops-smoke:
 	bash infra/scripts/tests/ops-reproducibility.sh
