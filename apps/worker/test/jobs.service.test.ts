@@ -185,6 +185,12 @@ function createJobsServiceHarness() {
   const objectStorage = {
     getObject: vi.fn(async () => Buffer.from('encrypted-object')),
   };
+  const openSearch = {
+    isEnabled: vi.fn(() => false),
+    ensureIndex: vi.fn(async () => {}),
+    upsertFile: vi.fn(async () => {}),
+    deleteFile: vi.fn(async () => {}),
+  };
   const vaultTransit = {
     unwrapDek: vi.fn(async () => Buffer.alloc(32, 7)),
   };
@@ -195,7 +201,8 @@ function createJobsServiceHarness() {
     scanner as unknown as ConstructorParameters<typeof JobsService>[2],
     fileCrypto as unknown as ConstructorParameters<typeof JobsService>[3],
     objectStorage as unknown as ConstructorParameters<typeof JobsService>[4],
-    vaultTransit as unknown as ConstructorParameters<typeof JobsService>[5],
+    openSearch as unknown as ConstructorParameters<typeof JobsService>[5],
+    vaultTransit as unknown as ConstructorParameters<typeof JobsService>[6],
   );
 
   return {
@@ -205,6 +212,7 @@ function createJobsServiceHarness() {
     scanner,
     fileCrypto,
     objectStorage,
+    openSearch,
     vaultTransit,
   };
 }
