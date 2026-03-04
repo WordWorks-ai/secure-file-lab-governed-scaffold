@@ -61,6 +61,12 @@ Not implemented in v1 (intentionally out of scope):
 
 - Enterprise identity/policy/search add-ons (Keycloak/OPA/OpenSearch/OCR/realtime/admin split/observability stack).
 
+Post-v1 expansion currently in progress:
+
+- Stage 9 baseline shells added for `web`, `admin`, and `realtime` routing/service scaffolding.
+- Stage 10 baseline adds optional `keycloak` and `opa` profile wiring, API SSO exchange endpoint, and policy-gated file/share actions.
+- Full auth/policy/search/OCR/DLP/observability integration remains pending in later stages.
+
 ## Purpose
 
 This repository implements a constrained v1 architecture to prove core controls without building an enterprise-scale platform prematurely.
@@ -116,9 +122,13 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 
 - `apps/api` - NestJS API (modular monolith)
 - `apps/worker` - NestJS worker for async jobs
+- `apps/web` - user-facing web shell (Stage 9 baseline)
+- `apps/admin` - admin UI shell (Stage 9 baseline)
+- `apps/realtime` - realtime SSE shell (Stage 9 baseline)
 - `packages/shared` - shared domain helpers/types
 - `infra/caddy` - Caddy edge config
 - `infra/compose` - Docker Compose topology
+- `infra/opa` - OPA policy bundles (Stage 10 baseline)
 - `infra/scripts` - deterministic bootstrap and ops scripts
 - `docs/adr` - architecture decision records
 - `docs/runbooks` - operational runbooks
@@ -241,7 +251,8 @@ Commercialization or enterprise-core use of this IP requires a separate signed c
 ## Current Status
 
 - Completed: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and Phase 8.
+- Completed: Stage 9 and Stage 10 baseline shells for post-v1 expansion.
 - Completed: hardening validation pass for scaffold.
-- Remaining work is out-of-scope v1 expansion only.
+- Remaining work is deeper post-v1 enterprise expansion (search, OCR/preview, DLP, observability).
 
 Detailed evidence is tracked in `docs/status`.

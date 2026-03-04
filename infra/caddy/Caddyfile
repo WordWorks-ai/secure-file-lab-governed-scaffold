@@ -2,8 +2,7 @@
   admin off
 }
 
-:80 {
-  encode zstd gzip
+(secure_headers) {
   header {
     X-Content-Type-Options "nosniff"
     X-Frame-Options "DENY"
@@ -11,18 +10,36 @@
     Permissions-Policy "camera=(), microphone=(), geolocation=()"
     -Server
   }
-  reverse_proxy api:3000
+}
+
+(app_routes) {
+  @api path /v1/*
+  handle @api {
+    reverse_proxy api:3000
+  }
+
+  handle_path /realtime* {
+    reverse_proxy realtime:3010
+  }
+
+  handle_path /admin* {
+    reverse_proxy admin:80
+  }
+
+  handle {
+    reverse_proxy web:80
+  }
+}
+
+:80 {
+  encode zstd gzip
+  import secure_headers
+  import app_routes
 }
 
 https://localhost, https://127.0.0.1, https://caddy {
   tls internal
   encode zstd gzip
-  header {
-    X-Content-Type-Options "nosniff"
-    X-Frame-Options "DENY"
-    Referrer-Policy "no-referrer"
-    Permissions-Policy "camera=(), microphone=(), geolocation=()"
-    -Server
-  }
-  reverse_proxy api:3000
+  import secure_headers
+  import app_routes
 }

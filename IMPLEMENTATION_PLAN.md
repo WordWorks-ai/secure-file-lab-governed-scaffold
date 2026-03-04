@@ -194,3 +194,134 @@ Prototype is handoff-ready when:
 - Auth, file upload, malware gate, share controls, and audit path are tested.
 - Backup and restore have a documented and smoke-tested path.
 - Governance docs and implementation status reflect actual code behavior.
+
+## Post-v1 Expansion Plan (Enterprise Add-ons)
+
+These stages are executed sequentially to minimize integration risk and keep each checkpoint shippable.
+
+### Stage 9 - Frontend and Realtime Foundation
+
+#### Deliverables
+
+- `web` service baseline with authenticated user workflow shell.
+- `admin` service baseline with operational/audit dashboard shell.
+- `realtime` service baseline and Caddy route exposure.
+- Shared API contracts for notifications and UI health/status checks.
+
+#### Validation
+
+- Compose includes `web`, `admin`, and `realtime` services.
+- End-to-end smoke verifies:
+  - web route reachable via Caddy
+  - admin route reachable via Caddy
+  - realtime health endpoint reachable via Caddy
+- New tests for route/health wiring pass.
+
+#### Exit Criteria
+
+- 3/3 new services start healthy in local compose.
+- No regressions to existing v1 test suites.
+
+### Stage 10 - Identity and Policy Engine
+
+#### Deliverables
+
+- Keycloak service integration for optional SSO.
+- OPA service integration for policy-as-code checks.
+- API policy adapter with fallback mode and explicit deny behavior.
+
+#### Validation
+
+- SSO login flow test path (enabled profile) succeeds.
+- OPA policy decision tests cover allow/deny/malformed-policy paths.
+- Fail-safe behavior test denies protected actions on policy-engine failure.
+
+#### Exit Criteria
+
+- Externalized policy checks gate sensitive share/file operations.
+- SSO mode can be enabled without breaking local-password auth mode.
+
+### Stage 11 - Search Layer
+
+#### Deliverables
+
+- OpenSearch service integration and index bootstrap.
+- Worker-driven indexing pipeline for files/shares/audit metadata.
+- Search API endpoints with scoped query filters.
+
+#### Validation
+
+- Index bootstrap idempotency tests pass.
+- Search indexing integration tests cover create/update/delete reindex paths.
+- Search query tests enforce tenant/org scoping and result limits.
+
+#### Exit Criteria
+
+- New/updated metadata is searchable within bounded latency after worker processing.
+- Search remains local-only and self-hosted.
+
+### Stage 12 - Preview and OCR Pipeline
+
+#### Deliverables
+
+- `preview` service path for document/PDF thumbnail conversion.
+- `ocr` service path for text extraction and indexing payload generation.
+- Worker orchestration for preview/OCR job lifecycle and retry policy.
+
+#### Validation
+
+- Supported-file conversion tests pass for at least PDF and Office samples.
+- OCR extraction tests pass for text-bearing scanned samples.
+- Pipeline failure tests verify fail-closed behavior for malformed content.
+
+#### Exit Criteria
+
+- Preview/OCR outputs are stored and linked to file metadata.
+- Pipeline jobs are observable via audit events.
+
+### Stage 13 - DLP Pipeline
+
+#### Deliverables
+
+- DLP scanner service/profile integration.
+- Policy set for PII/secrets baseline detection.
+- API/share enforcement hooks for DLP decisions.
+
+#### Validation
+
+- Detection test corpus verifies true-positive and false-positive baselines.
+- Enforcement tests verify block/quarantine/audit behavior by policy.
+- Override flow tests verify admin-governed exception handling.
+
+#### Exit Criteria
+
+- DLP verdicts are enforced consistently on upload/share workflows.
+- Audit trails include policy id, verdict, and enforcement action.
+
+### Stage 14 - Observability and Final Handoff
+
+#### Deliverables
+
+- Prometheus + Grafana + Loki compose profile integration.
+- API/worker/realtime metrics/log wiring.
+- Final runbooks and architecture updates for expanded topology.
+
+#### Validation
+
+- Metrics endpoint smoke tests pass for core services.
+- Central log capture checks pass for API/worker/realtime.
+- CI includes new profile-aware integration checks.
+
+#### Exit Criteria
+
+- Expanded stack can be run with or without observability profile.
+- Handoff docs reflect actual runtime behavior and operational controls.
+
+## Expansion Definition of Done
+
+Post-v1 expansion is complete when:
+
+- All originally requested enterprise add-ons are implemented and routable in local compose.
+- Security and policy checks are test-covered with fail-safe behavior.
+- Regression suite for existing v1 features remains green.
+- Runbooks and service map are updated for the expanded architecture.

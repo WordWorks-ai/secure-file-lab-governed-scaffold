@@ -26,7 +26,7 @@ jobs:
           version: 8.11.0
 
       - name: Scaffold tests
-        run: bash infra/scripts/tests/phase0-structure.sh && bash infra/scripts/tests/bootstrap-scripts.sh && bash infra/scripts/tests/phase1-compose.sh && bash infra/scripts/tests/secrets-hygiene.sh && bash infra/scripts/tests/env-loader-safety.sh && bash infra/scripts/tests/scope-accuracy.sh && bash infra/scripts/tests/hardening-baseline.sh && bash infra/scripts/tests/backup-restore-guards.sh && bash infra/scripts/tests/restore-live-guards.sh
+        run: bash infra/scripts/tests/phase0-structure.sh && bash infra/scripts/tests/bootstrap-scripts.sh && bash infra/scripts/tests/phase1-compose.sh && bash infra/scripts/tests/stage9-routing.sh && bash infra/scripts/tests/stage10-policy.sh && bash infra/scripts/tests/secrets-hygiene.sh && bash infra/scripts/tests/env-loader-safety.sh && bash infra/scripts/tests/scope-accuracy.sh && bash infra/scripts/tests/hardening-baseline.sh && bash infra/scripts/tests/backup-restore-guards.sh && bash infra/scripts/tests/restore-live-guards.sh
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

@@ -6,7 +6,7 @@ import { Test } from '@nestjs/testing';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { createHmac, randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppModule } from '../src/app.module.js';
 import { configureApiApplication } from '../src/bootstrap/configure-api-application.js';
@@ -553,5 +553,44 @@ describe('files endpoints', () => {
       .send();
 
     expect(activate.statusCode).toBe(403);
+  });
+
+  it('denies upload when policy engine returns deny', async () => {
+    const user = prisma.seedUser({
+      email: 'policy-deny@local.test',
+      role: UserRole.admin,
+    });
+    const token = signAccessToken({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      secret: jwtSecret,
+    });
+
+    const originalFetch = globalThis.fetch;
+    process.env.POLICY_ENGINE_ENABLED = 'true';
+    globalThis.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ result: false }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    ) as unknown as typeof fetch;
+
+    try {
+      const response = await request(app.getHttpServer())
+        .post('/v1/files/upload')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          filename: 'blocked.txt',
+          contentType: 'text/plain',
+          contentBase64: Buffer.from('blocked').toString('base64'),
+        });
+
+      expect(response.statusCode).toBe(403);
+    } finally {
+      delete process.env.POLICY_ENGINE_ENABLED;
+      globalThis.fetch = originalFetch;
+      vi.restoreAllMocks();
+    }
   });
 });
