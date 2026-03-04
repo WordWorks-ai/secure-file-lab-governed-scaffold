@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 
 const port = Number.parseInt(process.env.REALTIME_PORT ?? '3010', 10);
 const clients = new Map();
+let publishedMessagesTotal = 0;
 
 const sendJson = (res, statusCode, body) => {
   res.writeHead(statusCode, {
@@ -33,9 +34,30 @@ const parseBody = async (req) =>
     req.on('error', reject);
   });
 
+const buildMetricsPayload = () => [
+  '# HELP sfl_realtime_info Static info metric for the realtime service.',
+  '# TYPE sfl_realtime_info gauge',
+  'sfl_realtime_info{service="realtime",phase="phase-14-observability-baseline"} 1',
+  '# HELP sfl_realtime_connected_clients Active realtime stream connections.',
+  '# TYPE sfl_realtime_connected_clients gauge',
+  `sfl_realtime_connected_clients ${clients.size}`,
+  '# HELP sfl_realtime_published_messages_total Total published realtime messages.',
+  '# TYPE sfl_realtime_published_messages_total counter',
+  `sfl_realtime_published_messages_total ${publishedMessagesTotal}`,
+].join('\n');
+
 const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/health/live') {
     return sendJson(res, 200, { status: 'ok', service: 'realtime', transport: 'sse' });
+  }
+
+  if (req.method === 'GET' && req.url === '/metrics') {
+    res.writeHead(200, {
+      'content-type': 'text/plain; version=0.0.4; charset=utf-8',
+      'cache-control': 'no-store',
+    });
+    res.end(buildMetricsPayload());
+    return;
   }
 
   if (req.method === 'GET' && req.url === '/stream') {
@@ -66,6 +88,7 @@ const server = http.createServer(async (req, res) => {
         sentAt: new Date().toISOString(),
         data,
       });
+      publishedMessagesTotal += 1;
 
       return sendJson(res, 202, { accepted: true, subscribers: clients.size });
     } catch (_error) {

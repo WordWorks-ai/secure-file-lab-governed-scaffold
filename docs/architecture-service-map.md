@@ -44,6 +44,13 @@ Post-v1 Stage 13 profile additions:
 
 - `dlp` - optional DLP policy/evaluation shell.
 
+Post-v1 Stage 14 profile additions:
+
+- `prometheus` - metrics collection and scrape orchestration.
+- `grafana` - local dashboard and query UI.
+- `loki` - centralized log store.
+- `promtail` - container log shipper for API/worker/realtime.
+
 ## Dependency Map
 
 Inbound:
@@ -66,6 +73,9 @@ API runtime dependencies:
 - `api` -> `redis` (content-process queue producer when enabled)
 - `api` -> `opensearch` (query path for `/v1/search/files`)
 - `api` -> `dlp` (reserved service path for DLP integration)
+- `prometheus` -> `api` (scrapes `/v1/metrics`)
+- `prometheus` -> `worker` (scrapes `/v1/metrics`)
+- `prometheus` -> `realtime` (scrapes `/metrics`)
 
 Worker runtime dependencies:
 
@@ -77,6 +87,8 @@ Worker runtime dependencies:
 - `worker` -> `preview` (reserved service path for conversion integration)
 - `worker` -> `ocr` (reserved service path for extraction integration)
 - `worker` -> `opensearch` (search index upsert/delete sync)
+- `promtail` -> `api`/`worker`/`realtime` container logs (ships to Loki)
+- `grafana` -> `prometheus` + `loki` (reads metrics/logs)
 
 Operational workflows:
 
@@ -96,6 +108,10 @@ Operational workflows:
   - transit key material and cryptographic wrap/unwrap operations
 - Redis:
   - async job queues and scheduled maintenance jobs
+- Prometheus:
+  - scraped service metrics and short-horizon time-series
+- Loki:
+  - centralized API/worker/realtime log streams
 
 ## Trust Boundaries
 
@@ -109,6 +125,7 @@ Operational workflows:
 - Non-`active` files are denied for download and share access.
 - Malware scan gate must transition files fail-closed on terminal scan errors.
 - DLP-sensitive upload/share actions deny by default when policy matches and override is not enabled.
+- Metrics endpoints remain read-only and expose process/service telemetry only.
 - Raw DEKs are not persisted in Postgres.
 - Critical actions emit audit events.
 - Destructive restore/reset operations require explicit confirmation env vars.

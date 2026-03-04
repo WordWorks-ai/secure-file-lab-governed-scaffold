@@ -59,16 +59,17 @@ Implemented now:
 
 Not implemented in v1 (intentionally out of scope):
 
-- Enterprise identity/policy/search add-ons (Keycloak/OPA/OpenSearch/OCR/realtime/admin split/observability stack).
+- Enterprise identity/policy/search/DLP/observability add-ons.
 
-Post-v1 expansion currently in progress:
+Post-v1 expansion baselines completed:
 
 - Stage 9 baseline shells added for `web`, `admin`, and `realtime` routing/service scaffolding.
 - Stage 10 baseline adds optional `keycloak` and `opa` profile wiring, API SSO exchange endpoint, and policy-gated file/share actions.
 - Stage 11 baseline adds optional `opensearch` profile wiring, search API endpoint, and worker-driven index sync queue.
 - Stage 12 baseline adds optional `preview` and `ocr` profile wiring, persisted file artifact metadata, and worker-driven content derivation queue flow.
 - Stage 13 baseline adds optional `dlp` profile wiring plus upload/share DLP enforcement hooks and policy corpus tests.
-- Full auth/policy/search/OCR/DLP/observability hardening remains pending in later stages.
+- Stage 14 baseline adds optional `observability` profile wiring (Prometheus/Grafana/Loki/Promtail) and service metrics endpoints.
+- Production-grade auth/policy/search/OCR/DLP/observability hardening remains post-baseline work.
 
 ## Purpose
 
@@ -93,8 +94,8 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 
 - Target architecture: NestJS modular monolith API + dedicated worker.
 - Implemented modules:
-  - API: `health`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 8 handoff baseline)
-  - Worker: `health`, `jobs` (file scan processor + expiration/cleanup jobs)
+  - API: `health`, `metrics`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 8+ handoff baseline)
+  - Worker: `health`, `metrics`, `jobs` (file scan processor + expiration/cleanup jobs)
 - PostgreSQL/Redis/MinIO/Vault/ClamAV are wired for runtime workflows and operational backup/restore paths.
 
 ## Security Baseline
@@ -136,6 +137,7 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 - `infra/compose` - Docker Compose topology
 - `infra/opa` - OPA policy bundles (Stage 10 baseline)
 - `infra/dlp` - DLP policy set artifacts (Stage 13 baseline)
+- `infra/observability` - Prometheus/Grafana/Loki/Promtail config artifacts (Stage 14 baseline)
 - `infra/scripts` - deterministic bootstrap and ops scripts
 - `docs/adr` - architecture decision records
 - `docs/runbooks` - operational runbooks
@@ -258,8 +260,8 @@ Commercialization or enterprise-core use of this IP requires a separate signed c
 ## Current Status
 
 - Completed: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and Phase 8.
-- Completed: Stage 9, Stage 10, Stage 11, Stage 12, and Stage 13 baseline shells for post-v1 expansion.
+- Completed: Stage 9, Stage 10, Stage 11, Stage 12, Stage 13, and Stage 14 baseline shells for post-v1 expansion.
 - Completed: hardening validation pass for scaffold.
-- Remaining work is deeper post-v1 enterprise expansion (search/OCR/DLP hardening, observability).
+- Remaining work is production hardening and operational depth beyond baseline expansion scope.
 
 Detailed evidence is tracked in `docs/status`.

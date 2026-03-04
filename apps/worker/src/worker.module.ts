@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { HealthModule } from './modules/health/health.module.js';
 import { JobsModule } from './modules/jobs/jobs.module.js';
+import { MetricsModule } from './modules/metrics/metrics.module.js';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { JobsModule } from './modules/jobs/jobs.module.js';
       cache: true,
     }),
     HealthModule,
+    MetricsModule,
     JobsModule,
   ],
 })

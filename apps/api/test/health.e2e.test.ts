@@ -84,4 +84,13 @@ describe('health endpoints', () => {
       typeof fallback === 'string' || (Array.isArray(fallback) && fallback.every((x) => typeof x === 'string')),
     ).toBe(true);
   });
+
+  it('returns prometheus metrics payload', async () => {
+    const response = await request(app.getHttpServer()).get('/v1/metrics');
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('text/plain');
+    expect(response.text).toContain('sfl_api_info');
+    expect(response.text).toContain('sfl_api_uptime_seconds');
+  });
 });
