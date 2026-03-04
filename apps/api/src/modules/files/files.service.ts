@@ -21,6 +21,7 @@ import { PrismaService } from '../persistence/prisma.service.js';
 import { PolicyService } from '../policy/policy.service.js';
 import { PolicyDecisionInput } from '../policy/policy.types.js';
 import { SearchQueueService } from '../search/search-queue.service.js';
+import { ContentQueueService } from './content-queue.service.js';
 import { UploadFileDto } from './dto/upload-file.dto.js';
 import { FileCryptoService } from './file-crypto.service.js';
 import {
@@ -46,6 +47,7 @@ export class FilesService {
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(PolicyService) private readonly policyService: PolicyService,
     @Inject(SearchQueueService) private readonly searchQueueService: SearchQueueService,
+    @Inject(ContentQueueService) private readonly contentQueueService: ContentQueueService,
     @Inject(FileCryptoService) private readonly fileCryptoService: FileCryptoService,
     @Inject(FileQueueService) private readonly fileQueueService: FileQueueService,
     @Inject(MinioObjectStorageService)
@@ -249,10 +251,56 @@ export class FilesService {
     });
 
     await this.tryEnqueueSearchUpsert(activated.id);
+    await this.tryEnqueueContentProcessing(activated.id);
 
     return {
       fileId: activated.id,
       status: activated.status,
+    };
+  }
+
+  async getFileArtifacts(
+    fileId: string,
+    user: AuthenticatedUser,
+  ): Promise<{
+    fileId: string;
+    preview: {
+      available: boolean;
+      text: string | null;
+      generatedAt: string | null;
+    };
+    ocr: {
+      available: boolean;
+      text: string | null;
+      generatedAt: string | null;
+    };
+  }> {
+    await this.findFileForUser(fileId, user);
+
+    const artifact = await this.prismaService.fileArtifact.findUnique({
+      where: {
+        fileId,
+      },
+      select: {
+        previewText: true,
+        previewGeneratedAt: true,
+        ocrText: true,
+        ocrGeneratedAt: true,
+      },
+    });
+
+    return {
+      fileId,
+      preview: {
+        available: Boolean(artifact?.previewText),
+        text: artifact?.previewText ?? null,
+        generatedAt: artifact?.previewGeneratedAt ? artifact.previewGeneratedAt.toISOString() : null,
+      },
+      ocr: {
+        available: Boolean(artifact?.ocrText),
+        text: artifact?.ocrText ?? null,
+        generatedAt: artifact?.ocrGeneratedAt ? artifact.ocrGeneratedAt.toISOString() : null,
+      },
     };
   }
 
@@ -522,6 +570,14 @@ export class FilesService {
       await this.searchQueueService.enqueue('upsert', fileId);
     } catch {
       // Search indexing must not block core file workflow.
+    }
+  }
+
+  private async tryEnqueueContentProcessing(fileId: string): Promise<void> {
+    try {
+      await this.contentQueueService.enqueue(fileId);
+    } catch {
+      // Content derivation must not block core file workflow.
     }
   }
 }

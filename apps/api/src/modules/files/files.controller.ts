@@ -76,6 +76,26 @@ export class FilesController {
     return this.filesService.getFileMetadata(fileId, this.requireUser(request));
   }
 
+  @Get(':fileId/artifacts')
+  async getArtifacts(
+    @Param('fileId', new ParseUUIDPipe({ version: '4' })) fileId: string,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<{
+    fileId: string;
+    preview: {
+      available: boolean;
+      text: string | null;
+      generatedAt: string | null;
+    };
+    ocr: {
+      available: boolean;
+      text: string | null;
+      generatedAt: string | null;
+    };
+  }> {
+    return this.filesService.getFileArtifacts(fileId, this.requireUser(request));
+  }
+
   @Get(':fileId/download')
   async download(
     @Param('fileId', new ParseUUIDPipe({ version: '4' })) fileId: string,
