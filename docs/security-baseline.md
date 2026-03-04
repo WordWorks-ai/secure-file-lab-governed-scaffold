@@ -2,7 +2,7 @@
 
 ## Status Note
 
-This document defines target baseline controls for v1. As of 2026-03-04, many controls are still scaffolded and not yet enforced in end-to-end API flows.
+This document defines target baseline controls for v1. As of 2026-03-04, core auth + file malware-gate controls are implemented, while share and full audit-query controls remain incomplete.
 
 ## Authentication and Identity
 
@@ -49,8 +49,11 @@ This document defines target baseline controls for v1. As of 2026-03-04, many co
   - Per-file DEK generation, AES-256-GCM encryption, and Vault transit wrap/unwrap.
   - Encrypted object persistence in MinIO on upload path.
   - Lifecycle progression to `scan_pending` with non-`active` download denial.
+  - BullMQ queue producer and worker scanner for `scan_pending -> active|blocked`.
+  - Retry behavior that fails closed to `blocked` on terminal scan errors.
+  - Worker maintenance jobs for expiration and cleanup transitions.
 - Not implemented yet:
-  - Queue-based malware scan processing and automatic clean/infected state persistence.
+  - Share-aware malware policy coupling and share-level controls.
 
 ## Audit and Traceability
 
@@ -67,10 +70,11 @@ Implemented now:
 - `audit_events` table exists in schema/migrations.
 - runtime auth event emission for login/refresh/logout outcomes.
 - runtime file event emission for upload initiation, encryption persistence, scan queueing, and download outcomes.
+- async worker event emission for scan, expiration, and cleanup outcomes.
 
 Not implemented yet:
 
-- Runtime event emission for share and all async worker actions.
+- Runtime event emission for share lifecycle and audit query/export APIs.
 
 ## Operational Security
 
@@ -90,7 +94,7 @@ Target behavior:
 
 Current limitation:
 
-- These invariants are not yet enforceable because corresponding file/auth/share workflows are not implemented.
+- These invariants are only partially complete because share workflows and centralized share policy enforcement are not yet implemented.
 
 ## Deferred Hardening (Documented)
 

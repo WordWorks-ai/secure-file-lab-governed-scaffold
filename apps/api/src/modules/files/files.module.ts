@@ -5,6 +5,7 @@ import { AuthModule } from '../auth/auth.module.js';
 import { PrismaModule } from '../persistence/prisma.module.js';
 import { FilesController } from './files.controller.js';
 import { FileCryptoService } from './file-crypto.service.js';
+import { FileQueueService } from './file-queue.service.js';
 import { FilesService } from './files.service.js';
 import { MinioObjectStorageService } from './minio-object-storage.service.js';
 import { VaultTransitService } from './vault-transit.service.js';
@@ -12,7 +13,13 @@ import { VaultTransitService } from './vault-transit.service.js';
 @Module({
   imports: [PrismaModule, AuditModule, AuthModule],
   controllers: [FilesController],
-  providers: [FilesService, FileCryptoService, MinioObjectStorageService, VaultTransitService],
+  providers: [
+    FilesService,
+    FileCryptoService,
+    FileQueueService,
+    MinioObjectStorageService,
+    VaultTransitService,
+  ],
   exports: [FilesService],
 })
 export class FilesModule {}

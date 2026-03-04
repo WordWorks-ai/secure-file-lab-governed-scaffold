@@ -4,7 +4,7 @@ Self-hosted secure file sharing prototype focused on deterministic local deploym
 
 ## Current Implementation Status (2026-03-04)
 
-This repository currently implements a **Phase 0/4 foundation + file ingest/encryption baseline**, not a complete secure file sharing prototype.
+This repository currently implements a **Phase 0/5 foundation + file ingest/encryption + worker malware-gate baseline**, not a complete secure file sharing prototype.
 
 Implemented now:
 
@@ -29,6 +29,12 @@ Implemented now:
   - per-file DEK generation and Vault transit wrap/unwrap
   - lifecycle progression to `scan_pending`
   - download gate enforcement (non-`active` denied)
+- Worker malware gate baseline:
+  - BullMQ queue producer for file scan jobs
+  - worker scan processor decrypts, scans via ClamAV, and transitions `scan_pending -> active|blocked`
+  - retry policy with terminal fail-closed blocking
+  - recurring expiration and cleanup sweeps
+  - async audit emission for scan, expiration, and cleanup transitions
 - Core Prisma schema + migration baseline for `users`, `orgs`, `memberships`, `files`, `shares`, `refresh_tokens`, `bootstrap_state`, and `audit_events`.
 - Structured request logging interceptor and stricter global request validation baseline.
 - Runtime auth + file audit event emission.
@@ -36,10 +42,8 @@ Implemented now:
 
 Not implemented yet:
 
-- Malware scan queue/processors enforcing quarantine-to-active gate.
-- Automated clean/infected transition processing (worker-driven gate in Phase 5).
 - Share-link endpoints and runtime policy enforcement (schema exists; runtime flow pending).
-- Complete runtime audit event capture for share and all async workflow actions.
+- Complete runtime audit event capture for share lifecycle and query/export coverage.
 
 ## Purpose
 
@@ -65,7 +69,7 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 - Target architecture: NestJS modular monolith API + dedicated worker.
 - Implemented modules:
   - API: `health`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 4 ingest/encryption baseline)
-  - Worker: `health`, `jobs` placeholder
+  - Worker: `health`, `jobs` (file scan processor + expiration/cleanup jobs)
 - PostgreSQL/Redis/MinIO/Vault/ClamAV are wired for infrastructure readiness, but domain workflows are pending.
 
 ## Security Baseline
@@ -80,9 +84,11 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
   - file upload encryption path with per-file DEK + Vault transit wrapping
   - MinIO encrypted object persistence for uploaded payloads
   - download gate blocks non-`active` file statuses
+  - BullMQ-backed malware scan queue and worker processing
+  - automatic clean/infected scan transitions with fail-closed blocking
+  - expiration and cleanup maintenance jobs in worker runtime
   - auth + file audit emission for implemented runtime actions
 - Planned controls (not yet implemented in runtime flows):
-  - malware scan gate in worker
   - share-link policy enforcement
   - end-to-end audit trail for critical user actions
 
@@ -205,8 +211,8 @@ Commercialization or enterprise-core use of this IP requires a separate signed c
 
 ## Current Status
 
-- Completed: Phase 0, Phase 1, Phase 2, Phase 3, and Phase 4.
+- Completed: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5.
 - Completed: hardening validation pass for scaffold.
-- Remaining runtime phases: worker malware gate, share runtime policy, and full async/share audit coverage.
+- Remaining runtime phases: share runtime policy and full async/share audit coverage.
 
 Detailed evidence is tracked in `docs/status`.
