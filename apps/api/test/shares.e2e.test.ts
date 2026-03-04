@@ -570,10 +570,16 @@ describe('shares and audit endpoints', () => {
   let prisma: InMemoryPrismaService;
   let objectStorage: InMemoryObjectStorageService;
   let vaultTransit: InMemoryVaultTransitService;
+  let originalDlpEngineEnabled: string | undefined;
+  let originalDlpAdminOverrideEnabled: string | undefined;
   const jwtSecret = 'shares-test-secret';
 
   beforeAll(async () => {
+    originalDlpEngineEnabled = process.env.DLP_ENGINE_ENABLED;
+    originalDlpAdminOverrideEnabled = process.env.DLP_ADMIN_OVERRIDE_ENABLED;
     process.env.JWT_ACCESS_SECRET = jwtSecret;
+    process.env.DLP_ENGINE_ENABLED = 'false';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'false';
 
     prisma = new InMemoryPrismaService();
     objectStorage = new InMemoryObjectStorageService();
@@ -600,10 +606,24 @@ describe('shares and audit endpoints', () => {
 
   afterAll(async () => {
     await app.close();
+
+    if (originalDlpEngineEnabled === undefined) {
+      delete process.env.DLP_ENGINE_ENABLED;
+    } else {
+      process.env.DLP_ENGINE_ENABLED = originalDlpEngineEnabled;
+    }
+
+    if (originalDlpAdminOverrideEnabled === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_ENABLED;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_ENABLED = originalDlpAdminOverrideEnabled;
+    }
   });
 
   beforeEach(() => {
     prisma.reset();
+    process.env.DLP_ENGINE_ENABLED = 'false';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'false';
   });
 
   it('creates password-protected shares and enforces usage limits', async () => {
@@ -788,6 +808,100 @@ describe('shares and audit endpoints', () => {
       globalThis.fetch = originalFetch;
       vi.restoreAllMocks();
     }
+  });
+
+  it('denies share creation when DLP policy detects sensitive filename', async () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+    const owner = prisma.seedUser({ email: 'dlp-owner@local.test', role: UserRole.member });
+    const org = prisma.seedOrg({ name: 'Org DLP', slug: 'org-dlp' });
+    prisma.seedMembership({
+      userId: owner.id,
+      orgId: org.id,
+      role: MembershipRole.admin,
+    });
+
+    const plaintext = Buffer.from('dlp-share', 'utf8');
+    const dek = randomBytes(32);
+    const encrypted = encryptAesGcm(plaintext, dek);
+    const storageKey = `files/${org.id}/${randomUUID()}`;
+    await objectStorage.putObject(storageKey, encrypted.ciphertext);
+    const wrappedDek = await vaultTransit.wrapDek(dek);
+    const file = prisma.seedFile({
+      orgId: org.id,
+      ownerUserId: owner.id,
+      filename: 'prod-secret-token.txt',
+      contentType: 'text/plain',
+      storageKey,
+      status: FileStatus.active,
+      wrappedDek,
+      encryptionIv: encrypted.iv.toString('base64'),
+      encryptionTag: encrypted.tag.toString('base64'),
+    });
+
+    const ownerToken = signAccessToken({
+      sub: owner.id,
+      email: owner.email,
+      role: owner.role,
+      secret: jwtSecret,
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/v1/shares')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        fileId: file.id,
+        expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+      });
+
+    expect(response.statusCode).toBe(403);
+  });
+
+  it('allows admin-governed DLP override on share creation when enabled', async () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'true';
+    const admin = prisma.seedUser({ email: 'dlp-admin@local.test', role: UserRole.admin });
+    const org = prisma.seedOrg({ name: 'Org DLP Admin', slug: 'org-dlp-admin' });
+    prisma.seedMembership({
+      userId: admin.id,
+      orgId: org.id,
+      role: MembershipRole.admin,
+    });
+
+    const plaintext = Buffer.from('dlp-admin-share', 'utf8');
+    const dek = randomBytes(32);
+    const encrypted = encryptAesGcm(plaintext, dek);
+    const storageKey = `files/${org.id}/${randomUUID()}`;
+    await objectStorage.putObject(storageKey, encrypted.ciphertext);
+    const wrappedDek = await vaultTransit.wrapDek(dek);
+    const file = prisma.seedFile({
+      orgId: org.id,
+      ownerUserId: admin.id,
+      filename: 'credential-secret.txt',
+      contentType: 'text/plain',
+      storageKey,
+      status: FileStatus.active,
+      wrappedDek,
+      encryptionIv: encrypted.iv.toString('base64'),
+      encryptionTag: encrypted.tag.toString('base64'),
+    });
+
+    const adminToken = signAccessToken({
+      sub: admin.id,
+      email: admin.email,
+      role: admin.role,
+      secret: jwtSecret,
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/v1/shares')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        fileId: file.id,
+        expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+      });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.body.shareId).toBeTruthy();
   });
 
   it('revokes shares and blocks further access', async () => {
