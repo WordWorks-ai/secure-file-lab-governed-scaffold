@@ -35,6 +35,11 @@ Post-v1 Stage 11 profile additions:
 - `opensearch` - optional search index backend.
 - `opensearch_dashboards` - optional local search analytics UI.
 
+Post-v1 Stage 12 profile additions:
+
+- `preview` - optional document preview conversion shell.
+- `ocr` - optional text extraction shell.
+
 ## Dependency Map
 
 Inbound:
@@ -54,6 +59,7 @@ API runtime dependencies:
 - `api` -> `keycloak` (optional SSO token/user profile exchange)
 - `api` -> `opa` (optional policy decision checks for sensitive actions)
 - `api` -> `redis` (search-index queue producer when enabled)
+- `api` -> `redis` (content-process queue producer when enabled)
 - `api` -> `opensearch` (query path for `/v1/search/files`)
 
 Worker runtime dependencies:
@@ -63,6 +69,8 @@ Worker runtime dependencies:
 - `worker` -> `minio` (encrypted object retrieval)
 - `worker` -> `vault` (DEK unwrap for scan)
 - `worker` -> `clamav` (scan verdicts)
+- `worker` -> `preview` (reserved service path for conversion integration)
+- `worker` -> `ocr` (reserved service path for extraction integration)
 - `worker` -> `opensearch` (search index upsert/delete sync)
 
 Operational workflows:
@@ -102,4 +110,4 @@ Operational workflows:
 ## Handoff Notes
 
 - This map reflects the local prototype topology only.
-- Out-of-scope enterprise services (Keycloak/OPA/OpenSearch/etc.) remain intentionally excluded for v1.
+- Out-of-scope enterprise services remain intentionally excluded for v1 and are added only as post-v1 profile-gated baselines.

@@ -1,4 +1,4 @@
-# User Guide: Getting Started (Phase 8 Baseline)
+# User Guide: Getting Started (Phase 8 + Stage 12 Baseline)
 
 ## What This Repository Is
 
@@ -17,7 +17,7 @@ Implemented now:
 
 Not implemented in v1 (intentional):
 
-- Enterprise add-on services outside prototype scope (Keycloak/OPA/OpenSearch/OCR/realtime/admin split).
+- Enterprise add-on services outside prototype scope (Keycloak/OPA/OpenSearch/realtime/admin split).
 
 ## Prerequisites
 
@@ -72,6 +72,7 @@ curl -s http://localhost:8080/v1/system/info
 - Start stack: `make up`
 - Start optional enterprise profile (Keycloak/OPA): `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile enterprise up -d keycloak opa`
 - Start optional search profile (OpenSearch): `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile search up -d opensearch opensearch_dashboards`
+- Start optional content profile (Preview/OCR): `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile content up -d preview ocr`
 - Stop stack: `make down`
 - Tail logs: `make logs`
 - Re-run bootstrap safely: `make bootstrap`
@@ -92,6 +93,8 @@ curl -s http://localhost:8080/v1/system/info
 - MailHog UI: `http://localhost:8025`
 - OpenSearch API (profile): `http://localhost:9200`
 - OpenSearch Dashboards (profile): `http://localhost:5601`
+- Preview service (profile): `http://localhost:3011/v1/preview`
+- OCR service (profile): `http://localhost:3012/v1/ocr`
 
 ## Troubleshooting
 

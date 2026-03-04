@@ -25,9 +25,20 @@ type InMemoryFile = {
   updatedAt: Date;
 };
 
+type InMemoryFileArtifact = {
+  id: string;
+  fileId: string;
+  previewText: string | null;
+  previewGeneratedAt: Date | null;
+  ocrText: string | null;
+  ocrGeneratedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type FileFindUniqueArgs = {
   where: { id: string };
-  select?: { status?: true };
+  select?: Partial<Record<keyof InMemoryFile, true>>;
 };
 
 type FileFindManyArgs = {
@@ -51,6 +62,7 @@ type FileUpdateArgs = {
 
 class InMemoryPrismaService {
   private readonly filesById = new Map<string, InMemoryFile>();
+  private readonly fileArtifactsByFileId = new Map<string, InMemoryFileArtifact>();
 
   readonly file = {
     findUnique: async (args: FileFindUniqueArgs) => {
@@ -59,11 +71,18 @@ class InMemoryPrismaService {
         return null;
       }
 
-      if (args.select?.status) {
-        return { status: file.status };
+      if (!args.select) {
+        return this.cloneFile(file);
       }
 
-      return this.cloneFile(file);
+      const cloned = this.cloneFile(file);
+      const selected: Record<string, unknown> = {};
+      for (const [key, enabled] of Object.entries(args.select)) {
+        if (enabled) {
+          selected[key] = cloned[key as keyof InMemoryFile];
+        }
+      }
+      return selected;
     },
 
     findMany: async (args: FileFindManyArgs) => {
@@ -116,6 +135,48 @@ class InMemoryPrismaService {
     },
   };
 
+  readonly fileArtifact = {
+    upsert: async (args: {
+      where: { fileId: string };
+      create: {
+        fileId: string;
+        previewText: string | null;
+        previewGeneratedAt: Date;
+        ocrText: string | null;
+        ocrGeneratedAt: Date;
+      };
+      update: {
+        previewText: string | null;
+        previewGeneratedAt: Date;
+        ocrText: string | null;
+        ocrGeneratedAt: Date;
+      };
+    }) => {
+      const existing = this.fileArtifactsByFileId.get(args.where.fileId);
+      if (!existing) {
+        const created: InMemoryFileArtifact = {
+          id: randomUUID(),
+          fileId: args.create.fileId,
+          previewText: args.create.previewText,
+          previewGeneratedAt: args.create.previewGeneratedAt,
+          ocrText: args.create.ocrText,
+          ocrGeneratedAt: args.create.ocrGeneratedAt,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        this.fileArtifactsByFileId.set(created.fileId, created);
+        return this.cloneFileArtifact(created);
+      }
+
+      existing.previewText = args.update.previewText;
+      existing.previewGeneratedAt = args.update.previewGeneratedAt;
+      existing.ocrText = args.update.ocrText;
+      existing.ocrGeneratedAt = args.update.ocrGeneratedAt;
+      existing.updatedAt = new Date();
+      return this.cloneFileArtifact(existing);
+    },
+  };
+
   seedFile(overrides: Partial<InMemoryFile> = {}): InMemoryFile {
     const now = new Date();
     const row: InMemoryFile = {
@@ -148,6 +209,11 @@ class InMemoryPrismaService {
     return row ? this.cloneFile(row) : undefined;
   }
 
+  getFileArtifact(fileId: string): InMemoryFileArtifact | undefined {
+    const row = this.fileArtifactsByFileId.get(fileId);
+    return row ? this.cloneFileArtifact(row) : undefined;
+  }
+
   private cloneFile(row: InMemoryFile): InMemoryFile {
     return {
       ...row,
@@ -156,6 +222,16 @@ class InMemoryPrismaService {
       scanCompletedAt: row.scanCompletedAt ? new Date(row.scanCompletedAt) : null,
       expiresAt: row.expiresAt ? new Date(row.expiresAt) : null,
       deletedAt: row.deletedAt ? new Date(row.deletedAt) : null,
+    };
+  }
+
+  private cloneFileArtifact(row: InMemoryFileArtifact): InMemoryFileArtifact {
+    return {
+      ...row,
+      previewGeneratedAt: row.previewGeneratedAt ? new Date(row.previewGeneratedAt) : null,
+      ocrGeneratedAt: row.ocrGeneratedAt ? new Date(row.ocrGeneratedAt) : null,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
     };
   }
 }
@@ -179,6 +255,10 @@ function createJobsServiceHarness() {
   const scanner = {
     scanBuffer: vi.fn(async (): Promise<'clean' | 'infected'> => 'clean'),
   };
+  const contentDerivatives = {
+    generatePreview: vi.fn(() => 'preview'),
+    extractOcrText: vi.fn(() => 'ocr'),
+  };
   const fileCrypto = {
     decrypt: vi.fn(() => Buffer.from('decrypted-payload', 'utf8')),
   };
@@ -199,10 +279,11 @@ function createJobsServiceHarness() {
     prisma as unknown as ConstructorParameters<typeof JobsService>[0],
     audit as unknown as ConstructorParameters<typeof JobsService>[1],
     scanner as unknown as ConstructorParameters<typeof JobsService>[2],
-    fileCrypto as unknown as ConstructorParameters<typeof JobsService>[3],
-    objectStorage as unknown as ConstructorParameters<typeof JobsService>[4],
-    openSearch as unknown as ConstructorParameters<typeof JobsService>[5],
-    vaultTransit as unknown as ConstructorParameters<typeof JobsService>[6],
+    contentDerivatives as unknown as ConstructorParameters<typeof JobsService>[3],
+    fileCrypto as unknown as ConstructorParameters<typeof JobsService>[4],
+    objectStorage as unknown as ConstructorParameters<typeof JobsService>[5],
+    openSearch as unknown as ConstructorParameters<typeof JobsService>[6],
+    vaultTransit as unknown as ConstructorParameters<typeof JobsService>[7],
   );
 
   return {
@@ -210,6 +291,7 @@ function createJobsServiceHarness() {
     prisma,
     audit,
     scanner,
+    contentDerivatives,
     fileCrypto,
     objectStorage,
     openSearch,
@@ -219,9 +301,11 @@ function createJobsServiceHarness() {
 
 describe('JobsService', () => {
   let originalRetentionSeconds: string | undefined;
+  let originalContentPipelineEnabled: string | undefined;
 
   beforeEach(() => {
     originalRetentionSeconds = process.env.FILE_EXPIRED_RETENTION_SECONDS;
+    originalContentPipelineEnabled = process.env.CONTENT_PIPELINE_ENABLED;
   });
 
   afterEach(() => {
@@ -229,6 +313,12 @@ describe('JobsService', () => {
       delete process.env.FILE_EXPIRED_RETENTION_SECONDS;
     } else {
       process.env.FILE_EXPIRED_RETENTION_SECONDS = originalRetentionSeconds;
+    }
+
+    if (originalContentPipelineEnabled === undefined) {
+      delete process.env.CONTENT_PIPELINE_ENABLED;
+    } else {
+      process.env.CONTENT_PIPELINE_ENABLED = originalContentPipelineEnabled;
     }
   });
 
@@ -386,6 +476,61 @@ describe('JobsService', () => {
           event.action === 'file.lifecycle.deleted' &&
           event.result === AuditResult.success &&
           event.resourceId === oldExpired.id,
+      ),
+    ).toBe(true);
+  });
+
+  it('stores preview and OCR artifacts for active files when content pipeline is enabled', async () => {
+    process.env.CONTENT_PIPELINE_ENABLED = 'true';
+    const harness = createJobsServiceHarness();
+    const file = harness.prisma.seedFile({
+      status: FileStatus.active,
+    });
+
+    await harness.service.processContentProcessJobPayload({ fileId: file.id }, 0, 3);
+
+    const artifact = harness.prisma.getFileArtifact(file.id);
+    expect(artifact?.previewText).toBe('preview');
+    expect(artifact?.ocrText).toBe('ocr');
+    expect(harness.contentDerivatives.generatePreview).toHaveBeenCalled();
+    expect(harness.contentDerivatives.extractOcrText).toHaveBeenCalled();
+    expect(
+      harness.audit.events.some(
+        (event) =>
+          event.action === 'file.preview.generated' &&
+          event.result === AuditResult.success &&
+          event.resourceId === file.id,
+      ),
+    ).toBe(true);
+    expect(
+      harness.audit.events.some(
+        (event) =>
+          event.action === 'file.ocr.generated' &&
+          event.result === AuditResult.success &&
+          event.resourceId === file.id,
+      ),
+    ).toBe(true);
+  });
+
+  it('emits failure audit on terminal content processing errors', async () => {
+    process.env.CONTENT_PIPELINE_ENABLED = 'true';
+    const harness = createJobsServiceHarness();
+    const file = harness.prisma.seedFile({
+      status: FileStatus.active,
+    });
+    harness.contentDerivatives.generatePreview.mockImplementation(() => {
+      throw new Error('preview failure');
+    });
+
+    await harness.service.processContentProcessJobPayload({ fileId: file.id }, 2, 3);
+
+    expect(harness.prisma.getFileArtifact(file.id)).toBeUndefined();
+    expect(
+      harness.audit.events.some(
+        (event) =>
+          event.action === 'file.content.generated' &&
+          event.result === AuditResult.failure &&
+          event.resourceId === file.id,
       ),
     ).toBe(true);
   });

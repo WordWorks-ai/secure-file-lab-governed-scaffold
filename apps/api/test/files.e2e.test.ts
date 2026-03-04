@@ -10,6 +10,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 
 import { AppModule } from '../src/app.module.js';
 import { configureApiApplication } from '../src/bootstrap/configure-api-application.js';
+import { ContentQueueService } from '../src/modules/files/content-queue.service.js';
 import { FileQueueService } from '../src/modules/files/file-queue.service.js';
 import { MinioObjectStorageService } from '../src/modules/files/minio-object-storage.service.js';
 import { VaultTransitService } from '../src/modules/files/vault-transit.service.js';
@@ -62,11 +63,23 @@ type InMemoryFile = {
   updatedAt: Date;
 };
 
+type InMemoryFileArtifact = {
+  id: string;
+  fileId: string;
+  previewText: string | null;
+  previewGeneratedAt: Date | null;
+  ocrText: string | null;
+  ocrGeneratedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 class InMemoryPrismaService {
   private readonly usersById = new Map<string, InMemoryUser>();
   private readonly membershipsById = new Map<string, InMemoryMembership>();
   private readonly orgsById = new Map<string, InMemoryOrg>();
   private readonly filesById = new Map<string, InMemoryFile>();
+  private readonly fileArtifactsByFileId = new Map<string, InMemoryFileArtifact>();
   private readonly auditEvents: Array<Record<string, unknown>> = [];
 
   readonly user = {
@@ -248,6 +261,90 @@ class InMemoryPrismaService {
     },
   };
 
+  readonly fileArtifact = {
+    findUnique: async (args: {
+      where: { fileId: string };
+      select?: {
+        previewText?: true;
+        previewGeneratedAt?: true;
+        ocrText?: true;
+        ocrGeneratedAt?: true;
+      };
+    }) => {
+      const row = this.fileArtifactsByFileId.get(args.where.fileId);
+      if (!row) {
+        return null;
+      }
+
+      if (!args.select) {
+        return this.cloneFileArtifact(row);
+      }
+
+      const result: Record<string, unknown> = {};
+      if (args.select.previewText) {
+        result.previewText = row.previewText;
+      }
+      if (args.select.previewGeneratedAt) {
+        result.previewGeneratedAt = row.previewGeneratedAt ? new Date(row.previewGeneratedAt) : null;
+      }
+      if (args.select.ocrText) {
+        result.ocrText = row.ocrText;
+      }
+      if (args.select.ocrGeneratedAt) {
+        result.ocrGeneratedAt = row.ocrGeneratedAt ? new Date(row.ocrGeneratedAt) : null;
+      }
+      return result;
+    },
+    upsert: async (args: {
+      where: { fileId: string };
+      create: {
+        fileId: string;
+        previewText?: string | null;
+        previewGeneratedAt?: Date | null;
+        ocrText?: string | null;
+        ocrGeneratedAt?: Date | null;
+      };
+      update: {
+        previewText?: string | null;
+        previewGeneratedAt?: Date | null;
+        ocrText?: string | null;
+        ocrGeneratedAt?: Date | null;
+      };
+    }) => {
+      const existing = this.fileArtifactsByFileId.get(args.where.fileId);
+      if (!existing) {
+        const now = new Date();
+        const created: InMemoryFileArtifact = {
+          id: randomUUID(),
+          fileId: args.create.fileId,
+          previewText: args.create.previewText ?? null,
+          previewGeneratedAt: args.create.previewGeneratedAt ?? null,
+          ocrText: args.create.ocrText ?? null,
+          ocrGeneratedAt: args.create.ocrGeneratedAt ?? null,
+          createdAt: now,
+          updatedAt: now,
+        };
+        this.fileArtifactsByFileId.set(created.fileId, created);
+        return this.cloneFileArtifact(created);
+      }
+
+      if (args.update.previewText !== undefined) {
+        existing.previewText = args.update.previewText;
+      }
+      if (args.update.previewGeneratedAt !== undefined) {
+        existing.previewGeneratedAt = args.update.previewGeneratedAt;
+      }
+      if (args.update.ocrText !== undefined) {
+        existing.ocrText = args.update.ocrText;
+      }
+      if (args.update.ocrGeneratedAt !== undefined) {
+        existing.ocrGeneratedAt = args.update.ocrGeneratedAt;
+      }
+      existing.updatedAt = new Date();
+      return this.cloneFileArtifact(existing);
+    },
+  };
+
   async checkConnection(): Promise<boolean> {
     return true;
   }
@@ -257,6 +354,7 @@ class InMemoryPrismaService {
     this.membershipsById.clear();
     this.orgsById.clear();
     this.filesById.clear();
+    this.fileArtifactsByFileId.clear();
     this.auditEvents.length = 0;
   }
 
@@ -278,6 +376,24 @@ class InMemoryPrismaService {
     return row ? this.cloneFile(row) : undefined;
   }
 
+  seedFileArtifact(params: {
+    fileId: string;
+    previewText?: string | null;
+    ocrText?: string | null;
+  }): void {
+    const now = new Date();
+    this.fileArtifactsByFileId.set(params.fileId, {
+      id: randomUUID(),
+      fileId: params.fileId,
+      previewText: params.previewText ?? null,
+      previewGeneratedAt: params.previewText ? now : null,
+      ocrText: params.ocrText ?? null,
+      ocrGeneratedAt: params.ocrText ? now : null,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
   private cloneUser(row: InMemoryUser): InMemoryUser {
     return {
       ...row,
@@ -294,6 +410,16 @@ class InMemoryPrismaService {
       scanCompletedAt: row.scanCompletedAt ? new Date(row.scanCompletedAt) : null,
       expiresAt: row.expiresAt ? new Date(row.expiresAt) : null,
       deletedAt: row.deletedAt ? new Date(row.deletedAt) : null,
+    };
+  }
+
+  private cloneFileArtifact(row: InMemoryFileArtifact): InMemoryFileArtifact {
+    return {
+      ...row,
+      previewGeneratedAt: row.previewGeneratedAt ? new Date(row.previewGeneratedAt) : null,
+      ocrGeneratedAt: row.ocrGeneratedAt ? new Date(row.ocrGeneratedAt) : null,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
     };
   }
 }
@@ -350,6 +476,22 @@ class InMemoryFileQueueService {
   }
 }
 
+class InMemoryContentQueueService {
+  private readonly enqueuedFileIds: string[] = [];
+
+  async enqueue(fileId: string): Promise<void> {
+    this.enqueuedFileIds.push(fileId);
+  }
+
+  getEnqueuedFileIds(): string[] {
+    return [...this.enqueuedFileIds];
+  }
+
+  clear(): void {
+    this.enqueuedFileIds.length = 0;
+  }
+}
+
 function signAccessToken(claims: {
   sub: string;
   email: string;
@@ -378,6 +520,7 @@ describe('files endpoints', () => {
   let prisma: InMemoryPrismaService;
   let objectStorage: InMemoryObjectStorageService;
   let queueService: InMemoryFileQueueService;
+  let contentQueueService: InMemoryContentQueueService;
   const jwtSecret = 'files-test-secret';
 
   beforeAll(async () => {
@@ -389,6 +532,7 @@ describe('files endpoints', () => {
     objectStorage = new InMemoryObjectStorageService();
     const vault = new InMemoryVaultTransitService();
     queueService = new InMemoryFileQueueService();
+    contentQueueService = new InMemoryContentQueueService();
 
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -401,6 +545,8 @@ describe('files endpoints', () => {
       .useValue(vault)
       .overrideProvider(FileQueueService)
       .useValue(queueService)
+      .overrideProvider(ContentQueueService)
+      .useValue(contentQueueService)
       .compile();
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
@@ -416,6 +562,7 @@ describe('files endpoints', () => {
   beforeEach(() => {
     prisma.reset();
     queueService.clear();
+    contentQueueService.clear();
   });
 
   it('uploads encrypted content, enforces lifecycle gate, and allows download after activation', async () => {
@@ -467,6 +614,7 @@ describe('files endpoints', () => {
 
     expect(activateResponse.statusCode).toBe(200);
     expect(activateResponse.body.status).toBe(FileStatus.active);
+    expect(contentQueueService.getEnqueuedFileIds()).toContain(fileId);
 
     const downloadResponse = await request(app.getHttpServer())
       .get(`/v1/files/${fileId}/download`)
@@ -592,5 +740,44 @@ describe('files endpoints', () => {
       globalThis.fetch = originalFetch;
       vi.restoreAllMocks();
     }
+  });
+
+  it('returns file artifact metadata when available', async () => {
+    const user = prisma.seedUser({
+      email: 'artifacts@local.test',
+      role: UserRole.admin,
+    });
+    const token = signAccessToken({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      secret: jwtSecret,
+    });
+
+    const uploadResponse = await request(app.getHttpServer())
+      .post('/v1/files/upload')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        filename: 'artifact.txt',
+        contentType: 'text/plain',
+        contentBase64: Buffer.from('artifact source').toString('base64'),
+      });
+    const fileId = uploadResponse.body.fileId as string;
+    prisma.seedFileArtifact({
+      fileId,
+      previewText: 'preview result',
+      ocrText: 'ocr result',
+    });
+
+    const response = await request(app.getHttpServer())
+      .get(`/v1/files/${fileId}/artifacts`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.fileId).toBe(fileId);
+    expect(response.body.preview.available).toBe(true);
+    expect(response.body.preview.text).toBe('preview result');
+    expect(response.body.ocr.available).toBe(true);
+    expect(response.body.ocr.text).toBe('ocr result');
   });
 });

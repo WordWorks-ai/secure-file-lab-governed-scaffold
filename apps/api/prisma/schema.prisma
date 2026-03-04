@@ -108,11 +108,27 @@ model File {
   org             Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
   owner           User      @relation("FileOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
   shares          Share[]
+  artifact        FileArtifact?
 
   @@index([orgId])
   @@index([ownerUserId])
   @@index([status])
   @@map("files")
+}
+
+model FileArtifact {
+  id                 String    @id @default(uuid()) @db.Uuid
+  fileId             String    @unique @map("file_id") @db.Uuid
+  previewText        String?   @map("preview_text")
+  previewGeneratedAt DateTime? @map("preview_generated_at") @db.Timestamptz(6)
+  ocrText            String?   @map("ocr_text")
+  ocrGeneratedAt     DateTime? @map("ocr_generated_at") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  file               File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@index([updatedAt])
+  @@map("file_artifacts")
 }
 
 model Share {
