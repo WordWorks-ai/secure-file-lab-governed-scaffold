@@ -1,0 +1,48 @@
+name: Default Reviewer
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
+
+jobs:
+  request-default-reviewer:
+    if: ${{ github.event.pull_request.user.login != 'wwai-src-dev-agent' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Request @wwai-src-dev-agent review
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const reviewer = "wwai-src-dev-agent";
+            const pull_number = context.payload.pull_request.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const alreadyRequested = (context.payload.pull_request.requested_reviewers || [])
+              .some((user) => user.login === reviewer);
+
+            if (alreadyRequested) {
+              core.info(`Reviewer ${reviewer} already requested on #${pull_number}.`);
+              return;
+            }
+
+            try {
+              await github.rest.pulls.requestReviewers({
+                owner,
+                repo,
+                pull_number,
+                reviewers: [reviewer],
+              });
+              core.info(`Requested reviewer ${reviewer} on #${pull_number}.`);
+            } catch (error) {
+              if ([403, 404, 422].includes(error.status)) {
+                core.warning(`Could not request ${reviewer}: ${error.message}`);
+                return;
+              }
+              throw error;
+            }
