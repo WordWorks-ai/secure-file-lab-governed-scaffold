@@ -1,25 +1,23 @@
-# User Guide: Getting Started (Phase 1 Scaffold)
+# User Guide: Getting Started (Phase 7 Baseline)
 
 ## What This Repository Is
 
-This project is a governed scaffold for a self-hosted secure file sharing platform.
+This project is a governed local prototype for secure file sharing with auth, encrypted upload/download flow, malware-gated activation, share policies, audit query/export, and operational backup/restore baseline.
 
-As of March 3, 2026, it provides infrastructure/bootstrap foundations and health checks, but does not yet implement complete end-user file sharing flows.
+## Current Scope
 
-## What You Can Use Today
+Implemented now:
 
-- Deterministic local stack startup via Docker Compose.
-- Deterministic bootstrap for PostgreSQL migration, MinIO bucket init, Vault transit key setup, and admin seed.
-- API and worker health/readiness endpoints.
-- Backup generation and restore smoke checks.
+- API auth + refresh/logout + RBAC baseline.
+- File upload/download lifecycle with MinIO persistence and Vault transit DEK wrapping.
+- Worker malware scan gate and lifecycle sweeps.
+- Share link controls (expiry/password/usage/revocation).
+- Audit event query and NDJSON export.
+- Backup generation, restore smoke, and destructive live restore path.
 
-## What Is Not Implemented Yet
+Not implemented yet:
 
-- Login/logout/session lifecycle and RBAC enforcement.
-- File upload/download APIs backed by object persistence and authorization.
-- Runtime envelope encryption/decryption in file request flows.
-- Malware-scan-gated file activation pipeline.
-- Share-link endpoints and full runtime audit trails.
+- Final CI/handoff polish tasks in Phase 8.
 
 ## Prerequisites
 
@@ -35,7 +33,7 @@ As of March 3, 2026, it provides infrastructure/bootstrap foundations and health
 cp .env.example .env
 ```
 
-2. Generate a bootstrap admin password hash and place it in `.env` as `BOOTSTRAP_ADMIN_PASSWORD_HASH`.
+2. Generate an Argon2id admin password hash and set `BOOTSTRAP_ADMIN_PASSWORD_HASH` in `.env`.
 
 ```bash
 pnpm --filter @sfl/api hash:password -- 'ChangeThisPassword'
@@ -53,41 +51,19 @@ pnpm install
 make validate
 ```
 
-5. Start the platform.
+5. Start and bootstrap.
 
 ```bash
 make up
-```
-
-6. Run deterministic bootstrap.
-
-```bash
 make bootstrap
 ```
 
-## Verify It Is Running
-
-1. Check health script output.
+## Verify Runtime
 
 ```bash
 make health
-```
-
-2. Check API liveness (through Caddy).
-
-```bash
 curl -s http://localhost:8080/v1/health/live
-```
-
-3. Check API readiness (through Caddy).
-
-```bash
 curl -s http://localhost:8080/v1/health/ready
-```
-
-4. Check scaffold phase info.
-
-```bash
 curl -s http://localhost:8080/v1/system/info
 ```
 
@@ -98,7 +74,9 @@ curl -s http://localhost:8080/v1/system/info
 - Tail logs: `make logs`
 - Re-run bootstrap safely: `make bootstrap`
 - Backup artifacts: `make backup`
-- Restore smoke: `make restore-smoke`
+- Restore smoke validation: `make restore-smoke`
+- Live restore (destructive): `RESTORE_CONFIRM=YES make restore-live`
+- Stack reset (destructive): `RESET_CONFIRM=YES make reset`
 
 ## Local URLs
 
@@ -108,10 +86,13 @@ curl -s http://localhost:8080/v1/system/info
 
 ## Troubleshooting
 
-- If bootstrap fails with admin hash errors, ensure `BOOTSTRAP_ADMIN_PASSWORD_HASH` is Argon2id output from `pnpm --filter @sfl/api hash:password`.
-- If readiness fails, inspect service logs with `docker compose -f infra/compose/docker-compose.yml logs <service>`.
-- If migrations fail, fix schema/migration issues and rerun `make bootstrap`.
+- If bootstrap fails on admin hash guard, generate a real Argon2id hash and retry.
+- If readiness fails, inspect logs via `docker compose -f infra/compose/docker-compose.yml logs <service>`.
+- If restore validation fails, regenerate backup and rerun `make restore-smoke` before any live restore.
 
-## Next Step
+## Related Runbooks
 
-To extend capabilities (auth/files/shares/audit), follow the contribution workflow in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
+- `docs/runbooks/bootstrap.md`
+- `docs/runbooks/backup-and-restore.md`
+- `docs/runbooks/reset-bootstrap-restore.md`
+- `docs/runbooks/vault-recovery.md`

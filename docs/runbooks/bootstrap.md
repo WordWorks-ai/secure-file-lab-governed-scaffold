@@ -63,3 +63,9 @@ Bootstrap performs:
 - If Vault setup fails: stop and fix; encryption-sensitive paths must remain disabled.
 - If ClamAV is unhealthy: uploads may proceed to non-active states only.
 - If migrations fail: do not continue with admin seed.
+
+## Related Operations
+
+- Destructive reset flow: `docs/runbooks/reset-bootstrap-restore.md`
+- Backup/restore details: `docs/runbooks/backup-and-restore.md`
+- Vault recovery constraints: `docs/runbooks/vault-recovery.md`

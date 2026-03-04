@@ -2,7 +2,7 @@
 
 ## Status Note
 
-This document defines target baseline controls for v1. As of 2026-03-04, auth, file malware-gate, share policy, and audit query/export baselines are implemented; final operational hardening remains in later phases.
+This document defines target baseline controls for v1. As of 2026-03-04, auth, file malware-gate, share policy, audit query/export, and backup/restore operational baselines are implemented; final CI/handoff polish remains in later phases.
 
 ## Authentication and Identity
 
@@ -86,6 +86,7 @@ Not implemented yet:
 - `.env.example` provides placeholders only.
 - Bootstrap scripts are idempotent where practical and enforce admin hash guardrails.
 - Backup artifacts include checksum manifest; restore smoke verifies backup shape plus PostgreSQL and MinIO restore integrity.
+- Live restore and reset scripts require explicit destructive confirmations.
 - API and worker run as non-root with read-only filesystems and dropped Linux capabilities.
 
 ## Safe Failure Behavior

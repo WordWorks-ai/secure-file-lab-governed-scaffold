@@ -1,14 +1,21 @@
-# Runbook: Backup and Restore (Prototype)
+# Runbook: Backup and Restore (Prototype Ops Baseline)
 
 ## Purpose
 
-Define minimum viable backup and restore process for prototype governance.
+Define deterministic local backup/restore procedures for PostgreSQL + MinIO and an operator-safe live restore path.
 
 ## Backup Scope
 
-- PostgreSQL logical dump (`pg_dump`).
-- MinIO object mirror snapshot.
-- Vault recovery approach documented for dev/prototype assumptions.
+- PostgreSQL logical dump (`postgres.sql`).
+- MinIO bucket mirror (`minio/` directory).
+- Backup integrity metadata (`SHA256SUMS`, `manifest.json`).
+- Vault recovery is documentation-only for prototype mode; see `docs/runbooks/vault-recovery.md`.
+
+## Prerequisites
+
+- `.env` exists and includes Postgres/MinIO variables.
+- Compose stack is running for backup and live restore workflows.
+- Operator understands live restore is destructive for current Postgres + MinIO state.
 
 ## Backup Command
 
@@ -16,45 +23,71 @@ Define minimum viable backup and restore process for prototype governance.
 make backup
 ```
 
-Expected outputs in `./backups/<timestamp>/`:
+Expected output directory:
 
-- `postgres.sql`
-- `minio/` object snapshot directory
-- `manifest.json`
-- `SHA256SUMS`
+- `./backups/<timestamp>/postgres.sql`
+- `./backups/<timestamp>/minio/`
+- `./backups/<timestamp>/SHA256SUMS`
+- `./backups/<timestamp>/manifest.json`
 
-## Restore Smoke Command (Current)
+Backup safety controls:
+
+- requires required env vars
+- rejects `BACKUP_ROOT=/`
+- keeps backup directory inside `BACKUP_ROOT`
+- rotates old backups based on `RETENTION_COUNT` (default `7`)
+
+## Restore Smoke (Non-Destructive to Live Stack)
 
 ```bash
 make restore-smoke
 ```
 
-Current restore smoke path:
+What it verifies:
 
-1. Select latest backup directory.
-2. Verify required artifacts exist (`postgres.sql`, `manifest.json`, `minio/`).
-3. Restore `postgres.sql` into an ephemeral PostgreSQL container.
-4. Restore `minio/` snapshot into an ephemeral MinIO container.
-5. Verify DB query succeeds and MinIO object count parity.
-6. Verify checksums when `SHA256SUMS` is present.
+1. Backup artifact shape is valid.
+2. Optional checksum file validates.
+3. `postgres.sql` restores into an ephemeral PostgreSQL container.
+4. `minio/` restores into an ephemeral MinIO container.
+5. DB connectivity and MinIO object parity checks pass.
 
-## Vault Recovery Notes
+Use this before any live restore.
 
-Prototype mode may use dev initialization; production-grade unseal/shamir backup is out of v1. This limitation must stay explicit in docs and status reporting.
+## Live Restore (Destructive)
 
-## Known Limitations (Current Scaffold)
+Default behavior restores from latest backup directory into running compose `postgres` and `minio`.
 
-- Restore smoke validates MinIO restore against an ephemeral container, not the long-running compose MinIO service.
-- Restore smoke does **not** validate login/file-download business workflows because auth/file features are not implemented yet.
-- Vault recovery is documentation-only in current scaffold.
+```bash
+RESTORE_CONFIRM=YES make restore-live
+```
 
-## Failure Cases
+Restore from a specific backup directory:
 
-- Missing backup artifact must fail with clear error.
-- Corrupted DB/object backup must fail with clear error.
-- Partial restore should not be marked successful.
+```bash
+RESTORE_CONFIRM=YES BACKUP_DIR=20260304-120000 make restore-live
+```
 
-## Retention (Prototype Default)
+Optional controls:
 
-- Keep last 7 local backups.
-- Rotation behavior handled in backup script.
+- `RESTORE_STOP_APP_SERVICES=true|false` (default `true`) to stop/restart `api` and `worker` during restore.
+- `BACKUP_ROOT` to point at a non-default backup location.
+
+Live restore safety controls:
+
+- requires `RESTORE_CONFIRM=YES`
+- rejects `BACKUP_ROOT=/`
+- requires `BACKUP_DIR` to remain inside `BACKUP_ROOT`
+- requires `postgres.sql`, `manifest.json`, `minio/`
+- verifies checksums when `SHA256SUMS` exists
+- verifies MinIO object count parity after restore
+
+## Failure Handling
+
+- Any missing artifact or checksum mismatch must fail restore.
+- Live restore must not report success if Postgres replay or MinIO parity check fails.
+- If app services were stopped by restore, script attempts restart and health wait before exit.
+
+## Retention
+
+- Default local retention is last `7` backups.
+- Configure with `RETENTION_COUNT=<n>`.

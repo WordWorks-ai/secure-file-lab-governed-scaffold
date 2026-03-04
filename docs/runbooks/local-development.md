@@ -33,6 +33,10 @@ make bootstrap
 - `pnpm lint`
 - `pnpm typecheck`
 - `pnpm test`
+- `make backup`
+- `make restore-smoke`
+- `RESTORE_CONFIRM=YES make restore-live` (destructive)
+- `RESET_CONFIRM=YES make reset` (destructive)
 - `pnpm --filter @sfl/api start:dev`
 - `pnpm --filter @sfl/worker start:dev`
 
