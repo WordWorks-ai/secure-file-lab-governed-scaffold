@@ -877,5 +877,27 @@ describe('shares and audit endpoints', () => {
           bucket.action === 'share.create' && bucket.count >= 1,
       ),
     ).toBe(true);
+
+    const memberTimeseries = await request(app.getHttpServer())
+      .get('/v1/audit/events/timeseries?resourceType=share&bucket=hour&limit=20')
+      .set('Authorization', `Bearer ${memberToken}`);
+    expect(memberTimeseries.statusCode).toBe(403);
+
+    const timeseriesResponse = await request(app.getHttpServer())
+      .get('/v1/audit/events/timeseries?resourceType=share&bucket=hour&limit=20')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(timeseriesResponse.statusCode).toBe(200);
+    expect(timeseriesResponse.body.bucket).toBe('hour');
+    expect(timeseriesResponse.body.sampledCount).toBeGreaterThan(0);
+    expect(Array.isArray(timeseriesResponse.body.points)).toBe(true);
+    expect(timeseriesResponse.body.points.length).toBeGreaterThan(0);
+    const rolledUp = timeseriesResponse.body.points.reduce(
+      (acc: number, point: { count: number }) => acc + point.count,
+      0,
+    );
+    expect(rolledUp).toBe(timeseriesResponse.body.sampledCount);
+    expect(
+      timeseriesResponse.body.points.some((point: { successCount: number }) => point.successCount >= 1),
+    ).toBe(true);
   });
 });
