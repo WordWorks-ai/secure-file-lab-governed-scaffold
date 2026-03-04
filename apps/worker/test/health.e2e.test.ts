@@ -10,8 +10,11 @@ import { WorkerModule } from '../src/worker.module.js';
 
 describe('worker health endpoints', () => {
   let app: INestApplication;
+  const originalQueueBootFlag = process.env.WORKER_QUEUE_BOOT_DISABLED;
 
   beforeAll(async () => {
+    process.env.WORKER_QUEUE_BOOT_DISABLED = 'true';
+
     const moduleRef = await Test.createTestingModule({
       imports: [WorkerModule],
     }).compile();
@@ -24,6 +27,12 @@ describe('worker health endpoints', () => {
 
   afterAll(async () => {
     await app.close();
+
+    if (originalQueueBootFlag === undefined) {
+      delete process.env.WORKER_QUEUE_BOOT_DISABLED;
+    } else {
+      process.env.WORKER_QUEUE_BOOT_DISABLED = originalQueueBootFlag;
+    }
   });
 
   it('returns liveness payload', async () => {

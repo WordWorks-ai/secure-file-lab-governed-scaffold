@@ -10,6 +10,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { AppModule } from '../src/app.module.js';
 import { configureApiApplication } from '../src/bootstrap/configure-api-application.js';
+import { FileQueueService } from '../src/modules/files/file-queue.service.js';
 import { MinioObjectStorageService } from '../src/modules/files/minio-object-storage.service.js';
 import { VaultTransitService } from '../src/modules/files/vault-transit.service.js';
 import { PrismaService } from '../src/modules/persistence/prisma.service.js';
@@ -333,6 +334,22 @@ class InMemoryVaultTransitService {
   }
 }
 
+class InMemoryFileQueueService {
+  private readonly enqueuedFileIds: string[] = [];
+
+  async enqueueScan(fileId: string): Promise<void> {
+    this.enqueuedFileIds.push(fileId);
+  }
+
+  getEnqueuedFileIds(): string[] {
+    return [...this.enqueuedFileIds];
+  }
+
+  clear(): void {
+    this.enqueuedFileIds.length = 0;
+  }
+}
+
 function signAccessToken(claims: {
   sub: string;
   email: string;
@@ -360,6 +377,7 @@ describe('files endpoints', () => {
   let app: INestApplication;
   let prisma: InMemoryPrismaService;
   let objectStorage: InMemoryObjectStorageService;
+  let queueService: InMemoryFileQueueService;
   const jwtSecret = 'files-test-secret';
 
   beforeAll(async () => {
@@ -370,6 +388,7 @@ describe('files endpoints', () => {
     prisma = new InMemoryPrismaService();
     objectStorage = new InMemoryObjectStorageService();
     const vault = new InMemoryVaultTransitService();
+    queueService = new InMemoryFileQueueService();
 
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -380,6 +399,8 @@ describe('files endpoints', () => {
       .useValue(objectStorage)
       .overrideProvider(VaultTransitService)
       .useValue(vault)
+      .overrideProvider(FileQueueService)
+      .useValue(queueService)
       .compile();
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
@@ -394,6 +415,7 @@ describe('files endpoints', () => {
 
   beforeEach(() => {
     prisma.reset();
+    queueService.clear();
   });
 
   it('uploads encrypted content, enforces lifecycle gate, and allows download after activation', async () => {
@@ -422,6 +444,7 @@ describe('files endpoints', () => {
     expect(uploadResponse.body.status).toBe(FileStatus.scan_pending);
     const fileId = uploadResponse.body.fileId as string;
     const storageKey = uploadResponse.body.storageKey as string;
+    expect(queueService.getEnqueuedFileIds()).toContain(fileId);
 
     const fileRow = prisma.getFile(fileId);
     expect(fileRow).toBeDefined();

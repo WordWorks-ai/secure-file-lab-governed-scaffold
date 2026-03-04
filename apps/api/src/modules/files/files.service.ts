@@ -24,6 +24,7 @@ import {
   isFileDownloadAllowed,
   requireFileStatusTransition,
 } from './file-lifecycle-rules.js';
+import { FileQueueService } from './file-queue.service.js';
 import { MinioObjectStorageService } from './minio-object-storage.service.js';
 import { VaultTransitService } from './vault-transit.service.js';
 
@@ -41,6 +42,7 @@ export class FilesService {
     @Inject(PrismaService) private readonly prismaService: PrismaService,
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(FileCryptoService) private readonly fileCryptoService: FileCryptoService,
+    @Inject(FileQueueService) private readonly fileQueueService: FileQueueService,
     @Inject(MinioObjectStorageService)
     private readonly objectStorageService: MinioObjectStorageService,
     @Inject(VaultTransitService)
@@ -150,6 +152,25 @@ export class FilesService {
       ipAddress: context.ipAddress,
       userAgent: context.userAgent,
     });
+
+    try {
+      await this.fileQueueService.enqueueScan(scanPending.id);
+    } catch (error: unknown) {
+      await this.auditService.recordEvent({
+        action: 'file.scan.queue_failed',
+        resourceType: 'file',
+        resourceId: scanPending.id,
+        result: AuditResult.failure,
+        actorType: AuditActorType.system,
+        actorUserId: null,
+        orgId: org.id,
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        metadata: {
+          reason: error instanceof Error ? error.message : 'unknown_queue_error',
+        },
+      });
+    }
 
     return {
       fileId: scanPending.id,

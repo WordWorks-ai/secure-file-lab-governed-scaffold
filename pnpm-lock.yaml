@@ -53,12 +53,18 @@ importers:
       '@prisma/client':
         specifier: ^6.4.1
         version: 6.19.2(prisma@6.19.2)(typescript@5.9.3)
+      bullmq:
+        specifier: ^5.43.1
+        version: 5.70.1
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
       class-validator:
         specifier: ^0.14.1
         version: 0.14.4
+      ioredis:
+        specifier: 5.9.3
+        version: 5.9.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -96,12 +102,15 @@ importers:
       '@nestjs/platform-fastify':
         specifier: ^11.0.11
         version: 11.1.15(@nestjs/common@11.1.15)(@nestjs/core@11.1.15)
+      '@prisma/client':
+        specifier: ^6.4.1
+        version: 6.19.2(prisma@6.19.2)(typescript@5.9.3)
       bullmq:
         specifier: ^5.43.1
         version: 5.70.1
       ioredis:
-        specifier: ^5.6.0
-        version: 5.10.0
+        specifier: 5.9.3
+        version: 5.9.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2

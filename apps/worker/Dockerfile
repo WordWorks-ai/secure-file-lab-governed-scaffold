@@ -4,6 +4,7 @@ WORKDIR /workspace
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json .npmrc ./
+COPY apps/api/package.json apps/api/package.json
 COPY apps/worker/package.json apps/worker/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
@@ -12,6 +13,7 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 RUN pnpm --filter @sfl/shared build \
+  && pnpm --filter @sfl/api prisma:generate \
   && pnpm --filter @sfl/worker build
 
 ENV NODE_ENV=production
