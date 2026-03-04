@@ -284,6 +284,36 @@ services:
       timeout: 5s
       retries: 10
 
+  dlp:
+    image: node:22-alpine
+    profiles: ['dlp']
+    restart: unless-stopped
+    user: 'node'
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,mode=1777,uid=1000,gid=1000
+    command: ['node', '/app/server.mjs']
+    environment:
+      DLP_PORT: ${DLP_PORT:-3013}
+    volumes:
+      - ../../apps/dlp/server.mjs:/app/server.mjs:ro
+      - ../dlp/policy-baseline.json:/app/policy-baseline.json:ro
+    ports:
+      - '${DLP_HTTP_PORT:-3013}:3013'
+    networks:
+      - app_net
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          'fetch("http://127.0.0.1:3013/health/live").then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1));'
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
   web:
     image: nginx:1.27-alpine
     restart: unless-stopped
@@ -369,6 +399,11 @@ services:
       CONTENT_OCR_MAX_CHARS: ${CONTENT_OCR_MAX_CHARS:-2000}
       PREVIEW_BASE_URL: ${PREVIEW_BASE_URL:-http://preview:3011}
       OCR_BASE_URL: ${OCR_BASE_URL:-http://ocr:3012}
+      DLP_ENGINE_ENABLED: ${DLP_ENGINE_ENABLED:-false}
+      DLP_POLICY_ID: ${DLP_POLICY_ID:-dlp-baseline-v1}
+      DLP_MAX_SCAN_BYTES: ${DLP_MAX_SCAN_BYTES:-131072}
+      DLP_ADMIN_OVERRIDE_ENABLED: ${DLP_ADMIN_OVERRIDE_ENABLED:-false}
+      DLP_BASE_URL: ${DLP_BASE_URL:-http://dlp:3013}
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
       REDIS_HOST: ${REDIS_HOST}
