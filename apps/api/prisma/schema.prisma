@@ -12,15 +12,152 @@ enum UserRole {
   member
 }
 
+enum MembershipRole {
+  admin
+  member
+}
+
+enum FileStatus {
+  created
+  stored
+  quarantined
+  scan_pending
+  active
+  blocked
+  expired
+  deleted
+}
+
+enum AuditActorType {
+  user
+  system
+  share_link
+}
+
+enum AuditResult {
+  success
+  failure
+  denied
+}
+
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  role         UserRole
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id            String         @id @default(uuid()) @db.Uuid
+  email         String         @unique
+  passwordHash  String         @map("password_hash")
+  role          UserRole
+  isActive      Boolean        @default(true) @map("is_active")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  memberships   Membership[]
+  ownedFiles    File[]         @relation("FileOwner")
+  createdShares Share[]        @relation("ShareCreator")
+  refreshTokens RefreshToken[]
+  auditEvents   AuditEvent[]   @relation("AuditActorUser")
 
   @@map("users")
+}
+
+model Org {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String       @unique
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  memberships Membership[]
+  files       File[]
+  shares      Share[]
+  auditEvents AuditEvent[]
+
+  @@map("orgs")
+}
+
+model Membership {
+  id        String         @id @default(uuid()) @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  orgId     String         @map("org_id") @db.Uuid
+  role      MembershipRole
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org       Org            @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@index([orgId])
+  @@map("memberships")
+}
+
+model File {
+  id              String    @id @default(uuid()) @db.Uuid
+  orgId           String    @map("org_id") @db.Uuid
+  ownerUserId     String    @map("owner_user_id") @db.Uuid
+  filename        String
+  contentType     String    @map("content_type")
+  sizeBytes       BigInt    @map("size_bytes")
+  storageKey      String    @map("storage_key") @unique
+  status          FileStatus @default(created)
+  wrappedDek      String?   @map("wrapped_dek")
+  encryptionAlg   String?   @map("encryption_alg")
+  encryptionIv    String?   @map("encryption_iv")
+  encryptionTag   String?   @map("encryption_tag")
+  scanResult      String?   @map("scan_result")
+  scanCompletedAt DateTime? @map("scan_completed_at") @db.Timestamptz(6)
+  expiresAt       DateTime? @map("expires_at") @db.Timestamptz(6)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  org             Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  owner           User      @relation("FileOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  shares          Share[]
+
+  @@index([orgId])
+  @@index([ownerUserId])
+  @@index([status])
+  @@map("files")
+}
+
+model Share {
+  id              String    @id @default(uuid()) @db.Uuid
+  fileId          String    @map("file_id") @db.Uuid
+  orgId           String    @map("org_id") @db.Uuid
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  tokenHash       String    @map("token_hash") @unique
+  passwordHash    String?   @map("password_hash")
+  maxDownloads    Int?      @map("max_downloads")
+  downloadCount   Int       @default(0) @map("download_count")
+  expiresAt       DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt       DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  file            File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  org             Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdByUser   User      @relation("ShareCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([fileId])
+  @@index([orgId])
+  @@index([createdByUserId])
+  @@index([expiresAt])
+  @@map("shares")
+}
+
+model RefreshToken {
+  id                 String         @id @default(uuid()) @db.Uuid
+  userId             String         @map("user_id") @db.Uuid
+  tokenHash          String         @map("token_hash") @unique
+  issuedAt           DateTime       @default(now()) @map("issued_at") @db.Timestamptz(6)
+  expiresAt          DateTime       @map("expires_at") @db.Timestamptz(6)
+  rotatedFromTokenId String?        @map("rotated_from_token_id") @db.Uuid
+  revokedAt          DateTime?      @map("revoked_at") @db.Timestamptz(6)
+  replacedByTokenId  String?        @map("replaced_by_token_id") @db.Uuid
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rotatedFromToken   RefreshToken?  @relation("RefreshTokenRotation", fields: [rotatedFromTokenId], references: [id], onDelete: SetNull)
+  rotatedToTokens    RefreshToken[] @relation("RefreshTokenRotation")
+  replacedByToken    RefreshToken?  @relation("RefreshTokenReplacement", fields: [replacedByTokenId], references: [id], onDelete: SetNull)
+  replacesTokens     RefreshToken[] @relation("RefreshTokenReplacement")
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
 }
 
 model BootstrapState {
@@ -33,12 +170,23 @@ model BootstrapState {
 }
 
 model AuditEvent {
-  id           String   @id @default(uuid()) @db.Uuid
-  actor        String
+  id           String         @id @default(uuid()) @db.Uuid
+  orgId        String?        @map("org_id") @db.Uuid
+  actorUserId  String?        @map("actor_user_id") @db.Uuid
+  actorType    AuditActorType @map("actor_type")
   action       String
-  result       String
-  metadataJson Json     @default("{}") @map("metadata_json")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  resourceType String         @map("resource_type")
+  resourceId   String?        @map("resource_id")
+  result       AuditResult
+  ipAddress    String?        @map("ip_address")
+  userAgent    String?        @map("user_agent")
+  metadataJson Json           @default("{}") @map("metadata_json")
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  org          Org?           @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  actorUser    User?          @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
 
+  @@index([orgId])
+  @@index([actorUserId])
+  @@index([createdAt])
   @@map("audit_events")
 }

@@ -6,6 +6,7 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { configureApiApplication } from '../src/bootstrap/configure-api-application.js';
 import { AppModule } from '../src/app.module.js';
 
 type ReadinessPayload = {
@@ -42,7 +43,7 @@ describe('health endpoints', () => {
     }).compile();
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
-    app.setGlobalPrefix('v1');
+    configureApiApplication(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
   });

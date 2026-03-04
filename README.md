@@ -2,9 +2,9 @@
 
 Self-hosted secure file sharing prototype focused on deterministic local deployment, explicit security controls, and governance-first delivery.
 
-## Current Implementation Status (2026-03-03)
+## Current Implementation Status (2026-03-04)
 
-This repository currently implements a **Phase 0/1 scaffold**, not a complete secure file sharing prototype.
+This repository currently implements a **Phase 0/2 foundation + modular domain shell**, not a complete secure file sharing prototype.
 
 Implemented now:
 
@@ -15,8 +15,10 @@ Implemented now:
   - MinIO bucket initialization
   - Vault transit mount/key setup (dev mode)
   - idempotent local admin seed
-- API and worker health endpoints.
-- Basic Prisma schema (`users`, `bootstrap_state`, `audit_events`).
+- API and worker health endpoints (`/health/live`) and API readiness endpoint (`/health/ready`).
+- Modular API domain shell modules: `auth`, `users-orgs`, `files`, `shares`, `audit`.
+- Core Prisma schema + migration baseline for `users`, `orgs`, `memberships`, `files`, `shares`, `refresh_tokens`, `bootstrap_state`, and `audit_events`.
+- Structured request logging interceptor and stricter global request validation baseline.
 - Shared file lifecycle helper (library only; not wired to API persistence/authorization paths).
 - Backup artifact generation and restore smoke for PostgreSQL + MinIO verification.
 
@@ -26,7 +28,7 @@ Not implemented yet:
 - File ingest/download endpoints and MinIO object persistence flows.
 - Envelope encryption with per-file DEKs + Vault wrap/unwrap flow in file pipeline.
 - Malware scan queue/processors enforcing quarantine-to-active gate.
-- Share-link model and endpoints.
+- Share-link endpoints and runtime policy enforcement (schema exists; runtime flow pending).
 - Runtime audit event capture for auth/file/share actions.
 
 ## Purpose
@@ -52,9 +54,8 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 
 - Target architecture: NestJS modular monolith API + dedicated worker.
 - Implemented modules:
-  - API: `health`, `system` (scaffold)
+  - API: `health`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 2 domain shell)
   - Worker: `health`, `jobs` placeholder
-- Planned modules (not yet implemented): `auth`, `users_orgs`, `files`, `shares`, `audit`.
 - PostgreSQL/Redis/MinIO/Vault/ClamAV are wired for infrastructure readiness, but domain workflows are pending.
 
 ## Security Baseline
@@ -192,8 +193,8 @@ Commercialization or enterprise-core use of this IP requires a separate signed c
 
 ## Current Status
 
-- Completed: Phase 0 and Phase 1.
+- Completed: Phase 0, Phase 1, and Phase 2.
 - Completed: hardening validation pass for scaffold.
-- Not started: feature phases (auth, files, shares, audit, worker scan pipeline).
+- Not started: runtime feature phases (auth flows, file ingest/encryption, share runtime, full audit emission, worker malware pipeline).
 
 Detailed evidence is tracked in `docs/status`.

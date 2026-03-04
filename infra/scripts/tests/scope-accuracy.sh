@@ -13,10 +13,10 @@ assert_contains() {
   fi
 }
 
-assert_contains "$ROOT_DIR/README.md" "This repository currently implements a **Phase 0/1 scaffold**, not a complete secure file sharing prototype."
+assert_contains "$ROOT_DIR/README.md" "This repository currently implements a **Phase 0/2 foundation + modular domain shell**, not a complete secure file sharing prototype."
 assert_contains "$ROOT_DIR/README.md" "Not implemented yet:"
 assert_contains "$ROOT_DIR/docs/security-baseline.md" "many controls are still scaffolded and not yet enforced in end-to-end API flows."
-assert_contains "$ROOT_DIR/docs/threat-model.md" "Current codebase is still scaffold-heavy (Phase 0/1); several listed mitigations are not yet implemented in runtime application flows."
-assert_contains "$ROOT_DIR/docs/data-model.md" 'Current implemented schema is a scaffold subset: `users`, `bootstrap_state`, and `audit_events`.'
+assert_contains "$ROOT_DIR/docs/threat-model.md" "Current codebase is still scaffold-heavy (Phase 0/2); several listed mitigations are not yet implemented in runtime application flows."
+assert_contains "$ROOT_DIR/docs/data-model.md" 'core schema baseline is implemented for `users`, `orgs`, `memberships`, `files`, `shares`, `refresh_tokens`, `bootstrap_state`, and `audit_events`.'
 
 echo "scope accuracy checks passed"
