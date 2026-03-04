@@ -13,11 +13,17 @@ import {
   MAINTENANCE_QUEUE_NAME,
 } from './contracts/file-jobs.contract.js';
 import {
+  CONTENT_PROCESS_JOB_NAME,
+  CONTENT_PROCESS_QUEUE_NAME,
+  ContentProcessJobPayload,
+} from './contracts/content-jobs.contract.js';
+import {
   SEARCH_INDEX_JOB_NAME,
   SEARCH_INDEX_QUEUE_NAME,
   SearchIndexJobPayload,
 } from './contracts/search-index-jobs.contract.js';
 import { ClamavScannerService } from './services/clamav-scanner.service.js';
+import { WorkerContentDerivativesService } from './services/worker-content-derivatives.service.js';
 import { WorkerFileCryptoService } from './services/worker-file-crypto.service.js';
 import { WorkerMinioObjectStorageService } from './services/worker-minio-object-storage.service.js';
 import { WorkerOpenSearchIndexService } from './services/worker-opensearch-index.service.js';
@@ -40,15 +46,19 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
   private connection: Redis | null = null;
   private fileScanQueue: Queue<FileScanJobPayload> | null = null;
   private maintenanceQueue: Queue<Record<string, never>> | null = null;
+  private contentProcessQueue: Queue<ContentProcessJobPayload> | null = null;
   private searchIndexQueue: Queue<SearchIndexJobPayload> | null = null;
   private fileScanWorker: Worker<FileScanJobPayload> | null = null;
   private maintenanceWorker: Worker<Record<string, never>> | null = null;
+  private contentProcessWorker: Worker<ContentProcessJobPayload> | null = null;
   private searchIndexWorker: Worker<SearchIndexJobPayload> | null = null;
 
   constructor(
     @Inject(PrismaService) private readonly prismaService: PrismaService,
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(ClamavScannerService) private readonly clamavScannerService: ClamavScannerService,
+    @Inject(WorkerContentDerivativesService)
+    private readonly contentDerivativesService: WorkerContentDerivativesService,
     @Inject(WorkerFileCryptoService) private readonly fileCryptoService: WorkerFileCryptoService,
     @Inject(WorkerMinioObjectStorageService)
     private readonly objectStorageService: WorkerMinioObjectStorageService,
@@ -75,6 +85,11 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
     this.maintenanceQueue = new Queue(MAINTENANCE_QUEUE_NAME, {
       connection,
     });
+    if (this.isContentPipelineEnabled()) {
+      this.contentProcessQueue = new Queue(CONTENT_PROCESS_QUEUE_NAME, {
+        connection,
+      });
+    }
     if (this.openSearchIndexService.isEnabled()) {
       this.searchIndexQueue = new Queue(SEARCH_INDEX_QUEUE_NAME, {
         connection,
@@ -116,6 +131,35 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
         concurrency: 1,
       },
     );
+    if (this.contentProcessQueue) {
+      this.contentProcessWorker = new Worker(
+        CONTENT_PROCESS_QUEUE_NAME,
+        async (job) => {
+          if (job.name !== CONTENT_PROCESS_JOB_NAME) {
+            this.logger.warn(`unknown content job "${job.name}" ignored`);
+            return;
+          }
+
+          await this.processContentProcessJobPayload(
+            job.data,
+            job.attemptsMade,
+            this.getJobAttemptsFromJob(job, this.getContentJobAttempts()),
+          );
+        },
+        {
+          connection,
+          concurrency: 2,
+        },
+      );
+
+      this.contentProcessWorker.on('failed', (job, error) => {
+        this.logger.error(
+          `content job ${job?.id ?? 'unknown'} failed: ${
+            error instanceof Error ? error.message : 'unknown error'
+          }`,
+        );
+      });
+    }
     if (this.searchIndexQueue) {
       this.searchIndexWorker = new Worker(
         SEARCH_INDEX_QUEUE_NAME,
@@ -158,13 +202,17 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
     });
 
     await this.scheduleMaintenanceJobs();
-    this.logger.log('Worker job processors initialized (file scan + maintenance + search-index)');
+    this.logger.log(
+      'Worker job processors initialized (file scan + maintenance + content-process + search-index)',
+    );
   }
 
   async onModuleDestroy(): Promise<void> {
+    await this.contentProcessWorker?.close();
     await this.searchIndexWorker?.close();
     await this.fileScanWorker?.close();
     await this.maintenanceWorker?.close();
+    await this.contentProcessQueue?.close();
     await this.searchIndexQueue?.close();
     await this.fileScanQueue?.close();
     await this.maintenanceQueue?.close();
@@ -224,6 +272,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
             outcome: 'clean',
           },
         });
+        await this.enqueueContentProcessing(file.id);
         await this.syncFileToSearch(file.id);
         return;
       }
@@ -327,6 +376,114 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
     return transitioned;
   }
 
+  async processContentProcessJobPayload(
+    payload: ContentProcessJobPayload,
+    attemptsMade: number,
+    maxAttempts: number,
+  ): Promise<void> {
+    if (!this.isContentPipelineEnabled()) {
+      return;
+    }
+
+    const file = await this.prismaService.file.findUnique({
+      where: { id: payload.fileId },
+      select: {
+        id: true,
+        orgId: true,
+        storageKey: true,
+        contentType: true,
+        status: true,
+        wrappedDek: true,
+        encryptionIv: true,
+        encryptionTag: true,
+      },
+    });
+
+    if (!file) {
+      this.logger.warn(`content job ignored for missing file ${payload.fileId}`);
+      return;
+    }
+
+    if (file.status !== FileStatus.active) {
+      this.logger.debug(
+        `content job idempotent no-op for file ${file.id} with status ${file.status}`,
+      );
+      return;
+    }
+
+    if (!file.wrappedDek || !file.encryptionIv || !file.encryptionTag) {
+      return;
+    }
+
+    try {
+      const encryptedObject = await this.objectStorageService.getObject(file.storageKey);
+      const dek = await this.vaultTransitService.unwrapDek(file.wrappedDek);
+      const plaintext = this.fileCryptoService.decrypt(
+        encryptedObject,
+        dek,
+        Buffer.from(file.encryptionIv, 'base64'),
+        Buffer.from(file.encryptionTag, 'base64'),
+      );
+
+      const previewText = this.contentDerivativesService.generatePreview(file.contentType, plaintext);
+      const ocrText = this.contentDerivativesService.extractOcrText(file.contentType, plaintext);
+      const now = new Date();
+
+      await this.prismaService.fileArtifact.upsert({
+        where: {
+          fileId: file.id,
+        },
+        create: {
+          fileId: file.id,
+          previewText,
+          previewGeneratedAt: now,
+          ocrText,
+          ocrGeneratedAt: now,
+        },
+        update: {
+          previewText,
+          previewGeneratedAt: now,
+          ocrText,
+          ocrGeneratedAt: now,
+        },
+      });
+
+      await this.auditService.recordEvent({
+        action: 'file.preview.generated',
+        resourceType: 'file',
+        resourceId: file.id,
+        result: AuditResult.success,
+        actorType: AuditActorType.system,
+        orgId: file.orgId,
+      });
+      await this.auditService.recordEvent({
+        action: 'file.ocr.generated',
+        resourceType: 'file',
+        resourceId: file.id,
+        result: AuditResult.success,
+        actorType: AuditActorType.system,
+        orgId: file.orgId,
+      });
+    } catch (error: unknown) {
+      const nextAttempt = attemptsMade + 1;
+      if (nextAttempt < maxAttempts) {
+        throw error;
+      }
+
+      await this.auditService.recordEvent({
+        action: 'file.content.generated',
+        resourceType: 'file',
+        resourceId: payload.fileId,
+        result: AuditResult.failure,
+        actorType: AuditActorType.system,
+        orgId: file.orgId,
+        metadata: {
+          reason: error instanceof Error ? error.message : 'unknown',
+        },
+      });
+    }
+  }
+
   private async blockFileForFailedScan(
     fileId: string,
     orgId: string,
@@ -406,6 +563,27 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+  private async enqueueContentProcessing(fileId: string): Promise<void> {
+    if (!this.contentProcessQueue) {
+      return;
+    }
+
+    await this.contentProcessQueue.add(
+      CONTENT_PROCESS_JOB_NAME,
+      { fileId },
+      {
+        jobId: `content:${fileId}`,
+        attempts: this.getContentJobAttempts(),
+        backoff: {
+          type: 'exponential',
+          delay: 2_000,
+        },
+        removeOnComplete: 1_000,
+        removeOnFail: 4_000,
+      },
+    );
+  }
+
   private async transitionFileStatus(
     fileId: string,
     from: FileStatus,
@@ -457,7 +635,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  private getJobAttemptsFromJob(job: Job<FileScanJobPayload>, fallback: number): number {
+  private getJobAttemptsFromJob(job: Job<unknown>, fallback: number): number {
     const attemptsOption = Number(job.opts.attempts ?? fallback);
     if (Number.isFinite(attemptsOption) && attemptsOption >= 1) {
       return Math.floor(attemptsOption);
@@ -486,6 +664,19 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
     }
 
     return 3;
+  }
+
+  private getContentJobAttempts(): number {
+    const raw = Number(process.env.CONTENT_JOB_ATTEMPTS ?? 3);
+    if (Number.isFinite(raw) && raw >= 1) {
+      return Math.floor(raw);
+    }
+
+    return 3;
+  }
+
+  private isContentPipelineEnabled(): boolean {
+    return (process.env.CONTENT_PIPELINE_ENABLED ?? 'false').trim().toLowerCase() === 'true';
   }
 
   private getExpireSweepIntervalMs(): number {
