@@ -1,7 +1,8 @@
 import { hash } from '@node-rs/argon2';
 
 async function main(): Promise<void> {
-  const password = process.argv[2];
+  const args = process.argv.slice(2).filter((entry) => entry !== '--');
+  const password = args[0];
 
   if (!password) {
     console.error('usage: pnpm --filter @sfl/api hash:password -- <password>');
