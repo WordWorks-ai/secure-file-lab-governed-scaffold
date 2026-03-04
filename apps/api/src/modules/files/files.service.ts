@@ -17,6 +17,7 @@ import { randomUUID } from 'node:crypto';
 
 import { AuditService } from '../audit/audit.service.js';
 import { AuthenticatedUser } from '../auth/types/authenticated-request.js';
+import { DlpDecision, DlpService } from '../dlp/dlp.service.js';
 import { PrismaService } from '../persistence/prisma.service.js';
 import { PolicyService } from '../policy/policy.service.js';
 import { PolicyDecisionInput } from '../policy/policy.types.js';
@@ -46,6 +47,7 @@ export class FilesService {
     @Inject(PrismaService) private readonly prismaService: PrismaService,
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(PolicyService) private readonly policyService: PolicyService,
+    @Inject(DlpService) private readonly dlpService: DlpService,
     @Inject(SearchQueueService) private readonly searchQueueService: SearchQueueService,
     @Inject(ContentQueueService) private readonly contentQueueService: ContentQueueService,
     @Inject(FileCryptoService) private readonly fileCryptoService: FileCryptoService,
@@ -62,6 +64,7 @@ export class FilesService {
     context: RequestContext,
   ): Promise<{ fileId: string; status: FileStatus; storageKey: string }> {
     const normalizedContentType = payload.contentType.trim().toLowerCase();
+    const normalizedFilename = payload.filename.trim();
     this.assertMimeTypeAllowed(normalizedContentType);
     const plaintext = this.decodeBase64Payload(payload.contentBase64);
     this.assertPayloadSizeWithinLimit(plaintext.byteLength);
@@ -86,6 +89,13 @@ export class FilesService {
       },
     });
 
+    const dlpDecision = this.dlpService.evaluateUpload({
+      filename: normalizedFilename,
+      contentType: normalizedContentType,
+      plaintext,
+    });
+    const dlpOverrideApplied = await this.enforceUploadDlp(dlpDecision, user, org.id, context);
+
     const storageKey = `files/${org.id}/${randomUUID()}`;
     const now = new Date();
     const expiresAt = this.parseOptionalExpiry(payload.expiresAt);
@@ -93,7 +103,7 @@ export class FilesService {
       data: {
         orgId: org.id,
         ownerUserId: user.sub,
-        filename: payload.filename.trim(),
+        filename: normalizedFilename,
         contentType: normalizedContentType,
         sizeBytes: BigInt(plaintext.byteLength),
         storageKey,
@@ -116,6 +126,9 @@ export class FilesService {
         filename: created.filename,
         contentType: created.contentType,
         sizeBytes: plaintext.byteLength,
+        dlpPolicyId: dlpDecision.policyId,
+        dlpVerdict: dlpOverrideApplied ? 'override_allow' : dlpDecision.verdict,
+        dlpMatches: dlpDecision.matches,
       },
     });
 
@@ -579,5 +592,60 @@ export class FilesService {
     } catch {
       // Content derivation must not block core file workflow.
     }
+  }
+
+  private async enforceUploadDlp(
+    decision: DlpDecision,
+    user: AuthenticatedUser,
+    orgId: string,
+    context: RequestContext,
+  ): Promise<boolean> {
+    if (decision.verdict !== 'deny') {
+      return false;
+    }
+
+    const overrideApplied = this.dlpService.shouldAllowAdminOverride(user.role, decision);
+    if (!overrideApplied) {
+      await this.auditService.recordEvent({
+        action: 'file.upload.dlp.blocked',
+        resourceType: 'file',
+        resourceId: null,
+        result: AuditResult.denied,
+        actorType: AuditActorType.user,
+        actorUserId: user.sub,
+        orgId,
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        metadata: {
+          policyId: decision.policyId,
+          verdict: decision.verdict,
+          enforcementAction: decision.enforcementAction,
+          matches: decision.matches,
+          reason: decision.reason,
+        },
+      });
+      throw new ForbiddenException('Upload blocked by DLP policy');
+    }
+
+    await this.auditService.recordEvent({
+      action: 'file.upload.dlp.override',
+      resourceType: 'file',
+      resourceId: null,
+      result: AuditResult.success,
+      actorType: AuditActorType.user,
+      actorUserId: user.sub,
+      orgId,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      metadata: {
+        policyId: decision.policyId,
+        verdict: decision.verdict,
+        enforcementAction: 'override_allow',
+        matches: decision.matches,
+        reason: decision.reason,
+      },
+    });
+
+    return true;
   }
 }

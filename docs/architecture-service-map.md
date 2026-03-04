@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Provide an operator-facing map of services, trust boundaries, and runtime dependencies for the Phase 8 handoff baseline.
+Provide an operator-facing map of services, trust boundaries, and runtime dependencies for the Phase 8 handoff plus post-v1 expansion baselines.
 
 ## Service Topology
 
@@ -40,6 +40,10 @@ Post-v1 Stage 12 profile additions:
 - `preview` - optional document preview conversion shell.
 - `ocr` - optional text extraction shell.
 
+Post-v1 Stage 13 profile additions:
+
+- `dlp` - optional DLP policy/evaluation shell.
+
 ## Dependency Map
 
 Inbound:
@@ -61,6 +65,7 @@ API runtime dependencies:
 - `api` -> `redis` (search-index queue producer when enabled)
 - `api` -> `redis` (content-process queue producer when enabled)
 - `api` -> `opensearch` (query path for `/v1/search/files`)
+- `api` -> `dlp` (reserved service path for DLP integration)
 
 Worker runtime dependencies:
 
@@ -103,6 +108,7 @@ Operational workflows:
 
 - Non-`active` files are denied for download and share access.
 - Malware scan gate must transition files fail-closed on terminal scan errors.
+- DLP-sensitive upload/share actions deny by default when policy matches and override is not enabled.
 - Raw DEKs are not persisted in Postgres.
 - Critical actions emit audit events.
 - Destructive restore/reset operations require explicit confirmation env vars.

@@ -73,6 +73,7 @@ curl -s http://localhost:8080/v1/system/info
 - Start optional enterprise profile (Keycloak/OPA): `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile enterprise up -d keycloak opa`
 - Start optional search profile (OpenSearch): `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile search up -d opensearch opensearch_dashboards`
 - Start optional content profile (Preview/OCR): `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile content up -d preview ocr`
+- Start optional DLP profile: `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile dlp up -d dlp`
 - Stop stack: `make down`
 - Tail logs: `make logs`
 - Re-run bootstrap safely: `make bootstrap`
@@ -95,6 +96,7 @@ curl -s http://localhost:8080/v1/system/info
 - OpenSearch Dashboards (profile): `http://localhost:5601`
 - Preview service (profile): `http://localhost:3011/v1/preview`
 - OCR service (profile): `http://localhost:3012/v1/ocr`
+- DLP service (profile): `http://localhost:3013/v1/dlp/evaluate`
 
 ## Troubleshooting
 
