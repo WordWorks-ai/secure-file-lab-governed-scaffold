@@ -4,7 +4,7 @@ Self-hosted secure file sharing prototype focused on deterministic local deploym
 
 ## Current Implementation Status (2026-03-04)
 
-This repository currently implements a **Phase 0/5 foundation + file ingest/encryption + worker malware-gate baseline**, not a complete secure file sharing prototype.
+This repository currently implements a **Phase 0/6 foundation + file + share + audit baseline**, not a complete secure file sharing prototype.
 
 Implemented now:
 
@@ -35,6 +35,14 @@ Implemented now:
   - retry policy with terminal fail-closed blocking
   - recurring expiration and cleanup sweeps
   - async audit emission for scan, expiration, and cleanup transitions
+- Share and access-policy baseline:
+  - `POST /v1/shares` (share creation with token, expiry, optional password, optional usage limit)
+  - `POST /v1/shares/:shareId/revoke` (share revocation)
+  - `POST /v1/shares/access` (public share-link access with policy enforcement)
+  - org boundary and membership enforcement for share management
+- Audit query/export baseline:
+  - `GET /v1/audit/events` (filtered audit query, admin-gated)
+  - `GET /v1/audit/events/export` (NDJSON export, admin-gated)
 - Core Prisma schema + migration baseline for `users`, `orgs`, `memberships`, `files`, `shares`, `refresh_tokens`, `bootstrap_state`, and `audit_events`.
 - Structured request logging interceptor and stricter global request validation baseline.
 - Runtime auth + file audit event emission.
@@ -42,8 +50,8 @@ Implemented now:
 
 Not implemented yet:
 
-- Share-link endpoints and runtime policy enforcement (schema exists; runtime flow pending).
-- Complete runtime audit event capture for share lifecycle and query/export coverage.
+- Operational backup/restore readiness hardening and runbook completion for final handoff (Phase 7).
+- CI/handoff polish items (dependency audit/secret scanning baseline and final service map) in Phase 8.
 
 ## Purpose
 
@@ -68,7 +76,7 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 
 - Target architecture: NestJS modular monolith API + dedicated worker.
 - Implemented modules:
-  - API: `health`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 4 ingest/encryption baseline)
+  - API: `health`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 6 runtime baseline)
   - Worker: `health`, `jobs` (file scan processor + expiration/cleanup jobs)
 - PostgreSQL/Redis/MinIO/Vault/ClamAV are wired for infrastructure readiness, but domain workflows are pending.
 
@@ -87,10 +95,12 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
   - BullMQ-backed malware scan queue and worker processing
   - automatic clean/infected scan transitions with fail-closed blocking
   - expiration and cleanup maintenance jobs in worker runtime
-  - auth + file audit emission for implemented runtime actions
+  - share lifecycle and policy controls (token, expiry, password, usage limits)
+  - audit query and NDJSON export baseline (admin-gated)
+  - auth + file + share audit emission for implemented runtime actions
 - Planned controls (not yet implemented in runtime flows):
-  - share-link policy enforcement
-  - end-to-end audit trail for critical user actions
+  - deeper audit analytics/reporting workflows and long-retention operationalization
+  - final ops and CI hardening milestones from Phases 7/8
 
 ## Repository Layout
 
@@ -211,8 +221,8 @@ Commercialization or enterprise-core use of this IP requires a separate signed c
 
 ## Current Status
 
-- Completed: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5.
+- Completed: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and Phase 6.
 - Completed: hardening validation pass for scaffold.
-- Remaining runtime phases: share runtime policy and full async/share audit coverage.
+- Remaining runtime phases: backup/restore operational readiness and CI/handoff polish (Phases 7/8).
 
 Detailed evidence is tracked in `docs/status`.

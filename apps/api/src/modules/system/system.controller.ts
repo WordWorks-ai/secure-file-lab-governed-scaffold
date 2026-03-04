@@ -9,7 +9,7 @@ export class SystemController {
   getInfo(): { service: string; phase: string } {
     return {
       service: 'api',
-      phase: 'phase-4-file-ingest-encryption',
+      phase: 'phase-6-shares-access-policy-audit',
     };
   }
 
