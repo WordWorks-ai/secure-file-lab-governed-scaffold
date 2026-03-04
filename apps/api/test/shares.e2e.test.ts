@@ -304,12 +304,13 @@ class InMemoryPrismaService {
 
   readonly auditEvent = {
     create: async (args: {
-      data: Omit<InMemoryAuditEvent, 'id' | 'createdAt'>;
+      data: Omit<InMemoryAuditEvent, 'id' | 'createdAt'> & { createdAt?: Date };
     }) => {
+      const { createdAt, ...data } = args.data;
       const row: InMemoryAuditEvent = {
         id: randomUUID(),
-        ...args.data,
-        createdAt: new Date(),
+        ...data,
+        createdAt: createdAt ? new Date(createdAt) : new Date(),
       };
       this.auditEvents.push(row);
       return { ...row };
@@ -899,5 +900,52 @@ describe('shares and audit endpoints', () => {
     expect(
       timeseriesResponse.body.points.some((point: { successCount: number }) => point.successCount >= 1),
     ).toBe(true);
+
+    await prisma.auditEvent.create({
+      data: {
+        orgId: org.id,
+        actorUserId: admin.id,
+        actorType: AuditActorType.user,
+        action: 'share.prev-window',
+        resourceType: 'share',
+        resourceId: createShare.body.shareId,
+        result: AuditResult.failure,
+        ipAddress: null,
+        userAgent: null,
+        metadataJson: {},
+        createdAt: new Date(Date.now() - 36 * 60 * 60 * 1000),
+      },
+    });
+    await prisma.auditEvent.create({
+      data: {
+        orgId: org.id,
+        actorUserId: admin.id,
+        actorType: AuditActorType.user,
+        action: 'share.curr-window',
+        resourceType: 'share',
+        resourceId: createShare.body.shareId,
+        result: AuditResult.success,
+        ipAddress: null,
+        userAgent: null,
+        metadataJson: {},
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      },
+    });
+
+    const memberKpis = await request(app.getHttpServer())
+      .get('/v1/audit/events/kpis?resourceType=share&windowHours=24&limit=200')
+      .set('Authorization', `Bearer ${memberToken}`);
+    expect(memberKpis.statusCode).toBe(403);
+
+    const kpisResponse = await request(app.getHttpServer())
+      .get('/v1/audit/events/kpis?resourceType=share&windowHours=24&limit=200')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(kpisResponse.statusCode).toBe(200);
+    expect(kpisResponse.body.windowHours).toBe(24);
+    expect(kpisResponse.body.current.sampledCount).toBeGreaterThan(0);
+    expect(kpisResponse.body.current.successCount).toBeGreaterThanOrEqual(1);
+    expect(kpisResponse.body.previous.failureCount).toBeGreaterThanOrEqual(1);
+    expect(typeof kpisResponse.body.deltas.failureRate).toBe('number');
+    expect(typeof kpisResponse.body.deltas.successRate).toBe('number');
   });
 });

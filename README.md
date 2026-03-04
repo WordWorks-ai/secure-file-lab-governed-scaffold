@@ -45,6 +45,7 @@ Implemented now:
   - `GET /v1/audit/events/export` (NDJSON export, admin-gated)
   - `GET /v1/audit/events/summary` (aggregated counts by action/result/resource/actor, admin-gated)
   - `GET /v1/audit/events/timeseries` (hour/day trend buckets with result breakdowns, admin-gated)
+  - `GET /v1/audit/events/kpis` (windowed KPI/delta metrics for success/failure/denied rates, admin-gated)
 - Core Prisma schema + migration baseline for `users`, `orgs`, `memberships`, `files`, `shares`, `refresh_tokens`, `bootstrap_state`, and `audit_events`.
 - Structured request logging interceptor and stricter global request validation baseline.
 - Runtime auth + file audit event emission.
@@ -103,7 +104,7 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
   - automatic clean/infected scan transitions with fail-closed blocking
   - expiration and cleanup maintenance jobs in worker runtime
   - share lifecycle and policy controls (token, expiry, password, usage limits)
-  - audit query, NDJSON export, summary, and timeseries baseline (admin-gated)
+  - audit query, NDJSON export, summary, timeseries, and KPI baseline (admin-gated)
   - auth + file + share audit emission for implemented runtime actions
   - backup checksums + restore smoke validation
   - live restore safety guards and post-restore health verification

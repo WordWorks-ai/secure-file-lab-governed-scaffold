@@ -74,7 +74,7 @@ Implemented now:
 - runtime file event emission for upload initiation, encryption persistence, scan queueing, and download outcomes.
 - async worker event emission for scan, expiration, and cleanup outcomes.
 - runtime share event emission for create/access/revoke outcomes.
-- admin-gated audit query, NDJSON export, summary, and timeseries baseline.
+- admin-gated audit query, NDJSON export, summary, timeseries, and KPI baseline.
 
 Not implemented yet:
 

@@ -16,6 +16,7 @@ import { createValidationException } from '../../common/validation/validation-ex
 import { JwtTokenService } from '../auth/jwt-token.service.js';
 import { AuthenticatedRequest, AuthenticatedUser } from '../auth/types/authenticated-request.js';
 import { QueryAuditEventsDto } from './dto/query-audit-events.dto.js';
+import { QueryAuditKpisDto } from './dto/query-audit-kpis.dto.js';
 import { QueryAuditSummaryDto } from './dto/query-audit-summary.dto.js';
 import { QueryAuditTimeseriesDto } from './dto/query-audit-timeseries.dto.js';
 import { AuditService } from './audit.service.js';
@@ -224,6 +225,62 @@ export class AuditController {
       to: query.to ? new Date(query.to) : undefined,
       limit: query.limit,
       bucket: query.bucket,
+    });
+  }
+
+  @Get('events/kpis')
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      expectedType: QueryAuditKpisDto,
+      exceptionFactory: createValidationException,
+    }),
+  )
+  async kpisEvents(
+    @Query() query: QueryAuditKpisDto,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<{
+    sampleLimit: number;
+    windowHours: number;
+    currentWindow: { from: string; to: string };
+    previousWindow: { from: string; to: string };
+    current: {
+      sampledCount: number;
+      successCount: number;
+      failureCount: number;
+      deniedCount: number;
+      successRate: number;
+      failureRate: number;
+      deniedRate: number;
+    };
+    previous: {
+      sampledCount: number;
+      successCount: number;
+      failureCount: number;
+      deniedCount: number;
+      successRate: number;
+      failureRate: number;
+      deniedRate: number;
+    };
+    deltas: {
+      sampledCount: number;
+      successRate: number;
+      failureRate: number;
+      deniedRate: number;
+    };
+  }> {
+    this.requireAdminUser(request);
+    return this.auditService.queryKpis({
+      orgId: query.orgId,
+      actorType: query.actorType,
+      action: query.action,
+      resourceType: query.resourceType,
+      resourceId: query.resourceId,
+      result: query.result,
+      limit: query.limit,
+      windowHours: query.windowHours,
     });
   }
 
