@@ -2,7 +2,7 @@
 
 ## Implementation Status Note
 
-This threat model captures target controls. Current codebase is Phase 0/7 with share-policy, audit-query/export, and operational backup/restore baseline implemented; CI/handoff polish remains in later phases.
+This threat model captures target controls. Current codebase is Phase 0/8 with share-policy, audit-query/export, operational backup/restore baseline, and CI quality-gate baseline implemented.
 
 ## Scope
 
@@ -71,5 +71,5 @@ Prototype scope includes API, worker, and local infrastructure services (`postgr
 ## Planned Revisions
 
 - Add data-flow diagram with concrete endpoint/job mapping for file + share workflows.
-- Expand misuse case matrix tied to CI hardening in Phase 8.
+- Expand misuse case matrix with incident-response playbooks.
 - Add production-grade key custody and backup confidentiality controls beyond prototype assumptions.

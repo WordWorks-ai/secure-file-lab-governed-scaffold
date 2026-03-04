@@ -9,7 +9,7 @@ export class SystemController {
   getInfo(): { service: string; phase: string } {
     return {
       service: 'api',
-      phase: 'phase-7-backup-restore-operational-readiness',
+      phase: 'phase-8-ci-quality-gates-and-handoff-polish',
     };
   }
 

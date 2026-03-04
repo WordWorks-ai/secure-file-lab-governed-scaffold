@@ -174,10 +174,10 @@ services:
     user: 'node'
     read_only: true
     tmpfs:
-      - /tmp
-      - /workspace/node_modules/.vite-temp
-      - /workspace/apps/api/node_modules/.vite-temp
-      - /workspace/packages/shared/node_modules/.vite-temp
+      - /tmp:rw,noexec,nosuid,nodev,mode=1777,uid=1000,gid=1000
+      - /workspace/node_modules/.vite-temp:rw,nosuid,nodev,mode=1777,uid=1000,gid=1000
+      - /workspace/apps/api/node_modules/.vite-temp:rw,nosuid,nodev,mode=1777,uid=1000,gid=1000
+      - /workspace/packages/shared/node_modules/.vite-temp:rw,nosuid,nodev,mode=1777,uid=1000,gid=1000
     cap_drop:
       - ALL
     security_opt:
@@ -243,9 +243,9 @@ services:
     user: 'node'
     read_only: true
     tmpfs:
-      - /tmp
-      - /workspace/node_modules/.vite-temp
-      - /workspace/apps/worker/node_modules/.vite-temp
+      - /tmp:rw,noexec,nosuid,nodev,mode=1777,uid=1000,gid=1000
+      - /workspace/node_modules/.vite-temp:rw,nosuid,nodev,mode=1777,uid=1000,gid=1000
+      - /workspace/apps/worker/node_modules/.vite-temp:rw,nosuid,nodev,mode=1777,uid=1000,gid=1000
     cap_drop:
       - ALL
     security_opt:
