@@ -2,7 +2,7 @@
 
 ## Implementation Status Note
 
-This threat model captures target controls. Current codebase is still scaffold-heavy (Phase 0/3); several listed mitigations are not yet implemented in runtime application flows.
+This threat model captures target controls. Current codebase is still scaffold-heavy (Phase 0/4); several listed mitigations are not yet implemented in runtime application flows.
 
 ## Scope
 

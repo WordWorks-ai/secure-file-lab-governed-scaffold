@@ -1,11 +1,18 @@
 import { Module } from '@nestjs/common';
 
+import { AuditModule } from '../audit/audit.module.js';
+import { AuthModule } from '../auth/auth.module.js';
 import { PrismaModule } from '../persistence/prisma.module.js';
+import { FilesController } from './files.controller.js';
+import { FileCryptoService } from './file-crypto.service.js';
 import { FilesService } from './files.service.js';
+import { MinioObjectStorageService } from './minio-object-storage.service.js';
+import { VaultTransitService } from './vault-transit.service.js';
 
 @Module({
-  imports: [PrismaModule],
-  providers: [FilesService],
+  imports: [PrismaModule, AuditModule, AuthModule],
+  controllers: [FilesController],
+  providers: [FilesService, FileCryptoService, MinioObjectStorageService, VaultTransitService],
   exports: [FilesService],
 })
 export class FilesModule {}
