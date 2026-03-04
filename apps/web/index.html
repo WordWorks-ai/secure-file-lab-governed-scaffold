@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Schwass Web</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #334155;
+        --accent: #0f766e;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at top right, #ccfbf1 0%, var(--bg) 40%);
+      }
+      .card {
+        width: min(720px, 92vw);
+        background: var(--card);
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 10px 30px rgb(15 23 42 / 0.08);
+      }
+      h1 {
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 0 0 10px;
+        color: var(--muted);
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        color: #ffffff;
+        background: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      code {
+        font-family: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <span class="badge">Stage 9 Baseline</span>
+      <h1>Web UI Service Is Online</h1>
+      <p>This is the user-facing frontend shell for the secure file platform expansion.</p>
+      <p>API route: <code>/v1/*</code></p>
+      <p>Admin route: <code>/admin/*</code></p>
+      <p>Realtime route: <code>/realtime/*</code></p>
+    </main>
+  </body>
+</html>

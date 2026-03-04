@@ -19,12 +19,26 @@ Core compose services:
 - `mailhog` - SMTP sink for local development/testing.
 - `backup` - periodic backup sidecar for operational continuity.
 
+Post-v1 Stage 9 baseline additions:
+
+- `web` - user-facing UI shell routed by Caddy.
+- `admin` - admin UI shell routed under `/admin`.
+- `realtime` - realtime SSE shell routed under `/realtime`.
+
+Post-v1 Stage 10 profile additions:
+
+- `keycloak` - optional SSO identity provider.
+- `opa` - optional policy decision engine.
+
 ## Dependency Map
 
 Inbound:
 
 - Client -> `caddy` (`http://localhost:8080`, `https://localhost:8443`)
-- `caddy` -> `api` (internal service routing)
+- `caddy` -> `api` (internal service routing for `/v1/*`)
+- `caddy` -> `admin` (internal service routing for `/admin*`)
+- `caddy` -> `realtime` (internal service routing for `/realtime*`)
+- `caddy` -> `web` (default route `/`)
 
 API runtime dependencies:
 
@@ -32,6 +46,8 @@ API runtime dependencies:
 - `api` -> `redis` (scan queue producer)
 - `api` -> `minio` (encrypted object read/write)
 - `api` -> `vault` (transit wrap/unwrap)
+- `api` -> `keycloak` (optional SSO token/user profile exchange)
+- `api` -> `opa` (optional policy decision checks for sensitive actions)
 
 Worker runtime dependencies:
 

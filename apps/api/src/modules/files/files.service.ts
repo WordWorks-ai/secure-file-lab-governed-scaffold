@@ -18,6 +18,8 @@ import { randomUUID } from 'node:crypto';
 import { AuditService } from '../audit/audit.service.js';
 import { AuthenticatedUser } from '../auth/types/authenticated-request.js';
 import { PrismaService } from '../persistence/prisma.service.js';
+import { PolicyService } from '../policy/policy.service.js';
+import { PolicyDecisionInput } from '../policy/policy.types.js';
 import { UploadFileDto } from './dto/upload-file.dto.js';
 import { FileCryptoService } from './file-crypto.service.js';
 import {
@@ -41,6 +43,7 @@ export class FilesService {
   constructor(
     @Inject(PrismaService) private readonly prismaService: PrismaService,
     @Inject(AuditService) private readonly auditService: AuditService,
+    @Inject(PolicyService) private readonly policyService: PolicyService,
     @Inject(FileCryptoService) private readonly fileCryptoService: FileCryptoService,
     @Inject(FileQueueService) private readonly fileQueueService: FileQueueService,
     @Inject(MinioObjectStorageService)
@@ -60,6 +63,25 @@ export class FilesService {
     this.assertPayloadSizeWithinLimit(plaintext.byteLength);
 
     const org = await this.ensurePrimaryOrg(user);
+    await this.enforcePolicy({
+      action: 'file.upload',
+      actor: {
+        type: 'user',
+        id: user.sub,
+        role: user.role,
+        email: user.email,
+      },
+      resource: {
+        type: 'org',
+        id: org.id,
+        orgId: org.id,
+      },
+      context: {
+        contentType: normalizedContentType,
+        sizeBytes: plaintext.byteLength,
+      },
+    });
+
     const storageKey = `files/${org.id}/${randomUUID()}`;
     const now = new Date();
     const expiresAt = this.parseOptionalExpiry(payload.expiresAt);
@@ -185,6 +207,21 @@ export class FilesService {
     context: RequestContext,
   ): Promise<{ fileId: string; status: FileStatus }> {
     const file = await this.findFileForUser(fileId, user);
+    await this.enforcePolicy({
+      action: 'file.activate',
+      actor: {
+        type: 'user',
+        id: user.sub,
+        role: user.role,
+        email: user.email,
+      },
+      resource: {
+        type: 'file',
+        id: file.id,
+        orgId: file.orgId,
+        ownerUserId: file.ownerUserId,
+      },
+    });
     const activated = await this.transitionFileStatus(file.id, file.status, FileStatus.active, {
       scanResult: 'clean',
       scanCompletedAt: new Date(),
@@ -248,6 +285,25 @@ export class FilesService {
     contentBase64: string;
   }> {
     const file = await this.findFileForUser(fileId, user);
+    await this.enforcePolicy({
+      action: 'file.download',
+      actor: {
+        type: 'user',
+        id: user.sub,
+        role: user.role,
+        email: user.email,
+      },
+      resource: {
+        type: 'file',
+        id: file.id,
+        orgId: file.orgId,
+        ownerUserId: file.ownerUserId,
+      },
+      context: {
+        status: file.status,
+      },
+    });
+
     if (!isFileDownloadAllowed(file.status)) {
       await this.auditService.recordEvent({
         action: 'file.download.attempt',
@@ -449,5 +505,9 @@ export class FilesService {
     }
 
     return new Set(values);
+  }
+
+  private async enforcePolicy(input: PolicyDecisionInput): Promise<void> {
+    await this.policyService.assertAllowed(input);
   }
 }

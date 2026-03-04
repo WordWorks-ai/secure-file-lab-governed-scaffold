@@ -33,7 +33,7 @@ describe('system endpoints', () => {
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({
       service: 'api',
-      phase: 'phase-8-ci-quality-gates-and-handoff-polish',
+      phase: 'phase-10-identity-and-policy-engine-baseline',
     });
   });
 
