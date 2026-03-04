@@ -2,6 +2,7 @@ import { UserRole } from '@prisma/client';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Inject,
@@ -19,6 +20,8 @@ import { LoginDto } from './dto/login.dto.js';
 import { LogoutDto } from './dto/logout.dto.js';
 import { RefreshDto } from './dto/refresh.dto.js';
 import { SsoExchangeDto } from './dto/sso-exchange.dto.js';
+import { VerifyTotpDto } from './dto/verify-totp.dto.js';
+import { WebauthnRegisterVerifyDto } from './dto/webauthn-register-verify.dto.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { RolesGuard } from './guards/roles.guard.js';
 import { AuthService, AuthTokenResponse } from './auth.service.js';
@@ -42,7 +45,16 @@ export class AuthController {
     @Body() payload: LoginDto,
     @Req() request: AuthenticatedRequest,
   ): Promise<AuthTokenResponse> {
-    return this.authService.login(payload.email, payload.password, this.getRequestContext(request));
+    return this.authService.login(
+      payload.email,
+      payload.password,
+      {
+        totpCode: payload.totpCode,
+        webauthnChallengeToken: payload.webauthnChallengeToken,
+        webauthnCredentialId: payload.webauthnCredentialId,
+      },
+      this.getRequestContext(request),
+    );
   }
 
   @Post('refresh')
@@ -114,6 +126,137 @@ export class AuthController {
     return { allowed: true };
   }
 
+  @Get('mfa/status')
+  @UseGuards(JwtAuthGuard)
+  async getMfaStatus(@Req() request: AuthenticatedRequest): Promise<{
+    totp: {
+      enrolled: boolean;
+      enabled: boolean;
+    };
+    webauthn: {
+      credentialCount: number;
+    };
+  }> {
+    const user = this.requireAuthenticatedUser(request);
+    return this.authService.getMfaStatus(user.sub);
+  }
+
+  @Post('mfa/totp/enroll')
+  @UseGuards(JwtAuthGuard)
+  async beginTotpEnrollment(
+    @Req() request: AuthenticatedRequest,
+  ): Promise<{
+    issuer: string;
+    accountName: string;
+    secret: string;
+    otpauthUri: string;
+  }> {
+    const user = this.requireAuthenticatedUser(request);
+    return this.authService.beginTotpEnrollment(
+      {
+        id: user.sub,
+        email: user.email,
+      },
+      this.getRequestContext(request),
+    );
+  }
+
+  @Post('mfa/totp/verify')
+  @UseGuards(JwtAuthGuard)
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      expectedType: VerifyTotpDto,
+      exceptionFactory: createValidationException,
+    }),
+  )
+  async verifyTotpEnrollment(
+    @Req() request: AuthenticatedRequest,
+    @Body() payload: VerifyTotpDto,
+  ): Promise<{ enabled: true }> {
+    const user = this.requireAuthenticatedUser(request);
+    return this.authService.verifyTotpEnrollment(
+      {
+        id: user.sub,
+      },
+      payload.code,
+      this.getRequestContext(request),
+    );
+  }
+
+  @Delete('mfa/totp')
+  @UseGuards(JwtAuthGuard)
+  async disableTotp(@Req() request: AuthenticatedRequest): Promise<{ disabled: true }> {
+    const user = this.requireAuthenticatedUser(request);
+    return this.authService.disableTotp(
+      {
+        id: user.sub,
+      },
+      this.getRequestContext(request),
+    );
+  }
+
+  @Post('mfa/webauthn/register/options')
+  @UseGuards(JwtAuthGuard)
+  async beginWebauthnRegistration(
+    @Req() request: AuthenticatedRequest,
+  ): Promise<{
+    challengeToken: string;
+    options: {
+      challenge: string;
+      rp: {
+        name: string;
+        id: string;
+      };
+      user: {
+        id: string;
+        name: string;
+        displayName: string;
+      };
+      timeout: number;
+      pubKeyCredParams: Array<{
+        type: 'public-key';
+        alg: number;
+      }>;
+    };
+  }> {
+    const user = this.requireAuthenticatedUser(request);
+    return this.authService.beginWebauthnRegistration(
+      {
+        id: user.sub,
+        email: user.email,
+      },
+      this.getRequestContext(request),
+    );
+  }
+
+  @Post('mfa/webauthn/register/verify')
+  @UseGuards(JwtAuthGuard)
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      expectedType: WebauthnRegisterVerifyDto,
+      exceptionFactory: createValidationException,
+    }),
+  )
+  async finishWebauthnRegistration(
+    @Req() request: AuthenticatedRequest,
+    @Body() payload: WebauthnRegisterVerifyDto,
+  ): Promise<{ registered: true }> {
+    const user = this.requireAuthenticatedUser(request);
+    return this.authService.finishWebauthnRegistration(
+      {
+        id: user.sub,
+      },
+      payload,
+      this.getRequestContext(request),
+    );
+  }
+
   private getRequestContext(request: AuthenticatedRequest): {
     ipAddress: string | null;
     userAgent: string | null;
@@ -124,5 +267,13 @@ export class AuthController {
       ipAddress: request.ip ?? request.socket?.remoteAddress ?? null,
       userAgent: userAgent ?? null,
     };
+  }
+
+  private requireAuthenticatedUser(request: AuthenticatedRequest): AuthenticatedUser {
+    if (!request.user) {
+      throw new UnauthorizedException('Invalid access token');
+    }
+
+    return request.user;
   }
 }

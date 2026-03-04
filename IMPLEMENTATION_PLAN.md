@@ -336,12 +336,30 @@ These stages are executed sequentially to minimize integration risk and keep eac
 - Webhook sink is reachable locally and can persist captured events.
 - CI scaffold includes webhook-sink checks without regressions.
 
+### Stage 16 - Multi-Factor Authentication Baseline
+
+#### Deliverables
+
+- TOTP enrollment, verification, disable, and login enforcement paths.
+- WebAuthn registration challenge/verify baseline and login challenge/assertion gate.
+- MFA status endpoint and auth audit-event coverage for MFA flows.
+
+#### Validation
+
+- Prisma schema/migration includes MFA persistence tables.
+- Auth integration tests cover TOTP enrollment and MFA-gated login.
+- Auth integration tests cover WebAuthn registration and challenge-based login path.
+
+#### Exit Criteria
+
+- Users with enrolled MFA factors cannot complete login without a valid second factor.
+- MFA management routes and tests are wired into CI scaffold checks.
+
 ## Priority Order for Remaining Spec Gaps
 
-1. Stage 16 - MFA hardening (`TOTP` enrollment/verification + `WebAuthn` registration/assertion).
-2. Stage 17 - Realtime transport upgrade (`WebSocket` support with auth and delivery tests).
-3. Stage 18 - Preview/OCR hardening (conversion/extraction fidelity, retries, and fail-closed handling).
-4. Stage 19 - DLP hardening (expanded policy corpus, enforcement depth, and override governance).
+1. Stage 17 - Realtime transport upgrade (`WebSocket` support with auth and delivery tests).
+2. Stage 18 - Preview/OCR hardening (conversion/extraction fidelity, retries, and fail-closed handling).
+3. Stage 19 - DLP hardening (expanded policy corpus, enforcement depth, and override governance).
 
 ## Expansion Definition of Done
 

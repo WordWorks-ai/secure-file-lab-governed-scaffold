@@ -41,20 +41,50 @@ enum AuditResult {
 }
 
 model User {
-  id            String         @id @default(uuid()) @db.Uuid
-  email         String         @unique
-  passwordHash  String         @map("password_hash")
-  role          UserRole
-  isActive      Boolean        @default(true) @map("is_active")
-  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
-  memberships   Membership[]
-  ownedFiles    File[]         @relation("FileOwner")
-  createdShares Share[]        @relation("ShareCreator")
-  refreshTokens RefreshToken[]
-  auditEvents   AuditEvent[]   @relation("AuditActorUser")
+  id                 String                  @id @default(uuid()) @db.Uuid
+  email              String                  @unique
+  passwordHash       String                  @map("password_hash")
+  role               UserRole
+  isActive           Boolean                 @default(true) @map("is_active")
+  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+  memberships        Membership[]
+  ownedFiles         File[]                  @relation("FileOwner")
+  createdShares      Share[]                 @relation("ShareCreator")
+  refreshTokens      RefreshToken[]
+  auditEvents        AuditEvent[]            @relation("AuditActorUser")
+  mfaTotpFactor      UserMfaTotpFactor?
+  webauthnFactors    UserWebauthnCredential[]
 
   @@map("users")
+}
+
+model UserMfaTotpFactor {
+  userId         String    @id @map("user_id") @db.Uuid
+  secretEnvelope String    @map("secret_envelope")
+  isEnabled      Boolean   @default(false) @map("is_enabled")
+  verifiedAt     DateTime? @map("verified_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_mfa_totp_factors")
+}
+
+model UserWebauthnCredential {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  credentialId String    @map("credential_id") @unique
+  label        String?
+  publicKey    String?   @map("public_key")
+  lastUsedAt   DateTime? @map("last_used_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([lastUsedAt])
+  @@map("user_webauthn_credentials")
 }
 
 model Org {

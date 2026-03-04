@@ -55,6 +55,10 @@ Post-v1 Stage 15 additions:
 
 - `webhook-sink` - capture/list/clear endpoint shell for webhook integration tests.
 
+Post-v1 Stage 16 additions:
+
+- API auth MFA baseline paths (`TOTP` + `WebAuthn`) for second-factor login gates.
+
 ## Dependency Map
 
 Inbound:
@@ -104,6 +108,7 @@ Operational workflows:
 
 - PostgreSQL:
   - identity/session/org metadata
+  - MFA factor metadata (TOTP + WebAuthn credential baselines)
   - file metadata/lifecycle
   - share metadata/policies
   - audit events
@@ -128,6 +133,7 @@ Operational workflows:
 ## Security-Critical Invariants
 
 - Non-`active` files are denied for download and share access.
+- MFA-enrolled users are denied login without a valid second factor.
 - Malware scan gate must transition files fail-closed on terminal scan errors.
 - DLP-sensitive upload/share actions deny by default when policy matches and override is not enabled.
 - Metrics endpoints remain read-only and expose process/service telemetry only.

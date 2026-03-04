@@ -23,6 +23,13 @@ Implemented now:
   - `POST /v1/auth/logout`
   - `GET /v1/auth/me`
   - `GET /v1/auth/admin-check` (RBAC baseline)
+  - MFA baseline management + enforcement:
+    - `GET /v1/auth/mfa/status`
+    - `POST /v1/auth/mfa/totp/enroll`
+    - `POST /v1/auth/mfa/totp/verify`
+    - `DELETE /v1/auth/mfa/totp`
+    - `POST /v1/auth/mfa/webauthn/register/options`
+    - `POST /v1/auth/mfa/webauthn/register/verify`
 - File ingest/encryption baseline:
   - `POST /v1/files/upload` (validated payload, size/type limits)
   - encrypted object persistence to MinIO
@@ -70,7 +77,8 @@ Post-v1 expansion baselines completed:
 - Stage 13 baseline adds optional `dlp` profile wiring plus upload/share DLP enforcement hooks and policy corpus tests.
 - Stage 14 baseline adds optional `observability` profile wiring (Prometheus/Grafana/Loki/Promtail) and service metrics endpoints.
 - Stage 15 baseline adds `webhook-sink` service wiring with capture/list/clear endpoints and Caddy route exposure.
-- Remaining post-baseline completion work is prioritized as: MFA/WebAuthn, WebSocket realtime transport, OCR/preview hardening, and DLP hardening.
+- Stage 16 baseline adds MFA enforcement with TOTP and WebAuthn registration/challenge flows.
+- Remaining post-baseline completion work is prioritized as: WebSocket realtime transport, OCR/preview hardening, and DLP hardening.
 
 ## Purpose
 
@@ -122,6 +130,7 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 - Planned controls (not yet implemented in runtime flows):
   - deeper audit analytics/reporting workflows and long-retention operationalization
   - production-grade secret rotation, key custody, and externalized policy engines
+  - full cryptographic WebAuthn attestation/assertion validation hardening
 
 ## Repository Layout
 

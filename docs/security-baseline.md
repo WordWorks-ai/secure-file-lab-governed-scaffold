@@ -12,15 +12,18 @@ This document defines target baseline controls for v1. As of 2026-03-04, auth, f
   - JWT access tokens with short TTL.
   - Rotating refresh tokens with revocation and replay detection.
   - RBAC baseline roles: `admin`, `member`.
-  - MFA: deferred implementation with explicit roadmap entry.
+  - MFA with TOTP + WebAuthn support.
 - Implemented now:
   - Argon2id hash generation utility (`apps/api/src/tools/hash-password.ts`).
   - bootstrap admin seed requires Argon2id-format hash (`infra/scripts/bootstrap.sh`, `infra/scripts/seed-admin.sh`).
   - auth runtime endpoints (`login`, `refresh`, `logout`) with JWT access token issuance.
+  - auth MFA runtime endpoints (`/auth/mfa/status`, TOTP enroll/verify/disable, WebAuthn register options/verify).
+  - login enforcement requiring second factor when MFA factors are enrolled.
   - refresh-token persistence, rotation, and revocation baseline in `refresh_tokens`.
   - RBAC baseline enforcement (`admin`, `member`) on protected route checks.
 - Not implemented yet:
-  - MFA and optional external identity integration (deferred by scope).
+  - production-grade WebAuthn attestation/assertion cryptographic verification depth.
+  - optional external identity integration hardening beyond baseline SSO exchange flow.
 
 ## Authorization
 
@@ -104,7 +107,7 @@ Current limitation:
 
 ## Deferred Hardening (Documented)
 
-- MFA implementation details.
+- MFA anti-phishing controls and recovery-factor hardening.
 - Fine-grained ABAC/policy engine.
 - Tamper-evident audit chain.
 - Full secret rotation automation.

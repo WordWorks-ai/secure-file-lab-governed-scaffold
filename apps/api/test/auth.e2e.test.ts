@@ -5,7 +5,7 @@ import { AuditActorType, AuditResult, UserRole } from '@prisma/client';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -36,6 +36,26 @@ type FakeRefreshToken = {
   createdAt: Date;
 };
 
+type FakeTotpFactor = {
+  userId: string;
+  secretEnvelope: string;
+  isEnabled: boolean;
+  verifiedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type FakeWebauthnCredential = {
+  id: string;
+  userId: string;
+  credentialId: string;
+  label: string | null;
+  publicKey: string | null;
+  lastUsedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type FakeAuditEvent = {
   id: string;
   action: string;
@@ -56,6 +76,9 @@ class InMemoryPrismaService {
   private readonly usersByEmail = new Map<string, string>();
   private readonly refreshTokensById = new Map<string, FakeRefreshToken>();
   private readonly refreshTokenIdByHash = new Map<string, string>();
+  private readonly totpFactorsByUserId = new Map<string, FakeTotpFactor>();
+  private readonly webauthnCredentialsById = new Map<string, FakeWebauthnCredential>();
+  private readonly webauthnCredentialIdToRowId = new Map<string, string>();
   private readonly auditEvents: FakeAuditEvent[] = [];
 
   readonly user = {
@@ -192,6 +215,154 @@ class InMemoryPrismaService {
     },
   };
 
+  readonly userMfaTotpFactor = {
+    findUnique: async (args: { where: { userId: string } }) => {
+      const row = this.totpFactorsByUserId.get(args.where.userId);
+      return row ? this.cloneTotpFactor(row) : null;
+    },
+    upsert: async (args: {
+      where: { userId: string };
+      create: {
+        userId: string;
+        secretEnvelope: string;
+        isEnabled: boolean;
+        verifiedAt: Date | null;
+      };
+      update: {
+        secretEnvelope?: string;
+        isEnabled?: boolean;
+        verifiedAt?: Date | null;
+      };
+    }) => {
+      const existing = this.totpFactorsByUserId.get(args.where.userId);
+      const now = new Date();
+      if (existing) {
+        if (args.update.secretEnvelope !== undefined) {
+          existing.secretEnvelope = args.update.secretEnvelope;
+        }
+        if (args.update.isEnabled !== undefined) {
+          existing.isEnabled = args.update.isEnabled;
+        }
+        if (args.update.verifiedAt !== undefined) {
+          existing.verifiedAt = args.update.verifiedAt ? new Date(args.update.verifiedAt) : null;
+        }
+        existing.updatedAt = now;
+        return this.cloneTotpFactor(existing);
+      }
+
+      const created: FakeTotpFactor = {
+        userId: args.create.userId,
+        secretEnvelope: args.create.secretEnvelope,
+        isEnabled: args.create.isEnabled,
+        verifiedAt: args.create.verifiedAt ? new Date(args.create.verifiedAt) : null,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      this.totpFactorsByUserId.set(created.userId, created);
+      return this.cloneTotpFactor(created);
+    },
+    update: async (args: {
+      where: { userId: string };
+      data: { isEnabled?: boolean; verifiedAt?: Date | null };
+    }) => {
+      const existing = this.totpFactorsByUserId.get(args.where.userId);
+      if (!existing) {
+        throw new Error('totp factor not found');
+      }
+
+      if (args.data.isEnabled !== undefined) {
+        existing.isEnabled = args.data.isEnabled;
+      }
+      if (args.data.verifiedAt !== undefined) {
+        existing.verifiedAt = args.data.verifiedAt ? new Date(args.data.verifiedAt) : null;
+      }
+      existing.updatedAt = new Date();
+      return this.cloneTotpFactor(existing);
+    },
+    delete: async (args: { where: { userId: string } }) => {
+      const existing = this.totpFactorsByUserId.get(args.where.userId);
+      if (!existing) {
+        throw new Error('totp factor not found');
+      }
+      this.totpFactorsByUserId.delete(args.where.userId);
+      return this.cloneTotpFactor(existing);
+    },
+  };
+
+  readonly userWebauthnCredential = {
+    findMany: async (args: { where: { userId: string } }) =>
+      Array.from(this.webauthnCredentialsById.values())
+        .filter((credential) => credential.userId === args.where.userId)
+        .map((credential) => this.cloneWebauthnCredential(credential)),
+    findUnique: async (args: { where: { credentialId: string } }) => {
+      const rowId = this.webauthnCredentialIdToRowId.get(args.where.credentialId);
+      if (!rowId) {
+        return null;
+      }
+      const credential = this.webauthnCredentialsById.get(rowId);
+      return credential ? this.cloneWebauthnCredential(credential) : null;
+    },
+    findFirst: async (args: { where: { userId: string; credentialId: string } }) => {
+      const rowId = this.webauthnCredentialIdToRowId.get(args.where.credentialId);
+      if (!rowId) {
+        return null;
+      }
+      const credential = this.webauthnCredentialsById.get(rowId);
+      if (!credential || credential.userId !== args.where.userId) {
+        return null;
+      }
+      return this.cloneWebauthnCredential(credential);
+    },
+    create: async (args: {
+      data: {
+        userId: string;
+        credentialId: string;
+        label: string | null;
+        publicKey: string | null;
+      };
+    }) => {
+      const now = new Date();
+      const created: FakeWebauthnCredential = {
+        id: randomUUID(),
+        userId: args.data.userId,
+        credentialId: args.data.credentialId,
+        label: args.data.label,
+        publicKey: args.data.publicKey,
+        lastUsedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.webauthnCredentialsById.set(created.id, created);
+      this.webauthnCredentialIdToRowId.set(created.credentialId, created.id);
+      return this.cloneWebauthnCredential(created);
+    },
+    update: async (args: {
+      where: { id: string };
+      data: {
+        label?: string | null;
+        publicKey?: string | null;
+        lastUsedAt?: Date | null;
+      };
+    }) => {
+      const credential = this.webauthnCredentialsById.get(args.where.id);
+      if (!credential) {
+        throw new Error('webauthn credential not found');
+      }
+      if (args.data.label !== undefined) {
+        credential.label = args.data.label;
+      }
+      if (args.data.publicKey !== undefined) {
+        credential.publicKey = args.data.publicKey;
+      }
+      if (args.data.lastUsedAt !== undefined) {
+        credential.lastUsedAt = args.data.lastUsedAt ? new Date(args.data.lastUsedAt) : null;
+      }
+      credential.updatedAt = new Date();
+      return this.cloneWebauthnCredential(credential);
+    },
+  };
+
   readonly auditEvent = {
     create: async (args: {
       data: Omit<FakeAuditEvent, 'id' | 'createdAt'> & { metadataJson?: unknown };
@@ -225,6 +396,9 @@ class InMemoryPrismaService {
     this.usersByEmail.clear();
     this.refreshTokensById.clear();
     this.refreshTokenIdByHash.clear();
+    this.totpFactorsByUserId.clear();
+    this.webauthnCredentialsById.clear();
+    this.webauthnCredentialIdToRowId.clear();
     this.auditEvents.length = 0;
   }
 
@@ -281,6 +455,62 @@ class InMemoryPrismaService {
       createdAt: new Date(row.createdAt),
     };
   }
+
+  private cloneTotpFactor(row: FakeTotpFactor): FakeTotpFactor {
+    return {
+      ...row,
+      verifiedAt: row.verifiedAt ? new Date(row.verifiedAt) : null,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    };
+  }
+
+  private cloneWebauthnCredential(row: FakeWebauthnCredential): FakeWebauthnCredential {
+    return {
+      ...row,
+      lastUsedAt: row.lastUsedAt ? new Date(row.lastUsedAt) : null,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    };
+  }
+}
+
+function base32Decode(input: string): Buffer {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const cleaned = input.replace(/=+$/g, '').replace(/\s+/g, '').toUpperCase();
+  let bits = 0;
+  let value = 0;
+  const output: number[] = [];
+
+  for (const character of cleaned) {
+    const index = alphabet.indexOf(character);
+    if (index === -1) {
+      throw new Error('invalid base32 secret');
+    }
+    value = (value << 5) | index;
+    bits += 5;
+
+    if (bits >= 8) {
+      output.push((value >>> (bits - 8)) & 0xff);
+      bits -= 8;
+    }
+  }
+
+  return Buffer.from(output);
+}
+
+function generateTotpCode(secretBase32: string, atMs = Date.now()): string {
+  const counter = Math.floor(atMs / 1000 / 30);
+  const counterBuffer = Buffer.alloc(8);
+  counterBuffer.writeBigUInt64BE(BigInt(counter), 0);
+  const hmac = createHmac('sha1', base32Decode(secretBase32)).update(counterBuffer).digest();
+  const offset = hmac[hmac.length - 1] & 0x0f;
+  const binaryCode =
+    ((hmac[offset] & 0x7f) << 24) |
+    ((hmac[offset + 1] & 0xff) << 16) |
+    ((hmac[offset + 2] & 0xff) << 8) |
+    (hmac[offset + 3] & 0xff);
+  return (binaryCode % 1_000_000).toString().padStart(6, '0');
 }
 
 describe('auth endpoints', () => {
@@ -444,6 +674,153 @@ describe('auth endpoints', () => {
         (event) => event.action === 'auth.login' && event.result === AuditResult.failure,
       ),
     ).toBe(true);
+  });
+
+  it('enrolls TOTP MFA, enforces second factor on login, and supports disable flow', async () => {
+    await prisma.seedUser({
+      email: 'totp-user@local.test',
+      password: 'StrongPassword!123',
+      role: UserRole.member,
+    });
+
+    const initialLogin = await request(app.getHttpServer()).post('/v1/auth/login').send({
+      email: 'totp-user@local.test',
+      password: 'StrongPassword!123',
+    });
+    expect(initialLogin.statusCode).toBe(201);
+
+    const enrollResponse = await request(app.getHttpServer())
+      .post('/v1/auth/mfa/totp/enroll')
+      .set('Authorization', `Bearer ${initialLogin.body.accessToken as string}`)
+      .send({});
+    expect(enrollResponse.statusCode).toBe(201);
+    expect(typeof enrollResponse.body.secret).toBe('string');
+    expect(typeof enrollResponse.body.otpauthUri).toBe('string');
+
+    const verifyResponse = await request(app.getHttpServer())
+      .post('/v1/auth/mfa/totp/verify')
+      .set('Authorization', `Bearer ${initialLogin.body.accessToken as string}`)
+      .send({
+        code: generateTotpCode(enrollResponse.body.secret as string),
+      });
+    expect(verifyResponse.statusCode).toBe(201);
+    expect(verifyResponse.body).toEqual({ enabled: true });
+
+    const statusResponse = await request(app.getHttpServer())
+      .get('/v1/auth/mfa/status')
+      .set('Authorization', `Bearer ${initialLogin.body.accessToken as string}`);
+    expect(statusResponse.statusCode).toBe(200);
+    expect(statusResponse.body.totp.enabled).toBe(true);
+
+    const missingMfaLogin = await request(app.getHttpServer()).post('/v1/auth/login').send({
+      email: 'totp-user@local.test',
+      password: 'StrongPassword!123',
+    });
+    expect(missingMfaLogin.statusCode).toBe(401);
+    expect(missingMfaLogin.body.code).toBe('MFA_REQUIRED');
+    expect(missingMfaLogin.body.methods).toContain('totp');
+
+    const invalidTotpLogin = await request(app.getHttpServer()).post('/v1/auth/login').send({
+      email: 'totp-user@local.test',
+      password: 'StrongPassword!123',
+      totpCode: '000000',
+    });
+    expect(invalidTotpLogin.statusCode).toBe(401);
+    expect(invalidTotpLogin.body.code).toBe('MFA_INVALID');
+
+    const validTotpLogin = await request(app.getHttpServer()).post('/v1/auth/login').send({
+      email: 'totp-user@local.test',
+      password: 'StrongPassword!123',
+      totpCode: generateTotpCode(enrollResponse.body.secret as string),
+    });
+    expect(validTotpLogin.statusCode).toBe(201);
+    expect(typeof validTotpLogin.body.accessToken).toBe('string');
+
+    const disableResponse = await request(app.getHttpServer())
+      .delete('/v1/auth/mfa/totp')
+      .set('Authorization', `Bearer ${validTotpLogin.body.accessToken as string}`);
+    expect(disableResponse.statusCode).toBe(200);
+    expect(disableResponse.body).toEqual({ disabled: true });
+
+    const loginAfterDisable = await request(app.getHttpServer()).post('/v1/auth/login').send({
+      email: 'totp-user@local.test',
+      password: 'StrongPassword!123',
+    });
+    expect(loginAfterDisable.statusCode).toBe(201);
+    expect(typeof loginAfterDisable.body.accessToken).toBe('string');
+  });
+
+  it('registers WebAuthn credential and supports challenge-based MFA login', async () => {
+    await prisma.seedUser({
+      email: 'webauthn-user@local.test',
+      password: 'StrongPassword!123',
+      role: UserRole.member,
+    });
+
+    const initialLogin = await request(app.getHttpServer()).post('/v1/auth/login').send({
+      email: 'webauthn-user@local.test',
+      password: 'StrongPassword!123',
+    });
+    expect(initialLogin.statusCode).toBe(201);
+
+    const registrationOptions = await request(app.getHttpServer())
+      .post('/v1/auth/mfa/webauthn/register/options')
+      .set('Authorization', `Bearer ${initialLogin.body.accessToken as string}`)
+      .send({});
+    expect(registrationOptions.statusCode).toBe(201);
+    expect(typeof registrationOptions.body.challengeToken).toBe('string');
+    expect(typeof registrationOptions.body.options?.challenge).toBe('string');
+
+    const registerVerify = await request(app.getHttpServer())
+      .post('/v1/auth/mfa/webauthn/register/verify')
+      .set('Authorization', `Bearer ${initialLogin.body.accessToken as string}`)
+      .send({
+        challengeToken: registrationOptions.body.challengeToken,
+        credentialId: 'webauthn-credential-local-12345',
+        label: 'Laptop key',
+      });
+    expect(registerVerify.statusCode).toBe(201);
+    expect(registerVerify.body).toEqual({ registered: true });
+
+    const statusResponse = await request(app.getHttpServer())
+      .get('/v1/auth/mfa/status')
+      .set('Authorization', `Bearer ${initialLogin.body.accessToken as string}`);
+    expect(statusResponse.statusCode).toBe(200);
+    expect(statusResponse.body.webauthn.credentialCount).toBe(1);
+
+    const missingMfaLogin = await request(app.getHttpServer()).post('/v1/auth/login').send({
+      email: 'webauthn-user@local.test',
+      password: 'StrongPassword!123',
+    });
+    expect(missingMfaLogin.statusCode).toBe(401);
+    expect(missingMfaLogin.body.code).toBe('MFA_REQUIRED');
+    expect(missingMfaLogin.body.methods).toContain('webauthn');
+    expect(typeof missingMfaLogin.body.webauthn?.challengeToken).toBe('string');
+
+    const invalidCredentialLogin = await request(app.getHttpServer()).post('/v1/auth/login').send({
+      email: 'webauthn-user@local.test',
+      password: 'StrongPassword!123',
+      webauthnChallengeToken: missingMfaLogin.body.webauthn.challengeToken,
+      webauthnCredentialId: 'invalid-credential-id',
+    });
+    expect(invalidCredentialLogin.statusCode).toBe(401);
+    expect(invalidCredentialLogin.body.code).toBe('MFA_INVALID');
+
+    const freshChallenge = await request(app.getHttpServer()).post('/v1/auth/login').send({
+      email: 'webauthn-user@local.test',
+      password: 'StrongPassword!123',
+    });
+    expect(freshChallenge.statusCode).toBe(401);
+    expect(typeof freshChallenge.body.webauthn?.challengeToken).toBe('string');
+
+    const validCredentialLogin = await request(app.getHttpServer()).post('/v1/auth/login').send({
+      email: 'webauthn-user@local.test',
+      password: 'StrongPassword!123',
+      webauthnChallengeToken: freshChallenge.body.webauthn.challengeToken,
+      webauthnCredentialId: 'webauthn-credential-local-12345',
+    });
+    expect(validCredentialLogin.statusCode).toBe(201);
+    expect(typeof validCredentialLogin.body.accessToken).toBe('string');
   });
 
   it('exchanges Keycloak access token and provisions local user on first login', async () => {

@@ -8,10 +8,17 @@ import { PrismaService } from '../persistence/prisma.service.js';
 import { AuthenticatedUser } from './types/authenticated-request.js';
 import { JwtTokenService } from './jwt-token.service.js';
 import { KeycloakSsoService } from './keycloak-sso.service.js';
+import { MfaService, MfaStatus } from './mfa.service.js';
 
 type AuthRequestContext = {
   ipAddress: string | null;
   userAgent: string | null;
+};
+
+type LoginSecondFactorPayload = {
+  totpCode?: string;
+  webauthnChallengeToken?: string;
+  webauthnCredentialId?: string;
 };
 
 export type AuthTokenResponse = {
@@ -34,11 +41,13 @@ export class AuthService {
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(JwtTokenService) private readonly jwtTokenService: JwtTokenService,
     @Inject(KeycloakSsoService) private readonly keycloakSsoService: KeycloakSsoService,
+    @Inject(MfaService) private readonly mfaService: MfaService,
   ) {}
 
   async login(
     email: string,
     password: string,
+    secondFactor: LoginSecondFactorPayload,
     context: AuthRequestContext,
   ): Promise<AuthTokenResponse> {
     const normalizedEmail = email.trim().toLowerCase();
@@ -67,6 +76,76 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    const mfaRequired = await this.mfaService.isMfaRequired(user.id);
+    let mfaMethod: 'totp' | 'webauthn' | null = null;
+
+    if (mfaRequired) {
+      const hasTotpAttempt = Boolean(secondFactor.totpCode);
+      const hasWebauthnAttempt =
+        Boolean(secondFactor.webauthnChallengeToken) && Boolean(secondFactor.webauthnCredentialId);
+      const attemptedSecondFactor = hasTotpAttempt || hasWebauthnAttempt;
+      let mfaVerified = false;
+
+      if (hasTotpAttempt && secondFactor.totpCode) {
+        mfaVerified = await this.mfaService.verifyTotpForLogin(user.id, secondFactor.totpCode);
+        if (mfaVerified) {
+          mfaMethod = 'totp';
+        }
+      }
+
+      if (
+        !mfaVerified &&
+        hasWebauthnAttempt &&
+        secondFactor.webauthnChallengeToken &&
+        secondFactor.webauthnCredentialId
+      ) {
+        mfaVerified = await this.mfaService.verifyWebauthnAssertion({
+          userId: user.id,
+          challengeToken: secondFactor.webauthnChallengeToken,
+          credentialId: secondFactor.webauthnCredentialId,
+        });
+        if (mfaVerified) {
+          mfaMethod = 'webauthn';
+        }
+      }
+
+      if (!mfaVerified) {
+        const challengeCode = attemptedSecondFactor ? 'MFA_INVALID' : 'MFA_REQUIRED';
+        const challenge = await this.mfaService.buildLoginChallenge(user.id, challengeCode);
+
+        await this.auditService.recordEvent({
+          action: 'auth.login.mfa.verify',
+          resourceType: 'auth_session',
+          result: attemptedSecondFactor ? AuditResult.denied : AuditResult.failure,
+          actorType: AuditActorType.user,
+          actorUserId: user.id,
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          metadata: {
+            email: user.email,
+            challengeCode,
+            methods: challenge.methods,
+          },
+        });
+
+        throw new UnauthorizedException(challenge);
+      }
+
+      await this.auditService.recordEvent({
+        action: 'auth.login.mfa.verify',
+        resourceType: 'auth_session',
+        result: AuditResult.success,
+        actorType: AuditActorType.user,
+        actorUserId: user.id,
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        metadata: {
+          email: user.email,
+          method: mfaMethod,
+        },
+      });
+    }
+
     const { response } = await this.issueTokenPair(user);
 
     await this.auditService.recordEvent({
@@ -79,10 +158,184 @@ export class AuthService {
       userAgent: context.userAgent,
       metadata: {
         email: user.email,
+        mfa: mfaMethod ?? 'none',
       },
     });
 
     return response;
+  }
+
+  async getMfaStatus(userId: string): Promise<MfaStatus> {
+    return this.mfaService.getMfaStatus(userId);
+  }
+
+  async beginTotpEnrollment(
+    user: Pick<User, 'id' | 'email'>,
+    context: AuthRequestContext,
+  ): Promise<{
+    issuer: string;
+    accountName: string;
+    secret: string;
+    otpauthUri: string;
+  }> {
+    const enrollment = await this.mfaService.beginTotpEnrollment(user.id, user.email);
+    await this.auditService.recordEvent({
+      action: 'auth.mfa.totp.enroll',
+      resourceType: 'auth_mfa',
+      result: AuditResult.success,
+      actorType: AuditActorType.user,
+      actorUserId: user.id,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      metadata: {
+        method: 'totp',
+      },
+    });
+    return enrollment;
+  }
+
+  async verifyTotpEnrollment(
+    user: Pick<User, 'id'>,
+    code: string,
+    context: AuthRequestContext,
+  ): Promise<{ enabled: true }> {
+    const verified = await this.mfaService.verifyTotpEnrollment(user.id, code);
+    if (!verified) {
+      await this.auditService.recordEvent({
+        action: 'auth.mfa.totp.verify',
+        resourceType: 'auth_mfa',
+        result: AuditResult.denied,
+        actorType: AuditActorType.user,
+        actorUserId: user.id,
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        metadata: {
+          reason: 'invalid_code',
+        },
+      });
+      throw new UnauthorizedException('Invalid TOTP code');
+    }
+
+    await this.auditService.recordEvent({
+      action: 'auth.mfa.totp.verify',
+      resourceType: 'auth_mfa',
+      result: AuditResult.success,
+      actorType: AuditActorType.user,
+      actorUserId: user.id,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      metadata: {
+        method: 'totp',
+      },
+    });
+
+    return { enabled: true };
+  }
+
+  async disableTotp(user: Pick<User, 'id'>, context: AuthRequestContext): Promise<{ disabled: true }> {
+    await this.mfaService.disableTotp(user.id);
+    await this.auditService.recordEvent({
+      action: 'auth.mfa.totp.disable',
+      resourceType: 'auth_mfa',
+      result: AuditResult.success,
+      actorType: AuditActorType.user,
+      actorUserId: user.id,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      metadata: {
+        method: 'totp',
+      },
+    });
+    return { disabled: true };
+  }
+
+  async beginWebauthnRegistration(
+    user: Pick<User, 'id' | 'email'>,
+    context: AuthRequestContext,
+  ): Promise<{
+    challengeToken: string;
+    options: {
+      challenge: string;
+      rp: {
+        name: string;
+        id: string;
+      };
+      user: {
+        id: string;
+        name: string;
+        displayName: string;
+      };
+      timeout: number;
+      pubKeyCredParams: Array<{
+        type: 'public-key';
+        alg: number;
+      }>;
+    };
+  }> {
+    const registration = await this.mfaService.beginWebauthnRegistration(user.id, user.email);
+    await this.auditService.recordEvent({
+      action: 'auth.mfa.webauthn.register.options',
+      resourceType: 'auth_mfa',
+      result: AuditResult.success,
+      actorType: AuditActorType.user,
+      actorUserId: user.id,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      metadata: {
+        method: 'webauthn',
+      },
+    });
+    return registration;
+  }
+
+  async finishWebauthnRegistration(
+    user: Pick<User, 'id'>,
+    payload: {
+      challengeToken: string;
+      credentialId: string;
+      label?: string;
+      publicKey?: string;
+    },
+    context: AuthRequestContext,
+  ): Promise<{ registered: true }> {
+    const registered = await this.mfaService.finishWebauthnRegistration({
+      userId: user.id,
+      challengeToken: payload.challengeToken,
+      credentialId: payload.credentialId,
+      label: payload.label,
+      publicKey: payload.publicKey,
+    });
+
+    if (!registered) {
+      await this.auditService.recordEvent({
+        action: 'auth.mfa.webauthn.register.verify',
+        resourceType: 'auth_mfa',
+        result: AuditResult.denied,
+        actorType: AuditActorType.user,
+        actorUserId: user.id,
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        metadata: {
+          reason: 'invalid_registration_payload',
+        },
+      });
+      throw new UnauthorizedException('Invalid WebAuthn registration payload');
+    }
+
+    await this.auditService.recordEvent({
+      action: 'auth.mfa.webauthn.register.verify',
+      resourceType: 'auth_mfa',
+      result: AuditResult.success,
+      actorType: AuditActorType.user,
+      actorUserId: user.id,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      metadata: {
+        method: 'webauthn',
+      },
+    });
+
+    return { registered: true };
   }
 
   async refresh(refreshToken: string, context: AuthRequestContext): Promise<AuthTokenResponse> {

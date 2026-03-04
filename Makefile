@@ -56,6 +56,7 @@ test-scaffold:
 	bash infra/scripts/tests/stage13-dlp.sh
 	bash infra/scripts/tests/stage14-observability.sh
 	bash infra/scripts/tests/stage15-webhook-sink.sh
+	bash infra/scripts/tests/stage16-mfa.sh
 	bash infra/scripts/tests/secrets-hygiene.sh
 	bash infra/scripts/tests/env-loader-safety.sh
 	bash infra/scripts/tests/scope-accuracy.sh

@@ -2,7 +2,7 @@
 
 ## Implementation Status Note
 
-This threat model captures target controls. Current codebase is Phase 0/8 with share-policy, audit-query/export, operational backup/restore baseline, and CI quality-gate baseline implemented.
+This threat model captures target controls. Current codebase is Phase 0/8 with share-policy, audit-query/export, operational backup/restore baseline, and CI quality-gate baseline implemented. Stage 16 additionally introduces MFA baseline auth controls.
 
 ## Scope
 

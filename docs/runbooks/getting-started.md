@@ -1,4 +1,4 @@
-# User Guide: Getting Started (Phase 8 + Stage 15 Baseline)
+# User Guide: Getting Started (Phase 8 + Stage 16 Baseline)
 
 ## What This Repository Is
 
@@ -17,7 +17,6 @@ Implemented now:
 
 Not implemented as production-grade flows yet:
 
-- MFA/WebAuthn hardening.
 - WebSocket realtime transport (current realtime baseline is SSE).
 - Deep OCR/preview conversion hardening.
 - Deep DLP policy/enforcement hardening.
@@ -95,6 +94,7 @@ curl -s http://localhost:8080/v1/system/info
 - Admin shell via Caddy: `http://localhost:8080/admin/`
 - Realtime health via Caddy: `http://localhost:8080/realtime/health/live`
 - Webhook sink health via Caddy: `http://localhost:8080/webhook-sink/health/live`
+- MFA status (auth required): `http://localhost:8080/v1/auth/mfa/status`
 - Search API via Caddy: `http://localhost:8080/v1/search/files?q=<query>`
 - MailHog UI: `http://localhost:8025`
 - OpenSearch API (profile): `http://localhost:9200`
@@ -103,6 +103,8 @@ curl -s http://localhost:8080/v1/system/info
 - OCR service (profile): `http://localhost:3012/v1/ocr`
 - DLP service (profile): `http://localhost:3013/v1/dlp/evaluate`
 - Webhook sink capture endpoint: `http://localhost:3020/v1/webhooks/capture`
+- TOTP enroll endpoint (auth required): `http://localhost:8080/v1/auth/mfa/totp/enroll`
+- WebAuthn registration options endpoint (auth required): `http://localhost:8080/v1/auth/mfa/webauthn/register/options`
 - API metrics: `http://localhost:8080/v1/metrics`
 - Realtime metrics via Caddy: `http://localhost:8080/realtime/metrics`
 - Prometheus UI (profile): `http://localhost:9090`
