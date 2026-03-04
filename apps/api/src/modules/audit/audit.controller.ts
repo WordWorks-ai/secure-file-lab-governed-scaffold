@@ -16,6 +16,7 @@ import { createValidationException } from '../../common/validation/validation-ex
 import { JwtTokenService } from '../auth/jwt-token.service.js';
 import { AuthenticatedRequest, AuthenticatedUser } from '../auth/types/authenticated-request.js';
 import { QueryAuditEventsDto } from './dto/query-audit-events.dto.js';
+import { QueryAuditSummaryDto } from './dto/query-audit-summary.dto.js';
 import { AuditService } from './audit.service.js';
 
 @Controller('audit')
@@ -133,6 +134,56 @@ export class AuditController {
         }),
       )
       .join('\n');
+  }
+
+  @Get('events/summary')
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      expectedType: QueryAuditSummaryDto,
+      exceptionFactory: createValidationException,
+    }),
+  )
+  async summarizeEvents(
+    @Query() query: QueryAuditSummaryDto,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<{
+    sampledCount: number;
+    sampleLimit: number;
+    topCount: number;
+    byAction: Array<{ action: string; count: number }>;
+    byResult: Array<{ result: AuditResult; count: number }>;
+    byResourceType: Array<{ resourceType: string; count: number }>;
+    byActorType: Array<{ actorType: string; count: number }>;
+  }> {
+    this.requireAdminUser(request);
+    const summary = await this.auditService.querySummary({
+      orgId: query.orgId,
+      actorType: query.actorType,
+      action: query.action,
+      resourceType: query.resourceType,
+      resourceId: query.resourceId,
+      result: query.result,
+      from: query.from ? new Date(query.from) : undefined,
+      to: query.to ? new Date(query.to) : undefined,
+      limit: query.limit,
+      top: query.top,
+    });
+
+    return {
+      sampledCount: summary.sampledCount,
+      sampleLimit: summary.sampleLimit,
+      topCount: summary.topCount,
+      byAction: summary.byAction,
+      byResult: summary.byResult,
+      byResourceType: summary.byResourceType,
+      byActorType: summary.byActorType.map((bucket) => ({
+        actorType: bucket.actorType,
+        count: bucket.count,
+      })),
+    };
   }
 
   private requireAdminUser(request: AuthenticatedRequest): AuthenticatedUser {
