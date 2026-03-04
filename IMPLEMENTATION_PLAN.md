@@ -355,11 +355,29 @@ These stages are executed sequentially to minimize integration risk and keep eac
 - Users with enrolled MFA factors cannot complete login without a valid second factor.
 - MFA management routes and tests are wired into CI scaffold checks.
 
+### Stage 17 - Realtime WebSocket Transport Baseline
+
+#### Deliverables
+
+- Realtime service supports authenticated WebSocket upgrades at `/ws`.
+- Broadcast delivery fan-out reaches both SSE and WebSocket subscribers.
+- Realtime auth model validates JWT access tokens for stream/upgrade paths.
+
+#### Validation
+
+- Realtime integration tests verify unauthorized upgrade rejection.
+- Realtime integration tests verify authenticated upgrade + publish delivery.
+- Stage 17 scaffold checks run realtime websocket auth/delivery smoke tests in CI.
+
+#### Exit Criteria
+
+- WebSocket notification path is functional and auth-gated.
+- Existing SSE route remains available without regression.
+
 ## Priority Order for Remaining Spec Gaps
 
-1. Stage 17 - Realtime transport upgrade (`WebSocket` support with auth and delivery tests).
-2. Stage 18 - Preview/OCR hardening (conversion/extraction fidelity, retries, and fail-closed handling).
-3. Stage 19 - DLP hardening (expanded policy corpus, enforcement depth, and override governance).
+1. Stage 18 - Preview/OCR hardening (conversion/extraction fidelity, retries, and fail-closed handling).
+2. Stage 19 - DLP hardening (expanded policy corpus, enforcement depth, and override governance).
 
 ## Expansion Definition of Done
 

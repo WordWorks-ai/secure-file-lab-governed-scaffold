@@ -1,4 +1,4 @@
-# User Guide: Getting Started (Phase 8 + Stage 16 Baseline)
+# User Guide: Getting Started (Phase 8 + Stage 17 Baseline)
 
 ## What This Repository Is
 
@@ -17,7 +17,6 @@ Implemented now:
 
 Not implemented as production-grade flows yet:
 
-- WebSocket realtime transport (current realtime baseline is SSE).
 - Deep OCR/preview conversion hardening.
 - Deep DLP policy/enforcement hardening.
 
@@ -93,6 +92,7 @@ curl -s http://localhost:8080/v1/system/info
 - API via Caddy HTTPS: `https://localhost:8443/v1`
 - Admin shell via Caddy: `http://localhost:8080/admin/`
 - Realtime health via Caddy: `http://localhost:8080/realtime/health/live`
+- Realtime WebSocket endpoint (JWT access token required when `REALTIME_AUTH_REQUIRED=true`): `ws://localhost:8080/realtime/ws?accessToken=<JWT_ACCESS_TOKEN>`
 - Webhook sink health via Caddy: `http://localhost:8080/webhook-sink/health/live`
 - MFA status (auth required): `http://localhost:8080/v1/auth/mfa/status`
 - Search API via Caddy: `http://localhost:8080/v1/search/files?q=<query>`

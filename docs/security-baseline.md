@@ -19,6 +19,7 @@ This document defines target baseline controls for v1. As of 2026-03-04, auth, f
   - auth runtime endpoints (`login`, `refresh`, `logout`) with JWT access token issuance.
   - auth MFA runtime endpoints (`/auth/mfa/status`, TOTP enroll/verify/disable, WebAuthn register options/verify).
   - login enforcement requiring second factor when MFA factors are enrolled.
+  - realtime service validates JWT access tokens for authenticated stream and WebSocket entrypoints.
   - refresh-token persistence, rotation, and revocation baseline in `refresh_tokens`.
   - RBAC baseline enforcement (`admin`, `member`) on protected route checks.
 - Not implemented yet:

@@ -9,7 +9,7 @@ export class SystemController {
   getInfo(): { service: string; phase: string } {
     return {
       service: 'api',
-      phase: 'phase-16-mfa-baseline',
+      phase: 'phase-17-realtime-websocket-baseline',
     };
   }
 

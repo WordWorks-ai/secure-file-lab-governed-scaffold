@@ -444,6 +444,8 @@ services:
     command: ['node', '/app/server.mjs']
     environment:
       REALTIME_PORT: ${REALTIME_PORT:-3010}
+      REALTIME_AUTH_REQUIRED: ${REALTIME_AUTH_REQUIRED:-true}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       METRICS_ENABLED: ${METRICS_ENABLED:-true}
     volumes:
       - ../../apps/realtime/server.mjs:/app/server.mjs:ro

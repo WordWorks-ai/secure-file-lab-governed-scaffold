@@ -78,7 +78,8 @@ Post-v1 expansion baselines completed:
 - Stage 14 baseline adds optional `observability` profile wiring (Prometheus/Grafana/Loki/Promtail) and service metrics endpoints.
 - Stage 15 baseline adds `webhook-sink` service wiring with capture/list/clear endpoints and Caddy route exposure.
 - Stage 16 baseline adds MFA enforcement with TOTP and WebAuthn registration/challenge flows.
-- Remaining post-baseline completion work is prioritized as: WebSocket realtime transport, OCR/preview hardening, and DLP hardening.
+- Stage 17 baseline adds JWT-authenticated realtime WebSocket transport with delivery tests.
+- Remaining post-baseline completion work is prioritized as: OCR/preview hardening and DLP hardening.
 
 ## Purpose
 
@@ -138,7 +139,7 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 - `apps/worker` - NestJS worker for async jobs
 - `apps/web` - user-facing web shell (Stage 9 baseline)
 - `apps/admin` - admin UI shell (Stage 9 baseline)
-- `apps/realtime` - realtime SSE shell (Stage 9 baseline)
+- `apps/realtime` - realtime SSE + WebSocket shell (Stage 17 baseline)
 - `apps/webhook-sink` - webhook capture sink for integration testing (Stage 15 baseline)
 - `apps/preview` - preview conversion service shell (Stage 12 baseline)
 - `apps/ocr` - OCR extraction service shell (Stage 12 baseline)

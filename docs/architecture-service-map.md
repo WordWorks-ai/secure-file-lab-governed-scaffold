@@ -59,6 +59,10 @@ Post-v1 Stage 16 additions:
 
 - API auth MFA baseline paths (`TOTP` + `WebAuthn`) for second-factor login gates.
 
+Post-v1 Stage 17 additions:
+
+- `realtime` upgraded with JWT-authenticated WebSocket transport at `/realtime/ws`.
+
 ## Dependency Map
 
 Inbound:
@@ -85,6 +89,7 @@ API runtime dependencies:
 - `prometheus` -> `api` (scrapes `/v1/metrics`)
 - `prometheus` -> `worker` (scrapes `/v1/metrics`)
 - `prometheus` -> `realtime` (scrapes `/metrics`)
+- `realtime` -> JWT access secret (validates access-token auth for SSE/WebSocket entrypoints)
 
 Worker runtime dependencies:
 
