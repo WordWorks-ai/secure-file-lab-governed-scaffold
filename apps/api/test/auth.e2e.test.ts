@@ -7,10 +7,11 @@ import { Test } from '@nestjs/testing';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppModule } from '../src/app.module.js';
 import { configureApiApplication } from '../src/bootstrap/configure-api-application.js';
+import { KeycloakSsoService } from '../src/modules/auth/keycloak-sso.service.js';
 import { PrismaService } from '../src/modules/persistence/prisma.service.js';
 
 type FakeUser = {
@@ -76,6 +77,27 @@ class InMemoryPrismaService {
       }
 
       return null;
+    },
+    create: async (args: {
+      data: {
+        email: string;
+        passwordHash: string;
+        role: UserRole;
+        isActive: boolean;
+      };
+    }) => {
+      const row: FakeUser = {
+        id: randomUUID(),
+        email: args.data.email.trim().toLowerCase(),
+        passwordHash: args.data.passwordHash,
+        role: args.data.role,
+        isActive: args.data.isActive,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.usersById.set(row.id, row);
+      this.usersByEmail.set(row.email, row.id);
+      return this.cloneUser(row);
     },
   };
 
@@ -422,5 +444,31 @@ describe('auth endpoints', () => {
         (event) => event.action === 'auth.login' && event.result === AuditResult.failure,
       ),
     ).toBe(true);
+  });
+
+  it('exchanges Keycloak access token and provisions local user on first login', async () => {
+    const keycloakService = app.get(KeycloakSsoService);
+    vi.spyOn(keycloakService, 'getIdentityFromAccessToken').mockResolvedValue({
+      subject: 'kc-user-1',
+      email: 'sso-user@local.test',
+      preferredUsername: 'sso-user',
+      roles: ['admin'],
+    });
+    vi.spyOn(keycloakService, 'isEnabled').mockReturnValue(true);
+
+    const response = await request(app.getHttpServer()).post('/v1/auth/sso/exchange').send({
+      accessToken: 'test-sso-access-token-1234567890',
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.body.tokenType).toBe('Bearer');
+    expect(response.body.user.email).toBe('sso-user@local.test');
+    expect(response.body.user.role).toBe(UserRole.admin);
+
+    const meResponse = await request(app.getHttpServer())
+      .get('/v1/auth/me')
+      .set('Authorization', `Bearer ${response.body.accessToken as string}`);
+    expect(meResponse.statusCode).toBe(200);
+    expect(meResponse.body.user.email).toBe('sso-user@local.test');
   });
 });

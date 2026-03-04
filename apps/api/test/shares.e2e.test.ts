@@ -6,7 +6,7 @@ import { Test } from '@nestjs/testing';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { createCipheriv, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppModule } from '../src/app.module.js';
 import { configureApiApplication } from '../src/bootstrap/configure-api-application.js';
@@ -728,6 +728,66 @@ describe('shares and audit endpoints', () => {
       });
 
     expect(response.statusCode).toBe(403);
+  });
+
+  it('denies share creation when policy engine returns deny', async () => {
+    const owner = prisma.seedUser({ email: 'policy-owner@local.test', role: UserRole.member });
+    const org = prisma.seedOrg({ name: 'Org Policy', slug: 'org-policy' });
+    prisma.seedMembership({
+      userId: owner.id,
+      orgId: org.id,
+      role: MembershipRole.admin,
+    });
+
+    const plaintext = Buffer.from('policy-share', 'utf8');
+    const dek = randomBytes(32);
+    const encrypted = encryptAesGcm(plaintext, dek);
+    const storageKey = `files/${org.id}/${randomUUID()}`;
+    await objectStorage.putObject(storageKey, encrypted.ciphertext);
+    const wrappedDek = await vaultTransit.wrapDek(dek);
+    const file = prisma.seedFile({
+      orgId: org.id,
+      ownerUserId: owner.id,
+      filename: 'policy.txt',
+      contentType: 'text/plain',
+      storageKey,
+      status: FileStatus.active,
+      wrappedDek,
+      encryptionIv: encrypted.iv.toString('base64'),
+      encryptionTag: encrypted.tag.toString('base64'),
+    });
+
+    const ownerToken = signAccessToken({
+      sub: owner.id,
+      email: owner.email,
+      role: owner.role,
+      secret: jwtSecret,
+    });
+
+    const originalFetch = globalThis.fetch;
+    process.env.POLICY_ENGINE_ENABLED = 'true';
+    globalThis.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ result: false }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    ) as unknown as typeof fetch;
+
+    try {
+      const response = await request(app.getHttpServer())
+        .post('/v1/shares')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          fileId: file.id,
+          expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+        });
+
+      expect(response.statusCode).toBe(403);
+    } finally {
+      delete process.env.POLICY_ENGINE_ENABLED;
+      globalThis.fetch = originalFetch;
+      vi.restoreAllMocks();
+    }
   });
 
   it('revokes shares and blocks further access', async () => {

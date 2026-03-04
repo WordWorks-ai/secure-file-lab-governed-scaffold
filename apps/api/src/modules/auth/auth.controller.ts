@@ -18,6 +18,7 @@ import { Roles } from './decorators/roles.decorator.js';
 import { LoginDto } from './dto/login.dto.js';
 import { LogoutDto } from './dto/logout.dto.js';
 import { RefreshDto } from './dto/refresh.dto.js';
+import { SsoExchangeDto } from './dto/sso-exchange.dto.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { RolesGuard } from './guards/roles.guard.js';
 import { AuthService, AuthTokenResponse } from './auth.service.js';
@@ -59,6 +60,23 @@ export class AuthController {
     @Req() request: AuthenticatedRequest,
   ): Promise<AuthTokenResponse> {
     return this.authService.refresh(payload.refreshToken, this.getRequestContext(request));
+  }
+
+  @Post('sso/exchange')
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      expectedType: SsoExchangeDto,
+      exceptionFactory: createValidationException,
+    }),
+  )
+  async exchangeSsoAccessToken(
+    @Body() payload: SsoExchangeDto,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<AuthTokenResponse> {
+    return this.authService.exchangeSsoAccessToken(payload.accessToken, this.getRequestContext(request));
   }
 
   @Post('logout')

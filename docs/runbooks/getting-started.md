@@ -70,6 +70,7 @@ curl -s http://localhost:8080/v1/system/info
 ## Daily Operations
 
 - Start stack: `make up`
+- Start optional enterprise profile (Keycloak/OPA): `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile enterprise up -d keycloak opa`
 - Stop stack: `make down`
 - Tail logs: `make logs`
 - Re-run bootstrap safely: `make bootstrap`
@@ -80,8 +81,12 @@ curl -s http://localhost:8080/v1/system/info
 
 ## Local URLs
 
-- API via Caddy HTTP: `http://localhost:8080`
-- API via Caddy HTTPS: `https://localhost:8443`
+- Web shell via Caddy HTTP: `http://localhost:8080`
+- Web shell via Caddy HTTPS: `https://localhost:8443`
+- API via Caddy HTTP: `http://localhost:8080/v1`
+- API via Caddy HTTPS: `https://localhost:8443/v1`
+- Admin shell via Caddy: `http://localhost:8080/admin/`
+- Realtime health via Caddy: `http://localhost:8080/realtime/health/live`
 - MailHog UI: `http://localhost:8025`
 
 ## Troubleshooting

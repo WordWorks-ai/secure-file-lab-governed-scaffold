@@ -7,6 +7,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { PrismaService } from '../persistence/prisma.service.js';
 import { AuthenticatedUser } from './types/authenticated-request.js';
 import { JwtTokenService } from './jwt-token.service.js';
+import { KeycloakSsoService } from './keycloak-sso.service.js';
 
 type AuthRequestContext = {
   ipAddress: string | null;
@@ -32,6 +33,7 @@ export class AuthService {
     @Inject(PrismaService) private readonly prismaService: PrismaService,
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(JwtTokenService) private readonly jwtTokenService: JwtTokenService,
+    @Inject(KeycloakSsoService) private readonly keycloakSsoService: KeycloakSsoService,
   ) {}
 
   async login(
@@ -147,6 +149,47 @@ export class AuthService {
     return response;
   }
 
+  async exchangeSsoAccessToken(
+    accessToken: string,
+    context: AuthRequestContext,
+  ): Promise<AuthTokenResponse> {
+    const identity = await this.keycloakSsoService.getIdentityFromAccessToken(accessToken);
+    const user = await this.resolveSsoUser(identity.email, identity.roles);
+
+    if (!user.isActive) {
+      await this.auditService.recordEvent({
+        action: 'auth.sso.exchange',
+        resourceType: 'auth_session',
+        result: AuditResult.denied,
+        actorType: AuditActorType.user,
+        actorUserId: user.id,
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        metadata: {
+          reason: 'user_inactive',
+          email: user.email,
+        },
+      });
+      throw new UnauthorizedException('SSO account is inactive');
+    }
+
+    const { response } = await this.issueTokenPair(user);
+    await this.auditService.recordEvent({
+      action: 'auth.sso.exchange',
+      resourceType: 'auth_session',
+      result: AuditResult.success,
+      actorType: AuditActorType.user,
+      actorUserId: user.id,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      metadata: {
+        email: user.email,
+      },
+    });
+
+    return response;
+  }
+
   async logout(refreshToken: string, context: AuthRequestContext): Promise<{ success: true }> {
     const tokenHash = this.hashRefreshToken(refreshToken);
     const existingToken = await this.prismaService.refreshToken.findUnique({
@@ -237,6 +280,28 @@ export class AuthService {
 
   private generateRefreshToken(): string {
     return randomBytes(48).toString('base64url');
+  }
+
+  private async resolveSsoUser(email: string, roles: string[]): Promise<User> {
+    const existing = await this.prismaService.user.findUnique({
+      where: { email },
+    });
+    if (existing) {
+      return existing;
+    }
+
+    const mappedRole = roles.map((value) => value.toLowerCase()).includes('admin')
+      ? UserRole.admin
+      : UserRole.member;
+
+    return this.prismaService.user.create({
+      data: {
+        email,
+        passwordHash: `sso-only:${randomBytes(32).toString('base64url')}`,
+        role: mappedRole,
+        isActive: true,
+      },
+    });
   }
 
   private getRefreshTtlSeconds(): number {

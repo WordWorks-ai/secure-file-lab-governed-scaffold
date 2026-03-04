@@ -20,6 +20,8 @@ import { FileCryptoService } from '../files/file-crypto.service.js';
 import { MinioObjectStorageService } from '../files/minio-object-storage.service.js';
 import { VaultTransitService } from '../files/vault-transit.service.js';
 import { PrismaService } from '../persistence/prisma.service.js';
+import { PolicyService } from '../policy/policy.service.js';
+import { PolicyDecisionInput } from '../policy/policy.types.js';
 import { AccessShareDto } from './dto/access-share.dto.js';
 import { CreateShareDto } from './dto/create-share.dto.js';
 
@@ -38,6 +40,7 @@ export class SharesService {
     private readonly objectStorageService: MinioObjectStorageService,
     @Inject(VaultTransitService)
     private readonly vaultTransitService: VaultTransitService,
+    @Inject(PolicyService) private readonly policyService: PolicyService,
   ) {}
 
   async createShare(
@@ -67,6 +70,24 @@ export class SharesService {
 
     const membership = await this.requireMembership(user.sub, file.orgId);
     this.requireShareManagementPermission(user.sub, membership.role, file.ownerUserId, null);
+    await this.enforcePolicy({
+      action: 'share.create',
+      actor: {
+        type: 'user',
+        id: user.sub,
+        role: user.role,
+        email: user.email,
+      },
+      resource: {
+        type: 'file',
+        id: file.id,
+        orgId: file.orgId,
+        ownerUserId: file.ownerUserId,
+      },
+      context: {
+        membershipRole: membership.role,
+      },
+    });
 
     if (file.status !== FileStatus.active) {
       throw new UnprocessableEntityException('Only active files can be shared');
@@ -150,6 +171,24 @@ export class SharesService {
       share.file.ownerUserId,
       share.createdByUserId,
     );
+    await this.enforcePolicy({
+      action: 'share.revoke',
+      actor: {
+        type: 'user',
+        id: user.sub,
+        role: user.role,
+        email: user.email,
+      },
+      resource: {
+        type: 'share',
+        id: share.id,
+        orgId: share.orgId,
+        ownerUserId: share.file.ownerUserId,
+      },
+      context: {
+        membershipRole: membership.role,
+      },
+    });
 
     const revokedAt = share.revokedAt ?? new Date();
     if (!share.revokedAt) {
@@ -222,6 +261,21 @@ export class SharesService {
       });
       throw new ForbiddenException('Invalid or expired share token');
     }
+    await this.enforcePolicy({
+      action: 'share.access',
+      actor: {
+        type: 'share_link',
+        id: null,
+      },
+      resource: {
+        type: 'share',
+        id: share.id,
+        orgId: share.orgId,
+      },
+      context: {
+        fileStatus: share.file.status,
+      },
+    });
 
     const now = new Date();
     if (share.revokedAt) {
@@ -426,5 +480,9 @@ export class SharesService {
       },
     });
     throw new ForbiddenException('Invalid or expired share token');
+  }
+
+  private async enforcePolicy(input: PolicyDecisionInput): Promise<void> {
+    await this.policyService.assertAllowed(input);
   }
 }
