@@ -16,6 +16,7 @@ import { createHash, randomBytes } from 'node:crypto';
 
 import { AuditService } from '../audit/audit.service.js';
 import { AuthenticatedUser } from '../auth/types/authenticated-request.js';
+import { DlpDecision, DlpService } from '../dlp/dlp.service.js';
 import { FileCryptoService } from '../files/file-crypto.service.js';
 import { MinioObjectStorageService } from '../files/minio-object-storage.service.js';
 import { VaultTransitService } from '../files/vault-transit.service.js';
@@ -41,6 +42,7 @@ export class SharesService {
     @Inject(VaultTransitService)
     private readonly vaultTransitService: VaultTransitService,
     @Inject(PolicyService) private readonly policyService: PolicyService,
+    @Inject(DlpService) private readonly dlpService: DlpService,
   ) {}
 
   async createShare(
@@ -61,6 +63,8 @@ export class SharesService {
         id: true,
         orgId: true,
         ownerUserId: true,
+        filename: true,
+        contentType: true,
         status: true,
       },
     });
@@ -92,6 +96,7 @@ export class SharesService {
     if (file.status !== FileStatus.active) {
       throw new UnprocessableEntityException('Only active files can be shared');
     }
+    const dlpEvaluation = await this.enforceShareCreateDlp(file, user, context);
 
     const expiresAt = this.parseShareExpiry(payload.expiresAt);
     const shareToken = this.generateShareToken();
@@ -132,6 +137,9 @@ export class SharesService {
         expiresAt: created.expiresAt.toISOString(),
         maxDownloads: created.maxDownloads,
         passwordProtected: Boolean(passwordHash),
+        dlpPolicyId: dlpEvaluation.policyId,
+        dlpVerdict: dlpEvaluation.overrideApplied ? 'override_allow' : dlpEvaluation.verdict,
+        dlpMatches: dlpEvaluation.matches,
       },
     });
 
@@ -484,5 +492,86 @@ export class SharesService {
 
   private async enforcePolicy(input: PolicyDecisionInput): Promise<void> {
     await this.policyService.assertAllowed(input);
+  }
+
+  private async enforceShareCreateDlp(
+    file: {
+      id: string;
+      orgId: string;
+      filename: string;
+      contentType: string;
+    },
+    user: AuthenticatedUser,
+    context: RequestContext,
+  ): Promise<{ policyId: string; verdict: string; matches: string[]; overrideApplied: boolean }> {
+    const decision = this.dlpService.evaluateShare({
+      filename: file.filename,
+      contentType: file.contentType,
+    });
+
+    if (decision.verdict !== 'deny') {
+      return {
+        policyId: decision.policyId,
+        verdict: decision.verdict,
+        matches: decision.matches,
+        overrideApplied: false,
+      };
+    }
+
+    const overrideApplied = this.dlpService.shouldAllowAdminOverride(user.role, decision);
+    if (!overrideApplied) {
+      await this.auditService.recordEvent({
+        action: 'share.create.dlp.blocked',
+        resourceType: 'share',
+        resourceId: null,
+        result: AuditResult.denied,
+        actorType: AuditActorType.user,
+        actorUserId: user.sub,
+        orgId: file.orgId,
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        metadata: this.buildDlpMetadata(decision, 'block'),
+      });
+      throw new ForbiddenException('Share blocked by DLP policy');
+    }
+
+    await this.auditService.recordEvent({
+      action: 'share.create.dlp.override',
+      resourceType: 'share',
+      resourceId: null,
+      result: AuditResult.success,
+      actorType: AuditActorType.user,
+      actorUserId: user.sub,
+      orgId: file.orgId,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      metadata: this.buildDlpMetadata(decision, 'override_allow'),
+    });
+
+    return {
+      policyId: decision.policyId,
+      verdict: decision.verdict,
+      matches: decision.matches,
+      overrideApplied: true,
+    };
+  }
+
+  private buildDlpMetadata(
+    decision: DlpDecision,
+    enforcementAction: 'block' | 'override_allow',
+  ): {
+    policyId: string;
+    verdict: string;
+    enforcementAction: string;
+    matches: string[];
+    reason: string;
+  } {
+    return {
+      policyId: decision.policyId,
+      verdict: decision.verdict,
+      enforcementAction,
+      matches: decision.matches,
+      reason: decision.reason,
+    };
   }
 }

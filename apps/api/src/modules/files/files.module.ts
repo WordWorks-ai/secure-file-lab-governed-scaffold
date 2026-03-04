@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuditModule } from '../audit/audit.module.js';
 import { AuthModule } from '../auth/auth.module.js';
+import { DlpModule } from '../dlp/dlp.module.js';
 import { PrismaModule } from '../persistence/prisma.module.js';
 import { PolicyModule } from '../policy/policy.module.js';
 import { SearchModule } from '../search/search.module.js';
@@ -14,7 +15,7 @@ import { MinioObjectStorageService } from './minio-object-storage.service.js';
 import { VaultTransitService } from './vault-transit.service.js';
 
 @Module({
-  imports: [PrismaModule, AuditModule, AuthModule, PolicyModule, SearchModule],
+  imports: [PrismaModule, AuditModule, AuthModule, PolicyModule, DlpModule, SearchModule],
   controllers: [FilesController],
   providers: [
     FilesService,

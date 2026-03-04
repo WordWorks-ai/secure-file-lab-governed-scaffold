@@ -521,12 +521,18 @@ describe('files endpoints', () => {
   let objectStorage: InMemoryObjectStorageService;
   let queueService: InMemoryFileQueueService;
   let contentQueueService: InMemoryContentQueueService;
+  let originalDlpEngineEnabled: string | undefined;
+  let originalDlpAdminOverrideEnabled: string | undefined;
   const jwtSecret = 'files-test-secret';
 
   beforeAll(async () => {
+    originalDlpEngineEnabled = process.env.DLP_ENGINE_ENABLED;
+    originalDlpAdminOverrideEnabled = process.env.DLP_ADMIN_OVERRIDE_ENABLED;
     process.env.JWT_ACCESS_SECRET = jwtSecret;
     process.env.FILE_UPLOAD_MAX_BYTES = '1024';
     process.env.FILE_UPLOAD_ALLOWED_MIME_TYPES = 'text/plain,application/json';
+    process.env.DLP_ENGINE_ENABLED = 'false';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'false';
 
     prisma = new InMemoryPrismaService();
     objectStorage = new InMemoryObjectStorageService();
@@ -557,12 +563,26 @@ describe('files endpoints', () => {
 
   afterAll(async () => {
     await app.close();
+
+    if (originalDlpEngineEnabled === undefined) {
+      delete process.env.DLP_ENGINE_ENABLED;
+    } else {
+      process.env.DLP_ENGINE_ENABLED = originalDlpEngineEnabled;
+    }
+
+    if (originalDlpAdminOverrideEnabled === undefined) {
+      delete process.env.DLP_ADMIN_OVERRIDE_ENABLED;
+    } else {
+      process.env.DLP_ADMIN_OVERRIDE_ENABLED = originalDlpAdminOverrideEnabled;
+    }
   });
 
   beforeEach(() => {
     prisma.reset();
     queueService.clear();
     contentQueueService.clear();
+    process.env.DLP_ENGINE_ENABLED = 'false';
+    process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'false';
   });
 
   it('uploads encrypted content, enforces lifecycle gate, and allows download after activation', async () => {
@@ -740,6 +760,31 @@ describe('files endpoints', () => {
       globalThis.fetch = originalFetch;
       vi.restoreAllMocks();
     }
+  });
+
+  it('denies upload when DLP policy detects sensitive payload content', async () => {
+    process.env.DLP_ENGINE_ENABLED = 'true';
+    const user = prisma.seedUser({
+      email: 'dlp-deny@local.test',
+      role: UserRole.admin,
+    });
+    const token = signAccessToken({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      secret: jwtSecret,
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/v1/files/upload')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        filename: 'payroll.txt',
+        contentType: 'text/plain',
+        contentBase64: Buffer.from('employee ssn 123-45-6789', 'utf8').toString('base64'),
+      });
+
+    expect(response.statusCode).toBe(403);
   });
 
   it('returns file artifact metadata when available', async () => {

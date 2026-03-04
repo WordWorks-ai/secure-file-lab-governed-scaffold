@@ -1,0 +1,23 @@
+{
+  "policyId": "dlp-baseline-v1",
+  "rules": [
+    {
+      "id": "pii.ssn",
+      "description": "US SSN pattern",
+      "pattern": "\\b\\d{3}-\\d{2}-\\d{4}\\b",
+      "action": "block"
+    },
+    {
+      "id": "secret.aws_access_key",
+      "description": "AWS access key marker",
+      "pattern": "\\bAKIA[0-9A-Z]{16}\\b",
+      "action": "block"
+    },
+    {
+      "id": "secret.password_assignment",
+      "description": "Password assignment marker",
+      "pattern": "\\bpassword\\s*[:=]\\s*\\S+",
+      "action": "block"
+    }
+  ]
+}

@@ -67,6 +67,7 @@ Post-v1 expansion currently in progress:
 - Stage 10 baseline adds optional `keycloak` and `opa` profile wiring, API SSO exchange endpoint, and policy-gated file/share actions.
 - Stage 11 baseline adds optional `opensearch` profile wiring, search API endpoint, and worker-driven index sync queue.
 - Stage 12 baseline adds optional `preview` and `ocr` profile wiring, persisted file artifact metadata, and worker-driven content derivation queue flow.
+- Stage 13 baseline adds optional `dlp` profile wiring plus upload/share DLP enforcement hooks and policy corpus tests.
 - Full auth/policy/search/OCR/DLP/observability hardening remains pending in later stages.
 
 ## Purpose
@@ -86,7 +87,7 @@ In-scope v1 services:
 - `mailhog`
 - `backup`
 
-Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA, OpenSearch, realtime service, separate admin service, observability dashboards, webhook sink, full DLP.
+Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA, OpenSearch, realtime service, separate admin service, observability dashboards, webhook sink.
 
 ## Architecture Summary
 
@@ -129,10 +130,12 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 - `apps/realtime` - realtime SSE shell (Stage 9 baseline)
 - `apps/preview` - preview conversion service shell (Stage 12 baseline)
 - `apps/ocr` - OCR extraction service shell (Stage 12 baseline)
+- `apps/dlp` - DLP evaluation service shell (Stage 13 baseline)
 - `packages/shared` - shared domain helpers/types
 - `infra/caddy` - Caddy edge config
 - `infra/compose` - Docker Compose topology
 - `infra/opa` - OPA policy bundles (Stage 10 baseline)
+- `infra/dlp` - DLP policy set artifacts (Stage 13 baseline)
 - `infra/scripts` - deterministic bootstrap and ops scripts
 - `docs/adr` - architecture decision records
 - `docs/runbooks` - operational runbooks
@@ -255,8 +258,8 @@ Commercialization or enterprise-core use of this IP requires a separate signed c
 ## Current Status
 
 - Completed: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and Phase 8.
-- Completed: Stage 9, Stage 10, Stage 11, and Stage 12 baseline shells for post-v1 expansion.
+- Completed: Stage 9, Stage 10, Stage 11, Stage 12, and Stage 13 baseline shells for post-v1 expansion.
 - Completed: hardening validation pass for scaffold.
-- Remaining work is deeper post-v1 enterprise expansion (search/OCR hardening, DLP, observability).
+- Remaining work is deeper post-v1 enterprise expansion (search/OCR/DLP hardening, observability).
 
 Detailed evidence is tracked in `docs/status`.

@@ -53,6 +53,7 @@ test-scaffold:
 	bash infra/scripts/tests/stage10-policy.sh
 	bash infra/scripts/tests/stage11-search.sh
 	bash infra/scripts/tests/stage12-content.sh
+	bash infra/scripts/tests/stage13-dlp.sh
 	bash infra/scripts/tests/secrets-hygiene.sh
 	bash infra/scripts/tests/env-loader-safety.sh
 	bash infra/scripts/tests/scope-accuracy.sh
