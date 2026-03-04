@@ -4,7 +4,7 @@ Self-hosted secure file sharing prototype focused on deterministic local deploym
 
 ## Current Implementation Status (2026-03-04)
 
-This repository currently implements a **Phase 0/2 foundation + modular domain shell**, not a complete secure file sharing prototype.
+This repository currently implements a **Phase 0/3 foundation + auth baseline**, not a complete secure file sharing prototype.
 
 Implemented now:
 
@@ -17,19 +17,25 @@ Implemented now:
   - idempotent local admin seed
 - API and worker health endpoints (`/health/live`) and API readiness endpoint (`/health/ready`).
 - Modular API domain shell modules: `auth`, `users-orgs`, `files`, `shares`, `audit`.
+- Auth runtime baseline:
+  - `POST /v1/auth/login`
+  - `POST /v1/auth/refresh`
+  - `POST /v1/auth/logout`
+  - `GET /v1/auth/me`
+  - `GET /v1/auth/admin-check` (RBAC baseline)
 - Core Prisma schema + migration baseline for `users`, `orgs`, `memberships`, `files`, `shares`, `refresh_tokens`, `bootstrap_state`, and `audit_events`.
 - Structured request logging interceptor and stricter global request validation baseline.
+- Runtime auth audit event emission (`auth.login`, `auth.refresh`, `auth.logout`).
 - Shared file lifecycle helper (library only; not wired to API persistence/authorization paths).
 - Backup artifact generation and restore smoke for PostgreSQL + MinIO verification.
 
 Not implemented yet:
 
-- Auth endpoints and session lifecycle (login/logout/JWT/refresh rotation/RBAC enforcement).
 - File ingest/download endpoints and MinIO object persistence flows.
 - Envelope encryption with per-file DEKs + Vault wrap/unwrap flow in file pipeline.
 - Malware scan queue/processors enforcing quarantine-to-active gate.
 - Share-link endpoints and runtime policy enforcement (schema exists; runtime flow pending).
-- Runtime audit event capture for auth/file/share actions.
+- Runtime audit event capture for file/share actions.
 
 ## Purpose
 
@@ -54,7 +60,7 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 
 - Target architecture: NestJS modular monolith API + dedicated worker.
 - Implemented modules:
-  - API: `health`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 2 domain shell)
+  - API: `health`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 3 auth baseline)
   - Worker: `health`, `jobs` placeholder
 - PostgreSQL/Redis/MinIO/Vault/ClamAV are wired for infrastructure readiness, but domain workflows are pending.
 
@@ -65,10 +71,11 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
   - bootstrap guardrails for Argon2id admin hash format
   - non-root/read-only runtime for API and worker with dropped capabilities
   - Caddy security headers and local HTTPS termination (`tls internal`)
+  - JWT access token issuance and rotating refresh token flow
+  - RBAC baseline enforcement on protected route (`admin` / `member`)
+  - auth audit emission for login/refresh/logout actions
   - scaffold file lifecycle transition helper in `packages/shared`
 - Planned controls (not yet implemented in runtime flows):
-  - JWT auth and rotating refresh tokens
-  - RBAC authorization enforcement
   - malware scan gate in worker
   - envelope encryption in file path
   - share-link policy enforcement
@@ -193,8 +200,8 @@ Commercialization or enterprise-core use of this IP requires a separate signed c
 
 ## Current Status
 
-- Completed: Phase 0, Phase 1, and Phase 2.
+- Completed: Phase 0, Phase 1, Phase 2, and Phase 3.
 - Completed: hardening validation pass for scaffold.
-- Not started: runtime feature phases (auth flows, file ingest/encryption, share runtime, full audit emission, worker malware pipeline).
+- Remaining runtime phases: file ingest/encryption, worker malware gate, share runtime policy, and full non-auth audit coverage.
 
 Detailed evidence is tracked in `docs/status`.

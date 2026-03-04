@@ -9,7 +9,7 @@ export class SystemController {
   getInfo(): { service: string; phase: string } {
     return {
       service: 'api',
-      phase: 'phase-2-modular-shell',
+      phase: 'phase-3-auth-baseline',
     };
   }
 

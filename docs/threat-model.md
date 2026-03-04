@@ -2,7 +2,7 @@
 
 ## Implementation Status Note
 
-This threat model captures target controls. Current codebase is still scaffold-heavy (Phase 0/2); several listed mitigations are not yet implemented in runtime application flows.
+This threat model captures target controls. Current codebase is still scaffold-heavy (Phase 0/3); several listed mitigations are not yet implemented in runtime application flows.
 
 ## Scope
 
@@ -70,6 +70,6 @@ Prototype scope includes API, worker, and local infrastructure services (`postgr
 
 ## Planned Revisions
 
-- Add data-flow diagram with concrete endpoint/job mapping in Phase 2.
+- Add data-flow diagram with concrete endpoint/job mapping for file + share workflows.
 - Add misuse case test matrix tied to CI in Phase 5/6.
 - Add backup confidentiality controls and key-handling details in Phase 7.
