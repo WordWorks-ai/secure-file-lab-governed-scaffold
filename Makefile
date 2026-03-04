@@ -51,6 +51,7 @@ test-scaffold:
 	bash infra/scripts/tests/phase1-compose.sh
 	bash infra/scripts/tests/stage9-routing.sh
 	bash infra/scripts/tests/stage10-policy.sh
+	bash infra/scripts/tests/stage11-search.sh
 	bash infra/scripts/tests/secrets-hygiene.sh
 	bash infra/scripts/tests/env-loader-safety.sh
 	bash infra/scripts/tests/scope-accuracy.sh

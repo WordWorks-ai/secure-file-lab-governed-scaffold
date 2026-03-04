@@ -71,6 +71,7 @@ curl -s http://localhost:8080/v1/system/info
 
 - Start stack: `make up`
 - Start optional enterprise profile (Keycloak/OPA): `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile enterprise up -d keycloak opa`
+- Start optional search profile (OpenSearch): `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile search up -d opensearch opensearch_dashboards`
 - Stop stack: `make down`
 - Tail logs: `make logs`
 - Re-run bootstrap safely: `make bootstrap`
@@ -87,7 +88,10 @@ curl -s http://localhost:8080/v1/system/info
 - API via Caddy HTTPS: `https://localhost:8443/v1`
 - Admin shell via Caddy: `http://localhost:8080/admin/`
 - Realtime health via Caddy: `http://localhost:8080/realtime/health/live`
+- Search API via Caddy: `http://localhost:8080/v1/search/files?q=<query>`
 - MailHog UI: `http://localhost:8025`
+- OpenSearch API (profile): `http://localhost:9200`
+- OpenSearch Dashboards (profile): `http://localhost:5601`
 
 ## Troubleshooting
 

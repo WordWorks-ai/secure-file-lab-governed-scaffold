@@ -20,6 +20,7 @@ import { AuthenticatedUser } from '../auth/types/authenticated-request.js';
 import { PrismaService } from '../persistence/prisma.service.js';
 import { PolicyService } from '../policy/policy.service.js';
 import { PolicyDecisionInput } from '../policy/policy.types.js';
+import { SearchQueueService } from '../search/search-queue.service.js';
 import { UploadFileDto } from './dto/upload-file.dto.js';
 import { FileCryptoService } from './file-crypto.service.js';
 import {
@@ -44,6 +45,7 @@ export class FilesService {
     @Inject(PrismaService) private readonly prismaService: PrismaService,
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(PolicyService) private readonly policyService: PolicyService,
+    @Inject(SearchQueueService) private readonly searchQueueService: SearchQueueService,
     @Inject(FileCryptoService) private readonly fileCryptoService: FileCryptoService,
     @Inject(FileQueueService) private readonly fileQueueService: FileQueueService,
     @Inject(MinioObjectStorageService)
@@ -194,6 +196,8 @@ export class FilesService {
       });
     }
 
+    await this.tryEnqueueSearchUpsert(scanPending.id);
+
     return {
       fileId: scanPending.id,
       status: scanPending.status,
@@ -243,6 +247,8 @@ export class FilesService {
         simulatedByRole: user.role,
       },
     });
+
+    await this.tryEnqueueSearchUpsert(activated.id);
 
     return {
       fileId: activated.id,
@@ -509,5 +515,13 @@ export class FilesService {
 
   private async enforcePolicy(input: PolicyDecisionInput): Promise<void> {
     await this.policyService.assertAllowed(input);
+  }
+
+  private async tryEnqueueSearchUpsert(fileId: string): Promise<void> {
+    try {
+      await this.searchQueueService.enqueue('upsert', fileId);
+    } catch {
+      // Search indexing must not block core file workflow.
+    }
   }
 }

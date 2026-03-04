@@ -7,15 +7,11 @@ import { FILE_SCAN_JOB_NAME, FILE_SCAN_QUEUE_NAME } from './file-queue.contract.
 @Injectable()
 export class FileQueueService implements OnModuleDestroy {
   private readonly logger = new Logger(FileQueueService.name);
-  private readonly connection = new Redis(this.getRedisUrl(), {
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-  });
-  private readonly fileScanQueue = new Queue(FILE_SCAN_QUEUE_NAME, {
-    connection: this.connection,
-  });
+  private connection: Redis | null = null;
+  private fileScanQueue: Queue<{ fileId: string }> | null = null;
 
   async enqueueScan(fileId: string): Promise<void> {
+    const queue = this.getQueue();
     const options: JobsOptions = {
       jobId: `scan:${fileId}`,
       attempts: this.getScanAttempts(),
@@ -27,13 +23,30 @@ export class FileQueueService implements OnModuleDestroy {
       removeOnFail: 2_000,
     };
 
-    await this.fileScanQueue.add(FILE_SCAN_JOB_NAME, { fileId }, options);
+    await queue.add(FILE_SCAN_JOB_NAME, { fileId }, options);
     this.logger.debug(`enqueued scan job for file ${fileId}`);
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.fileScanQueue.close();
-    this.connection.disconnect();
+    await this.fileScanQueue?.close();
+    this.connection?.disconnect();
+  }
+
+  private getQueue(): Queue<{ fileId: string }> {
+    if (!this.connection) {
+      this.connection = new Redis(this.getRedisUrl(), {
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+      });
+    }
+
+    if (!this.fileScanQueue) {
+      this.fileScanQueue = new Queue(FILE_SCAN_QUEUE_NAME, {
+        connection: this.connection,
+      });
+    }
+
+    return this.fileScanQueue;
   }
 
   private getScanAttempts(): number {
