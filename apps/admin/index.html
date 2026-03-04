@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Schwass Admin</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #fefce8;
+        --card: #ffffff;
+        --text: #1f2937;
+        --muted: #4b5563;
+        --accent: #b45309;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 15% 20%, #fde68a 0%, transparent 36%),
+          radial-gradient(circle at 90% 80%, #fcd34d 0%, transparent 30%),
+          var(--bg);
+      }
+      .card {
+        width: min(720px, 92vw);
+        background: var(--card);
+        border: 1px solid #f3e8ff;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 10px 30px rgb(31 41 55 / 0.1);
+      }
+      h1 {
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 0 0 10px;
+        color: var(--muted);
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        color: #ffffff;
+        background: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      code {
+        font-family: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <span class="badge">Stage 9 Baseline</span>
+      <h1>Admin Console Service Is Online</h1>
+      <p>This is the admin frontend shell for governance and operational controls.</p>
+      <p>Default path: <code>/admin/</code></p>
+    </main>
+  </body>
+</html>

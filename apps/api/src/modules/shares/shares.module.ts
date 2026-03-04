@@ -6,11 +6,12 @@ import { FileCryptoService } from '../files/file-crypto.service.js';
 import { MinioObjectStorageService } from '../files/minio-object-storage.service.js';
 import { VaultTransitService } from '../files/vault-transit.service.js';
 import { PrismaModule } from '../persistence/prisma.module.js';
+import { PolicyModule } from '../policy/policy.module.js';
 import { SharesController } from './shares.controller.js';
 import { SharesService } from './shares.service.js';
 
 @Module({
-  imports: [PrismaModule, AuditModule, AuthModule],
+  imports: [PrismaModule, AuditModule, AuthModule, PolicyModule],
   controllers: [SharesController],
   providers: [
     SharesService,

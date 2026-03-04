@@ -14,6 +14,12 @@ services:
     depends_on:
       api:
         condition: service_healthy
+      web:
+        condition: service_healthy
+      admin:
+        condition: service_healthy
+      realtime:
+        condition: service_healthy
     networks:
       - app_net
     healthcheck:
@@ -135,6 +141,98 @@ services:
       timeout: 5s
       retries: 5
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1.5
+    profiles: ['enterprise']
+    restart: unless-stopped
+    command: ['start-dev', '--http-enabled=true', '--http-port=8080', '--hostname-strict=false']
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: 'true'
+    ports:
+      - '${KEYCLOAK_HTTP_PORT:-8081}:8080'
+    networks:
+      - app_net
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:8080/health/ready >/dev/null']
+      interval: 20s
+      timeout: 5s
+      retries: 20
+
+  opa:
+    image: openpolicyagent/opa:0.64.0-static
+    profiles: ['enterprise']
+    restart: unless-stopped
+    command:
+      - run
+      - --server
+      - --addr=0.0.0.0:8181
+      - /policy
+    volumes:
+      - ../opa:/policy:ro
+    ports:
+      - '${OPA_HTTP_PORT:-8181}:8181'
+    networks:
+      - app_net
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:8181/health >/dev/null']
+      interval: 20s
+      timeout: 5s
+      retries: 20
+
+  web:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ../../apps/web:/usr/share/nginx/html:ro
+    networks:
+      - app_net
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  admin:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ../../apps/admin:/usr/share/nginx/html:ro
+    networks:
+      - app_net
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  realtime:
+    image: node:22-alpine
+    restart: unless-stopped
+    user: 'node'
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,mode=1777,uid=1000,gid=1000
+    command: ['node', '/app/server.mjs']
+    environment:
+      REALTIME_PORT: ${REALTIME_PORT:-3010}
+    volumes:
+      - ../../apps/realtime/server.mjs:/app/server.mjs:ro
+    networks:
+      - app_net
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          'fetch("http://127.0.0.1:3010/health/live").then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1));'
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
   api:
     build:
       context: ../..
@@ -148,6 +246,15 @@ services:
       NODE_ENV: ${NODE_ENV}
       COREPACK_HOME: /tmp/corepack
       FILE_SCAN_JOB_ATTEMPTS: ${FILE_SCAN_JOB_ATTEMPTS:-3}
+      POLICY_ENGINE_ENABLED: ${POLICY_ENGINE_ENABLED:-false}
+      POLICY_ENGINE_FAIL_SAFE_DENY: ${POLICY_ENGINE_FAIL_SAFE_DENY:-true}
+      POLICY_ENGINE_TIMEOUT_MS: ${POLICY_ENGINE_TIMEOUT_MS:-3000}
+      OPA_BASE_URL: ${OPA_BASE_URL:-http://opa:8181}
+      OPA_POLICY_PATH: ${OPA_POLICY_PATH:-/v1/data/schwass/allow}
+      KEYCLOAK_SSO_ENABLED: ${KEYCLOAK_SSO_ENABLED:-false}
+      KEYCLOAK_BASE_URL: ${KEYCLOAK_BASE_URL:-http://keycloak:8080}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-master}
+      KEYCLOAK_TIMEOUT_MS: ${KEYCLOAK_TIMEOUT_MS:-5000}
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
       REDIS_HOST: ${REDIS_HOST}
