@@ -69,7 +69,8 @@ Post-v1 expansion baselines completed:
 - Stage 12 baseline adds optional `preview` and `ocr` profile wiring, persisted file artifact metadata, and worker-driven content derivation queue flow.
 - Stage 13 baseline adds optional `dlp` profile wiring plus upload/share DLP enforcement hooks and policy corpus tests.
 - Stage 14 baseline adds optional `observability` profile wiring (Prometheus/Grafana/Loki/Promtail) and service metrics endpoints.
-- Production-grade auth/policy/search/OCR/DLP/observability hardening remains post-baseline work.
+- Stage 15 baseline adds `webhook-sink` service wiring with capture/list/clear endpoints and Caddy route exposure.
+- Remaining post-baseline completion work is prioritized as: MFA/WebAuthn, WebSocket realtime transport, OCR/preview hardening, and DLP hardening.
 
 ## Purpose
 
@@ -88,7 +89,7 @@ In-scope v1 services:
 - `mailhog`
 - `backup`
 
-Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA, OpenSearch, realtime service, separate admin service, observability dashboards, webhook sink.
+Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA, OpenSearch, realtime service, separate admin service, observability dashboards.
 
 ## Architecture Summary
 
@@ -129,6 +130,7 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 - `apps/web` - user-facing web shell (Stage 9 baseline)
 - `apps/admin` - admin UI shell (Stage 9 baseline)
 - `apps/realtime` - realtime SSE shell (Stage 9 baseline)
+- `apps/webhook-sink` - webhook capture sink for integration testing (Stage 15 baseline)
 - `apps/preview` - preview conversion service shell (Stage 12 baseline)
 - `apps/ocr` - OCR extraction service shell (Stage 12 baseline)
 - `apps/dlp` - DLP evaluation service shell (Stage 13 baseline)

@@ -22,6 +22,10 @@
     reverse_proxy realtime:3010
   }
 
+  handle_path /webhook-sink* {
+    reverse_proxy webhook-sink:3020
+  }
+
   handle_path /admin* {
     reverse_proxy admin:80
   }

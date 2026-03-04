@@ -33,7 +33,7 @@ describe('system endpoints', () => {
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({
       service: 'api',
-      phase: 'phase-14-observability-baseline',
+      phase: 'phase-15-webhook-sink-baseline',
     });
   });
 

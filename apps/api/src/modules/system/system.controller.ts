@@ -9,7 +9,7 @@ export class SystemController {
   getInfo(): { service: string; phase: string } {
     return {
       service: 'api',
-      phase: 'phase-14-observability-baseline',
+      phase: 'phase-15-webhook-sink-baseline',
     };
   }
 

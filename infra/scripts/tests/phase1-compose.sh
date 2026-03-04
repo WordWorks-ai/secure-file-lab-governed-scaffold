@@ -13,6 +13,7 @@ required_services=(
   "vault"
   "clamav"
   "mailhog"
+  "webhook-sink"
   "backup"
 )
 

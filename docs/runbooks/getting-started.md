@@ -1,4 +1,4 @@
-# User Guide: Getting Started (Phase 8 + Stage 14 Baseline)
+# User Guide: Getting Started (Phase 8 + Stage 15 Baseline)
 
 ## What This Repository Is
 
@@ -15,9 +15,12 @@ Implemented now:
 - Audit event query and NDJSON export.
 - Backup generation, restore smoke, and destructive live restore path.
 
-Not implemented in v1 (intentional):
+Not implemented as production-grade flows yet:
 
-- Enterprise add-on services outside prototype scope (Keycloak/OPA/OpenSearch/realtime/admin split).
+- MFA/WebAuthn hardening.
+- WebSocket realtime transport (current realtime baseline is SSE).
+- Deep OCR/preview conversion hardening.
+- Deep DLP policy/enforcement hardening.
 
 ## Prerequisites
 
@@ -91,6 +94,7 @@ curl -s http://localhost:8080/v1/system/info
 - API via Caddy HTTPS: `https://localhost:8443/v1`
 - Admin shell via Caddy: `http://localhost:8080/admin/`
 - Realtime health via Caddy: `http://localhost:8080/realtime/health/live`
+- Webhook sink health via Caddy: `http://localhost:8080/webhook-sink/health/live`
 - Search API via Caddy: `http://localhost:8080/v1/search/files?q=<query>`
 - MailHog UI: `http://localhost:8025`
 - OpenSearch API (profile): `http://localhost:9200`
@@ -98,6 +102,7 @@ curl -s http://localhost:8080/v1/system/info
 - Preview service (profile): `http://localhost:3011/v1/preview`
 - OCR service (profile): `http://localhost:3012/v1/ocr`
 - DLP service (profile): `http://localhost:3013/v1/dlp/evaluate`
+- Webhook sink capture endpoint: `http://localhost:3020/v1/webhooks/capture`
 - API metrics: `http://localhost:8080/v1/metrics`
 - Realtime metrics via Caddy: `http://localhost:8080/realtime/metrics`
 - Prometheus UI (profile): `http://localhost:9090`

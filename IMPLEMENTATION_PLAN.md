@@ -317,6 +317,32 @@ These stages are executed sequentially to minimize integration risk and keep eac
 - Expanded stack can be run with or without observability profile.
 - Handoff docs reflect actual runtime behavior and operational controls.
 
+### Stage 15 - Webhook Sink Integration Harness
+
+#### Deliverables
+
+- `webhook-sink` compose service for local integration-test callbacks.
+- Caddy route exposure for local operator/testing access.
+- Capture/list/clear webhook endpoints for deterministic test assertions.
+
+#### Validation
+
+- Compose includes `webhook-sink` service with health checks.
+- Caddy route smoke test reaches webhook sink endpoints.
+- Scaffold tests verify capture and retrieval behavior.
+
+#### Exit Criteria
+
+- Webhook sink is reachable locally and can persist captured events.
+- CI scaffold includes webhook-sink checks without regressions.
+
+## Priority Order for Remaining Spec Gaps
+
+1. Stage 16 - MFA hardening (`TOTP` enrollment/verification + `WebAuthn` registration/assertion).
+2. Stage 17 - Realtime transport upgrade (`WebSocket` support with auth and delivery tests).
+3. Stage 18 - Preview/OCR hardening (conversion/extraction fidelity, retries, and fail-closed handling).
+4. Stage 19 - DLP hardening (expanded policy corpus, enforcement depth, and override governance).
+
 ## Expansion Definition of Done
 
 Post-v1 expansion is complete when:

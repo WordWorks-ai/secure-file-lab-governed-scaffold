@@ -51,6 +51,10 @@ Post-v1 Stage 14 profile additions:
 - `loki` - centralized log store.
 - `promtail` - container log shipper for API/worker/realtime.
 
+Post-v1 Stage 15 additions:
+
+- `webhook-sink` - capture/list/clear endpoint shell for webhook integration tests.
+
 ## Dependency Map
 
 Inbound:
@@ -59,6 +63,7 @@ Inbound:
 - `caddy` -> `api` (internal service routing for `/v1/*`)
 - `caddy` -> `admin` (internal service routing for `/admin*`)
 - `caddy` -> `realtime` (internal service routing for `/realtime*`)
+- `caddy` -> `webhook-sink` (internal service routing for `/webhook-sink*`)
 - `caddy` -> `web` (default route `/`)
 
 API runtime dependencies:

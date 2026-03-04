@@ -6,7 +6,7 @@ This threat model captures target controls. Current codebase is Phase 0/8 with s
 
 ## Scope
 
-Prototype scope includes API, worker, and local infrastructure services (`postgres`, `redis`, `minio`, `vault`, `clamav`, `mailhog`, `caddy`, `backup`).
+Prototype scope includes API, worker, and local infrastructure services (`postgres`, `redis`, `minio`, `vault`, `clamav`, `mailhog`, `webhook-sink`, `caddy`, `backup`).
 
 ## Assets
 
