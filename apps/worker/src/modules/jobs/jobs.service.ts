@@ -12,9 +12,15 @@ import {
   FileScanJobPayload,
   MAINTENANCE_QUEUE_NAME,
 } from './contracts/file-jobs.contract.js';
+import {
+  SEARCH_INDEX_JOB_NAME,
+  SEARCH_INDEX_QUEUE_NAME,
+  SearchIndexJobPayload,
+} from './contracts/search-index-jobs.contract.js';
 import { ClamavScannerService } from './services/clamav-scanner.service.js';
 import { WorkerFileCryptoService } from './services/worker-file-crypto.service.js';
 import { WorkerMinioObjectStorageService } from './services/worker-minio-object-storage.service.js';
+import { WorkerOpenSearchIndexService } from './services/worker-opensearch-index.service.js';
 import { WorkerVaultTransitService } from './services/worker-vault-transit.service.js';
 
 const ALLOWED_TRANSITIONS: Record<FileStatus, FileStatus[]> = {
@@ -34,8 +40,10 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
   private connection: Redis | null = null;
   private fileScanQueue: Queue<FileScanJobPayload> | null = null;
   private maintenanceQueue: Queue<Record<string, never>> | null = null;
+  private searchIndexQueue: Queue<SearchIndexJobPayload> | null = null;
   private fileScanWorker: Worker<FileScanJobPayload> | null = null;
   private maintenanceWorker: Worker<Record<string, never>> | null = null;
+  private searchIndexWorker: Worker<SearchIndexJobPayload> | null = null;
 
   constructor(
     @Inject(PrismaService) private readonly prismaService: PrismaService,
@@ -44,6 +52,8 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
     @Inject(WorkerFileCryptoService) private readonly fileCryptoService: WorkerFileCryptoService,
     @Inject(WorkerMinioObjectStorageService)
     private readonly objectStorageService: WorkerMinioObjectStorageService,
+    @Inject(WorkerOpenSearchIndexService)
+    private readonly openSearchIndexService: WorkerOpenSearchIndexService,
     @Inject(WorkerVaultTransitService)
     private readonly vaultTransitService: WorkerVaultTransitService,
   ) {}
@@ -65,6 +75,12 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
     this.maintenanceQueue = new Queue(MAINTENANCE_QUEUE_NAME, {
       connection,
     });
+    if (this.openSearchIndexService.isEnabled()) {
+      this.searchIndexQueue = new Queue(SEARCH_INDEX_QUEUE_NAME, {
+        connection,
+      });
+      await this.openSearchIndexService.ensureIndex();
+    }
 
     this.fileScanWorker = new Worker(
       FILE_SCAN_QUEUE_NAME,
@@ -100,6 +116,31 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
         concurrency: 1,
       },
     );
+    if (this.searchIndexQueue) {
+      this.searchIndexWorker = new Worker(
+        SEARCH_INDEX_QUEUE_NAME,
+        async (job) => {
+          if (job.name !== SEARCH_INDEX_JOB_NAME) {
+            this.logger.warn(`unknown search-index job "${job.name}" ignored`);
+            return;
+          }
+
+          await this.processSearchIndexJobPayload(job.data);
+        },
+        {
+          connection,
+          concurrency: 2,
+        },
+      );
+
+      this.searchIndexWorker.on('failed', (job, error) => {
+        this.logger.error(
+          `search index job ${job?.id ?? 'unknown'} failed: ${
+            error instanceof Error ? error.message : 'unknown error'
+          }`,
+        );
+      });
+    }
 
     this.fileScanWorker.on('failed', (job, error) => {
       this.logger.error(
@@ -117,12 +158,14 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
     });
 
     await this.scheduleMaintenanceJobs();
-    this.logger.log('Worker job processors initialized (file scan + maintenance)');
+    this.logger.log('Worker job processors initialized (file scan + maintenance + search-index)');
   }
 
   async onModuleDestroy(): Promise<void> {
+    await this.searchIndexWorker?.close();
     await this.fileScanWorker?.close();
     await this.maintenanceWorker?.close();
+    await this.searchIndexQueue?.close();
     await this.fileScanQueue?.close();
     await this.maintenanceQueue?.close();
     this.connection?.disconnect();
@@ -181,6 +224,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
             outcome: 'clean',
           },
         });
+        await this.syncFileToSearch(file.id);
         return;
       }
 
@@ -221,6 +265,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
         updatedAt: now,
       });
       transitioned += 1;
+      await this.syncFileToSearch(candidate.id);
       await this.auditService.recordEvent({
         action: 'file.lifecycle.expired',
         resourceType: 'file',
@@ -264,6 +309,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
         updatedAt: now,
       });
       transitioned += 1;
+      await this.syncFileToSearch(candidate.id);
       await this.auditService.recordEvent({
         action: 'file.lifecycle.deleted',
         resourceType: 'file',
@@ -300,6 +346,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
       scanCompletedAt: new Date(),
       updatedAt: new Date(),
     });
+    await this.syncFileToSearch(fileId);
     await this.auditService.recordEvent({
       action: 'file.scan.completed',
       resourceType: 'file',
@@ -311,6 +358,51 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
         outcome: 'blocked',
         scanResult,
       },
+    });
+  }
+
+  private async processSearchIndexJobPayload(payload: SearchIndexJobPayload): Promise<void> {
+    if (payload.action === 'delete') {
+      await this.openSearchIndexService.deleteFile(payload.fileId);
+      return;
+    }
+
+    await this.syncFileToSearch(payload.fileId);
+  }
+
+  private async syncFileToSearch(fileId: string): Promise<void> {
+    if (!this.openSearchIndexService.isEnabled()) {
+      return;
+    }
+
+    const file = await this.prismaService.file.findUnique({
+      where: { id: fileId },
+      select: {
+        id: true,
+        filename: true,
+        contentType: true,
+        status: true,
+        orgId: true,
+        ownerUserId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!file || file.status === FileStatus.deleted) {
+      await this.openSearchIndexService.deleteFile(fileId);
+      return;
+    }
+
+    await this.openSearchIndexService.upsertFile({
+      id: file.id,
+      filename: file.filename,
+      contentType: file.contentType,
+      status: file.status,
+      orgId: file.orgId,
+      ownerUserId: file.ownerUserId,
+      createdAt: file.createdAt.toISOString(),
+      updatedAt: file.updatedAt.toISOString(),
     });
   }
 

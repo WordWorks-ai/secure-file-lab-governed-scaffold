@@ -65,6 +65,7 @@ Post-v1 expansion currently in progress:
 
 - Stage 9 baseline shells added for `web`, `admin`, and `realtime` routing/service scaffolding.
 - Stage 10 baseline adds optional `keycloak` and `opa` profile wiring, API SSO exchange endpoint, and policy-gated file/share actions.
+- Stage 11 baseline adds optional `opensearch` profile wiring, search API endpoint, and worker-driven index sync queue.
 - Full auth/policy/search/OCR/DLP/observability integration remains pending in later stages.
 
 ## Purpose
@@ -251,8 +252,8 @@ Commercialization or enterprise-core use of this IP requires a separate signed c
 ## Current Status
 
 - Completed: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and Phase 8.
-- Completed: Stage 9 and Stage 10 baseline shells for post-v1 expansion.
+- Completed: Stage 9, Stage 10, and Stage 11 baseline shells for post-v1 expansion.
 - Completed: hardening validation pass for scaffold.
-- Remaining work is deeper post-v1 enterprise expansion (search, OCR/preview, DLP, observability).
+- Remaining work is deeper post-v1 enterprise expansion (search hardening, OCR/preview, DLP, observability).
 
 Detailed evidence is tracked in `docs/status`.
