@@ -843,6 +843,11 @@ describe('shares and audit endpoints', () => {
       .set('Authorization', `Bearer ${memberToken}`);
     expect(memberQuery.statusCode).toBe(403);
 
+    const memberSummary = await request(app.getHttpServer())
+      .get('/v1/audit/events/summary?resourceType=share')
+      .set('Authorization', `Bearer ${memberToken}`);
+    expect(memberSummary.statusCode).toBe(403);
+
     const adminQuery = await request(app.getHttpServer())
       .get('/v1/audit/events?resourceType=share&limit=20')
       .set('Authorization', `Bearer ${adminToken}`);
@@ -858,5 +863,19 @@ describe('shares and audit endpoints', () => {
     expect(exportResponse.statusCode).toBe(200);
     expect(exportResponse.headers['content-type']).toContain('application/x-ndjson');
     expect(exportResponse.text).toContain('"action":"share.create"');
+
+    const summaryResponse = await request(app.getHttpServer())
+      .get('/v1/audit/events/summary?resourceType=share&limit=20&top=5')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(summaryResponse.statusCode).toBe(200);
+    expect(summaryResponse.body.sampledCount).toBeGreaterThan(0);
+    expect(summaryResponse.body.sampleLimit).toBe(20);
+    expect(summaryResponse.body.topCount).toBe(5);
+    expect(
+      summaryResponse.body.byAction.some(
+        (bucket: { action: string; count: number }) =>
+          bucket.action === 'share.create' && bucket.count >= 1,
+      ),
+    ).toBe(true);
   });
 });

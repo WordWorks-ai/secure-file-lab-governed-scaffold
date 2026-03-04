@@ -28,6 +28,19 @@ export type QueryAuditEventsInput = {
   limit?: number;
 };
 
+export type QueryAuditSummaryInput = {
+  orgId?: string;
+  actorType?: AuditActorType;
+  action?: string;
+  resourceType?: string;
+  resourceId?: string;
+  result?: AuditResult;
+  from?: Date;
+  to?: Date;
+  limit?: number;
+  top?: number;
+};
+
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
@@ -75,7 +88,110 @@ export class AuditService {
       createdAt: Date;
     }>
   > {
+    const where = this.buildWhereInput(input);
+
+    const take = this.normalizeLimit(input.limit);
+    return this.prismaService.auditEvent.findMany({
+      where,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take,
+    });
+  }
+
+  async querySummary(input: QueryAuditSummaryInput): Promise<{
+    sampledCount: number;
+    sampleLimit: number;
+    topCount: number;
+    byAction: Array<{ action: string; count: number }>;
+    byResult: Array<{ result: AuditResult; count: number }>;
+    byResourceType: Array<{ resourceType: string; count: number }>;
+    byActorType: Array<{ actorType: AuditActorType; count: number }>;
+  }> {
+    const where = this.buildWhereInput(input);
+    const sampleLimit = this.normalizeSummaryLimit(input.limit);
+    const topCount = this.normalizeTopCount(input.top);
+
+    const events = await this.prismaService.auditEvent.findMany({
+      where,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: sampleLimit,
+    });
+
+    return {
+      sampledCount: events.length,
+      sampleLimit,
+      topCount,
+      byAction: this.bucketize(events.map((event) => event.action), topCount).map((bucket) => ({
+        action: bucket.value,
+        count: bucket.count,
+      })),
+      byResult: this.bucketize(events.map((event) => event.result), topCount).map((bucket) => ({
+        result: bucket.value,
+        count: bucket.count,
+      })),
+      byResourceType: this.bucketize(events.map((event) => event.resourceType), topCount).map((bucket) => ({
+        resourceType: bucket.value,
+        count: bucket.count,
+      })),
+      byActorType: this.bucketize(events.map((event) => event.actorType), topCount).map((bucket) => ({
+        actorType: bucket.value,
+        count: bucket.count,
+      })),
+    };
+  }
+
+  private normalizeLimit(rawLimit: number | undefined): number {
+    if (rawLimit === undefined) {
+      return 100;
+    }
+
+    if (Number.isFinite(rawLimit) && rawLimit >= 1) {
+      return Math.min(Math.floor(rawLimit), 500);
+    }
+
+    return 100;
+  }
+
+  private normalizeSummaryLimit(rawLimit: number | undefined): number {
+    if (rawLimit === undefined) {
+      return 1000;
+    }
+
+    if (Number.isFinite(rawLimit) && rawLimit >= 1) {
+      return Math.min(Math.floor(rawLimit), 5000);
+    }
+
+    return 1000;
+  }
+
+  private normalizeTopCount(rawTop: number | undefined): number {
+    if (rawTop === undefined) {
+      return 10;
+    }
+
+    if (Number.isFinite(rawTop) && rawTop >= 1) {
+      return Math.min(Math.floor(rawTop), 50);
+    }
+
+    return 10;
+  }
+
+  private buildWhereInput(input: {
+    orgId?: string;
+    actorType?: AuditActorType;
+    action?: string;
+    resourceType?: string;
+    resourceId?: string;
+    result?: AuditResult;
+    from?: Date;
+    to?: Date;
+  }): Prisma.AuditEventWhereInput {
     const where: Prisma.AuditEventWhereInput = {};
+
     if (input.orgId) {
       where.orgId = input.orgId;
     }
@@ -101,25 +217,23 @@ export class AuditService {
       };
     }
 
-    const take = this.normalizeLimit(input.limit);
-    return this.prismaService.auditEvent.findMany({
-      where,
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take,
-    });
+    return where;
   }
 
-  private normalizeLimit(rawLimit: number | undefined): number {
-    if (rawLimit === undefined) {
-      return 100;
+  private bucketize<T extends string>(values: T[], topCount: number): Array<{ value: T; count: number }> {
+    const counts = new Map<T, number>();
+    for (const value of values) {
+      counts.set(value, (counts.get(value) ?? 0) + 1);
     }
 
-    if (Number.isFinite(rawLimit) && rawLimit >= 1) {
-      return Math.min(Math.floor(rawLimit), 500);
-    }
-
-    return 100;
+    return [...counts.entries()]
+      .sort((left, right) => {
+        if (right[1] !== left[1]) {
+          return right[1] - left[1];
+        }
+        return String(left[0]).localeCompare(String(right[0]));
+      })
+      .slice(0, topCount)
+      .map(([value, count]) => ({ value, count }));
   }
 }
