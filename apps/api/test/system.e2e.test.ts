@@ -33,7 +33,7 @@ describe('system endpoints', () => {
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({
       service: 'api',
-      phase: 'phase-4-file-ingest-encryption',
+      phase: 'phase-6-shares-access-policy-audit',
     });
   });
 

@@ -2,7 +2,7 @@
 
 ## Status Note
 
-This document defines target baseline controls for v1. As of 2026-03-04, core auth + file malware-gate controls are implemented, while share and full audit-query controls remain incomplete.
+This document defines target baseline controls for v1. As of 2026-03-04, auth, file malware-gate, share policy, and audit query/export baselines are implemented; final operational hardening remains in later phases.
 
 ## Authentication and Identity
 
@@ -31,8 +31,9 @@ This document defines target baseline controls for v1. As of 2026-03-04, core au
 - Implemented now:
   - auth route-level role checks via `JwtAuthGuard` + `RolesGuard`.
   - `packages/shared/src/file-lifecycle.ts` models allowed status transitions and download eligibility helper.
+  - API-level org membership enforcement for file and share management flows.
 - Not implemented yet:
-  - API-level authorization enforcement for files/shares/org boundaries.
+  - Fine-grained policy model beyond owner/admin + org membership checks.
 
 ## File and Malware Controls
 
@@ -52,8 +53,9 @@ This document defines target baseline controls for v1. As of 2026-03-04, core au
   - BullMQ queue producer and worker scanner for `scan_pending -> active|blocked`.
   - Retry behavior that fails closed to `blocked` on terminal scan errors.
   - Worker maintenance jobs for expiration and cleanup transitions.
+  - share link enforcement with expiry/password/max-download checks and revocation.
 - Not implemented yet:
-  - Share-aware malware policy coupling and share-level controls.
+  - Advanced DLP/abuse heuristics for share-link access patterns.
 
 ## Audit and Traceability
 
@@ -71,10 +73,12 @@ Implemented now:
 - runtime auth event emission for login/refresh/logout outcomes.
 - runtime file event emission for upload initiation, encryption persistence, scan queueing, and download outcomes.
 - async worker event emission for scan, expiration, and cleanup outcomes.
+- runtime share event emission for create/access/revoke outcomes.
+- admin-gated audit query and NDJSON export baseline.
 
 Not implemented yet:
 
-- Runtime event emission for share lifecycle and audit query/export APIs.
+- Aggregated analytics/reporting and long-retention operational tuning.
 
 ## Operational Security
 
@@ -94,7 +98,7 @@ Target behavior:
 
 Current limitation:
 
-- These invariants are only partially complete because share workflows and centralized share policy enforcement are not yet implemented.
+- Prototype policies are intentionally narrow; enterprise-grade policy depth and reporting are deferred.
 
 ## Deferred Hardening (Documented)
 
