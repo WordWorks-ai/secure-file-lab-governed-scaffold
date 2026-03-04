@@ -57,7 +57,7 @@ compose-validate:
 validate: lint typecheck test test-scaffold compose-validate
 
 up:
-	docker compose -f $(COMPOSE_FILE) --env-file .env up -d --build
+	DOCKER_BUILDKIT=0 docker compose -f $(COMPOSE_FILE) --env-file .env up -d --build
 
 down:
 	docker compose -f $(COMPOSE_FILE) --env-file .env down
