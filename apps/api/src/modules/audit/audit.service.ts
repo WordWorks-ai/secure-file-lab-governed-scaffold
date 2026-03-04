@@ -41,6 +41,19 @@ export type QueryAuditSummaryInput = {
   top?: number;
 };
 
+export type QueryAuditTimeseriesInput = {
+  orgId?: string;
+  actorType?: AuditActorType;
+  action?: string;
+  resourceType?: string;
+  resourceId?: string;
+  result?: AuditResult;
+  from?: Date;
+  to?: Date;
+  limit?: number;
+  bucket?: 'hour' | 'day';
+};
+
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
@@ -144,6 +157,74 @@ export class AuditService {
     };
   }
 
+  async queryTimeseries(input: QueryAuditTimeseriesInput): Promise<{
+    sampledCount: number;
+    sampleLimit: number;
+    bucket: 'hour' | 'day';
+    points: Array<{
+      bucketStart: string;
+      count: number;
+      successCount: number;
+      failureCount: number;
+      deniedCount: number;
+    }>;
+  }> {
+    const where = this.buildWhereInput(input);
+    const sampleLimit = this.normalizeSummaryLimit(input.limit);
+    const bucket = this.normalizeBucket(input.bucket);
+
+    const events = await this.prismaService.auditEvent.findMany({
+      where,
+      orderBy: {
+        createdAt: 'asc',
+      },
+      take: sampleLimit,
+    });
+
+    const pointsByBucket = new Map<
+      string,
+      {
+        bucketStart: string;
+        count: number;
+        successCount: number;
+        failureCount: number;
+        deniedCount: number;
+      }
+    >();
+
+    for (const event of events) {
+      const bucketStartDate = this.floorToBucket(event.createdAt, bucket);
+      const bucketStart = bucketStartDate.toISOString();
+      const existing = pointsByBucket.get(bucketStart) ?? {
+        bucketStart,
+        count: 0,
+        successCount: 0,
+        failureCount: 0,
+        deniedCount: 0,
+      };
+
+      existing.count += 1;
+      if (event.result === AuditResult.success) {
+        existing.successCount += 1;
+      } else if (event.result === AuditResult.failure) {
+        existing.failureCount += 1;
+      } else if (event.result === AuditResult.denied) {
+        existing.deniedCount += 1;
+      }
+
+      pointsByBucket.set(bucketStart, existing);
+    }
+
+    return {
+      sampledCount: events.length,
+      sampleLimit,
+      bucket,
+      points: [...pointsByBucket.values()].sort((left, right) =>
+        left.bucketStart.localeCompare(right.bucketStart),
+      ),
+    };
+  }
+
   private normalizeLimit(rawLimit: number | undefined): number {
     if (rawLimit === undefined) {
       return 100;
@@ -178,6 +259,14 @@ export class AuditService {
     }
 
     return 10;
+  }
+
+  private normalizeBucket(rawBucket: string | undefined): 'hour' | 'day' {
+    if (rawBucket === 'day') {
+      return 'day';
+    }
+
+    return 'hour';
   }
 
   private buildWhereInput(input: {
@@ -235,5 +324,15 @@ export class AuditService {
       })
       .slice(0, topCount)
       .map(([value, count]) => ({ value, count }));
+  }
+
+  private floorToBucket(date: Date, bucket: 'hour' | 'day'): Date {
+    const floored = new Date(date);
+    floored.setUTCMinutes(0, 0, 0);
+    if (bucket === 'day') {
+      floored.setUTCHours(0, 0, 0, 0);
+    }
+
+    return floored;
   }
 }

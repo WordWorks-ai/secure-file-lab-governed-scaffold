@@ -40,10 +40,11 @@ Implemented now:
   - `POST /v1/shares/:shareId/revoke` (share revocation)
   - `POST /v1/shares/access` (public share-link access with policy enforcement)
   - org boundary and membership enforcement for share management
-- Audit query/export/summary baseline:
+- Audit query/export/analytics baseline:
   - `GET /v1/audit/events` (filtered audit query, admin-gated)
   - `GET /v1/audit/events/export` (NDJSON export, admin-gated)
   - `GET /v1/audit/events/summary` (aggregated counts by action/result/resource/actor, admin-gated)
+  - `GET /v1/audit/events/timeseries` (hour/day trend buckets with result breakdowns, admin-gated)
 - Core Prisma schema + migration baseline for `users`, `orgs`, `memberships`, `files`, `shares`, `refresh_tokens`, `bootstrap_state`, and `audit_events`.
 - Structured request logging interceptor and stricter global request validation baseline.
 - Runtime auth + file audit event emission.
@@ -102,7 +103,7 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
   - automatic clean/infected scan transitions with fail-closed blocking
   - expiration and cleanup maintenance jobs in worker runtime
   - share lifecycle and policy controls (token, expiry, password, usage limits)
-  - audit query, NDJSON export, and summary baseline (admin-gated)
+  - audit query, NDJSON export, summary, and timeseries baseline (admin-gated)
   - auth + file + share audit emission for implemented runtime actions
   - backup checksums + restore smoke validation
   - live restore safety guards and post-restore health verification

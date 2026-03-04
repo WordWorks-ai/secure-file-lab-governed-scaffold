@@ -17,6 +17,7 @@ import { JwtTokenService } from '../auth/jwt-token.service.js';
 import { AuthenticatedRequest, AuthenticatedUser } from '../auth/types/authenticated-request.js';
 import { QueryAuditEventsDto } from './dto/query-audit-events.dto.js';
 import { QueryAuditSummaryDto } from './dto/query-audit-summary.dto.js';
+import { QueryAuditTimeseriesDto } from './dto/query-audit-timeseries.dto.js';
 import { AuditService } from './audit.service.js';
 
 @Controller('audit')
@@ -184,6 +185,46 @@ export class AuditController {
         count: bucket.count,
       })),
     };
+  }
+
+  @Get('events/timeseries')
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      expectedType: QueryAuditTimeseriesDto,
+      exceptionFactory: createValidationException,
+    }),
+  )
+  async timeseriesEvents(
+    @Query() query: QueryAuditTimeseriesDto,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<{
+    sampledCount: number;
+    sampleLimit: number;
+    bucket: 'hour' | 'day';
+    points: Array<{
+      bucketStart: string;
+      count: number;
+      successCount: number;
+      failureCount: number;
+      deniedCount: number;
+    }>;
+  }> {
+    this.requireAdminUser(request);
+    return this.auditService.queryTimeseries({
+      orgId: query.orgId,
+      actorType: query.actorType,
+      action: query.action,
+      resourceType: query.resourceType,
+      resourceId: query.resourceId,
+      result: query.result,
+      from: query.from ? new Date(query.from) : undefined,
+      to: query.to ? new Date(query.to) : undefined,
+      limit: query.limit,
+      bucket: query.bucket,
+    });
   }
 
   private requireAdminUser(request: AuthenticatedRequest): AuthenticatedUser {
