@@ -4,7 +4,7 @@ Self-hosted secure file sharing prototype focused on deterministic local deploym
 
 ## Current Implementation Status (2026-03-04)
 
-This repository currently implements a **Phase 0/6 foundation + file + share + audit baseline**, not a complete secure file sharing prototype.
+This repository currently implements a **Phase 0/7 foundation + file + share + audit + backup/restore operations baseline**, not a complete secure file sharing prototype.
 
 Implemented now:
 
@@ -47,10 +47,11 @@ Implemented now:
 - Structured request logging interceptor and stricter global request validation baseline.
 - Runtime auth + file audit event emission.
 - Backup artifact generation and restore smoke for PostgreSQL + MinIO verification.
+- Destructive live restore workflow for running compose `postgres` + `minio` with guardrails.
+- Destructive reset workflow for clean-volume rebuild scenarios.
 
 Not implemented yet:
 
-- Operational backup/restore readiness hardening and runbook completion for final handoff (Phase 7).
 - CI/handoff polish items (dependency audit/secret scanning baseline and final service map) in Phase 8.
 
 ## Purpose
@@ -76,9 +77,9 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
 
 - Target architecture: NestJS modular monolith API + dedicated worker.
 - Implemented modules:
-  - API: `health`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 6 runtime baseline)
+  - API: `health`, `system`, `auth`, `users-orgs`, `files`, `shares`, `audit` (Phase 7 runtime baseline)
   - Worker: `health`, `jobs` (file scan processor + expiration/cleanup jobs)
-- PostgreSQL/Redis/MinIO/Vault/ClamAV are wired for infrastructure readiness, but domain workflows are pending.
+- PostgreSQL/Redis/MinIO/Vault/ClamAV are wired for runtime workflows and operational backup/restore paths.
 
 ## Security Baseline
 
@@ -98,9 +99,11 @@ Out-of-scope for v1 unless explicitly added later as placeholders: Keycloak, OPA
   - share lifecycle and policy controls (token, expiry, password, usage limits)
   - audit query and NDJSON export baseline (admin-gated)
   - auth + file + share audit emission for implemented runtime actions
+  - backup checksums + restore smoke validation
+  - live restore safety guards and post-restore health verification
 - Planned controls (not yet implemented in runtime flows):
   - deeper audit analytics/reporting workflows and long-retention operationalization
-  - final ops and CI hardening milestones from Phases 7/8
+  - final CI/handoff hardening milestone from Phase 8
 
 ## Repository Layout
 
@@ -160,6 +163,8 @@ Before bootstrap, set a real Argon2id hash for `BOOTSTRAP_ADMIN_PASSWORD_HASH` i
 - `make bootstrap` - run deterministic first-run init
 - `make backup` - run local backup procedure
 - `make restore-smoke` - run smoke restore path
+- `RESTORE_CONFIRM=YES make restore-live` - restore selected/latest backup into live postgres/minio (destructive)
+- `RESET_CONFIRM=YES make reset` - down volumes and optionally re-bootstrap from clean state (destructive)
 - `./infra/scripts/demo-session.sh` - run end-to-end technical demo validation script
 
 ## Governance Documents
@@ -175,6 +180,8 @@ See:
 - `docs/data-model.md`
 - `docs/runbooks/bootstrap.md`
 - `docs/runbooks/backup-and-restore.md`
+- `docs/runbooks/reset-bootstrap-restore.md`
+- `docs/runbooks/vault-recovery.md`
 - `docs/runbooks/local-development.md`
 - `docs/runbooks/getting-started.md`
 - `CONTRIBUTING.md`
@@ -221,8 +228,8 @@ Commercialization or enterprise-core use of this IP requires a separate signed c
 
 ## Current Status
 
-- Completed: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and Phase 6.
+- Completed: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, and Phase 7.
 - Completed: hardening validation pass for scaffold.
-- Remaining runtime phases: backup/restore operational readiness and CI/handoff polish (Phases 7/8).
+- Remaining runtime phase: CI/handoff polish (Phase 8).
 
 Detailed evidence is tracked in `docs/status`.

@@ -8,6 +8,8 @@ BOOTSTRAP_SCRIPT="$ROOT_DIR/infra/scripts/bootstrap.sh"
 SEED_SCRIPT="$ROOT_DIR/infra/scripts/seed-admin.sh"
 BACKUP_SCRIPT="$ROOT_DIR/infra/scripts/backup.sh"
 RESTORE_SCRIPT="$ROOT_DIR/infra/scripts/restore-smoke.sh"
+RESTORE_LIVE_SCRIPT="$ROOT_DIR/infra/scripts/restore-live.sh"
+RESET_SCRIPT="$ROOT_DIR/infra/scripts/reset.sh"
 ENV_LIB="$ROOT_DIR/infra/scripts/lib/env.sh"
 API_DOCKERFILE="$ROOT_DIR/apps/api/Dockerfile"
 WORKER_DOCKERFILE="$ROOT_DIR/apps/worker/Dockerfile"
@@ -21,6 +23,8 @@ for required_file in \
   "$SEED_SCRIPT" \
   "$BACKUP_SCRIPT" \
   "$RESTORE_SCRIPT" \
+  "$RESTORE_LIVE_SCRIPT" \
+  "$RESET_SCRIPT" \
   "$ENV_LIB" \
   "$API_DOCKERFILE" \
   "$WORKER_DOCKERFILE" \
@@ -199,10 +203,34 @@ for restore_guard in \
   fi
 done
 
+for restore_live_guard in \
+  'RESTORE_CONFIRM=YES' \
+  'BACKUP_ROOT must not resolve to /' \
+  'BACKUP_DIR must remain within BACKUP_ROOT' \
+  'backup is missing manifest.json'; do
+  if ! grep -Fq "$restore_live_guard" "$RESTORE_LIVE_SCRIPT"; then
+    echo "restore-live safety control missing: $restore_live_guard" >&2
+    exit 1
+  fi
+done
+
+for reset_guard in \
+  'RESET_CONFIRM=YES' \
+  'RESET_BACKUP_FIRST' \
+  'RESET_DELETE_BACKUPS' \
+  'RESET_START_STACK'; do
+  if ! grep -Fq "$reset_guard" "$RESET_SCRIPT"; then
+    echo "reset safety control missing: $reset_guard" >&2
+    exit 1
+  fi
+done
+
 for env_script in \
   "$BOOTSTRAP_SCRIPT" \
   "$BACKUP_SCRIPT" \
   "$RESTORE_SCRIPT" \
+  "$RESTORE_LIVE_SCRIPT" \
+  "$RESET_SCRIPT" \
   "$ROOT_DIR/infra/scripts/health.sh" \
   "$ROOT_DIR/infra/scripts/tests/ops-reproducibility.sh"; do
   if ! rg -n 'load_env_file' "$env_script" >/dev/null; then

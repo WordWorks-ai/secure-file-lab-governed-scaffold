@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 COMPOSE_FILE := infra/compose/docker-compose.yml
 
-.PHONY: help install lint typecheck test test-scaffold test-hardening test-ops-smoke validate compose-validate up down logs bootstrap health backup restore-smoke clean
+.PHONY: help install lint typecheck test test-scaffold test-hardening test-ops-smoke validate compose-validate up down logs bootstrap health backup restore-smoke restore-live reset clean
 
 help:
 	@echo "Available targets:"
@@ -20,6 +20,8 @@ help:
 	@echo "  health           Run health checks"
 	@echo "  backup           Generate local backup artifacts"
 	@echo "  restore-smoke    Run restore smoke scaffold"
+	@echo "  restore-live     Restore latest or selected backup into live postgres/minio (destructive)"
+	@echo "  reset            Tear down stack + volumes with optional pre-backup (destructive)"
 
 install:
 	pnpm install
@@ -41,12 +43,14 @@ test-scaffold:
 	bash infra/scripts/tests/env-loader-safety.sh
 	bash infra/scripts/tests/scope-accuracy.sh
 	bash infra/scripts/tests/backup-restore-guards.sh
+	bash infra/scripts/tests/restore-live-guards.sh
 
 test-hardening:
 	bash infra/scripts/tests/hardening-baseline.sh
 	bash infra/scripts/tests/env-loader-safety.sh
 	bash infra/scripts/tests/scope-accuracy.sh
 	bash infra/scripts/tests/backup-restore-guards.sh
+	bash infra/scripts/tests/restore-live-guards.sh
 
 test-ops-smoke:
 	bash infra/scripts/tests/ops-reproducibility.sh
@@ -76,6 +80,12 @@ backup:
 
 restore-smoke:
 	./infra/scripts/restore-smoke.sh
+
+restore-live:
+	./infra/scripts/restore-live.sh
+
+reset:
+	./infra/scripts/reset.sh
 
 clean:
 	rm -rf node_modules apps/api/node_modules apps/worker/node_modules packages/shared/node_modules

@@ -9,10 +9,13 @@ required_scripts=(
   "infra/scripts/minio-init.sh"
   "infra/scripts/backup.sh"
   "infra/scripts/restore-smoke.sh"
+  "infra/scripts/restore-live.sh"
+  "infra/scripts/reset.sh"
   "infra/scripts/tests/env-loader-safety.sh"
   "infra/scripts/tests/scope-accuracy.sh"
   "infra/scripts/tests/hardening-baseline.sh"
   "infra/scripts/tests/backup-restore-guards.sh"
+  "infra/scripts/tests/restore-live-guards.sh"
 )
 
 required_files=(
