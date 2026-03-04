@@ -1,4 +1,4 @@
-# User Guide: Getting Started (Phase 8 + Stage 17 Baseline)
+# User Guide: Getting Started (Phase 8 + Stage 18 Baseline)
 
 ## What This Repository Is
 
@@ -17,7 +17,6 @@ Implemented now:
 
 Not implemented as production-grade flows yet:
 
-- Deep OCR/preview conversion hardening.
 - Deep DLP policy/enforcement hardening.
 
 ## Prerequisites

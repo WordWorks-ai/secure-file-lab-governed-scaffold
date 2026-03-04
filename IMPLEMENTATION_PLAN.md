@@ -374,10 +374,28 @@ These stages are executed sequentially to minimize integration risk and keep eac
 - WebSocket notification path is functional and auth-gated.
 - Existing SSE route remains available without regression.
 
+### Stage 18 - Preview/OCR Hardening Baseline
+
+#### Deliverables
+
+- Worker content-derivation pipeline adds stronger extraction guardrails and bounded payload handling.
+- Content processing retries emit explicit retry audit events.
+- Terminal content-processing failure path supports fail-closed blocking for active files.
+
+#### Validation
+
+- Worker unit tests cover non-terminal retry behavior and terminal fail-closed behavior.
+- Worker derivative-service unit tests cover normalization, fallback extraction, and payload bounds.
+- Stage 18 scaffold checks validate env/config markers and test coverage wiring in CI.
+
+#### Exit Criteria
+
+- Content pipeline failures are observable and explicitly fail-safe when configured.
+- Preview/OCR extraction behavior is bounded and deterministic for mixed payload types.
+
 ## Priority Order for Remaining Spec Gaps
 
-1. Stage 18 - Preview/OCR hardening (conversion/extraction fidelity, retries, and fail-closed handling).
-2. Stage 19 - DLP hardening (expanded policy corpus, enforcement depth, and override governance).
+1. Stage 19 - DLP hardening (expanded policy corpus, enforcement depth, and override governance).
 
 ## Expansion Definition of Done
 

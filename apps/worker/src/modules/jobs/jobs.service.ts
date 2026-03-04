@@ -34,7 +34,7 @@ const ALLOWED_TRANSITIONS: Record<FileStatus, FileStatus[]> = {
   stored: ['quarantined', 'deleted'],
   quarantined: ['scan_pending', 'blocked', 'deleted'],
   scan_pending: ['active', 'blocked', 'deleted'],
-  active: ['expired', 'deleted'],
+  active: ['blocked', 'expired', 'deleted'],
   blocked: ['deleted'],
   expired: ['deleted'],
   deleted: [],
@@ -466,7 +466,21 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
       });
     } catch (error: unknown) {
       const nextAttempt = attemptsMade + 1;
+      const failureReason = error instanceof Error ? error.message : 'unknown';
       if (nextAttempt < maxAttempts) {
+        await this.auditService.recordEvent({
+          action: 'file.content.retry',
+          resourceType: 'file',
+          resourceId: payload.fileId,
+          result: AuditResult.failure,
+          actorType: AuditActorType.system,
+          orgId: file.orgId,
+          metadata: {
+            attempt: nextAttempt,
+            maxAttempts,
+            reason: failureReason,
+          },
+        });
         throw error;
       }
 
@@ -478,7 +492,40 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
         actorType: AuditActorType.system,
         orgId: file.orgId,
         metadata: {
-          reason: error instanceof Error ? error.message : 'unknown',
+          reason: failureReason,
+        },
+      });
+
+      if (!this.isContentFailClosedEnabled()) {
+        return;
+      }
+
+      const current = await this.prismaService.file.findUnique({
+        where: { id: file.id },
+        select: { status: true },
+      });
+
+      if (!current || current.status !== FileStatus.active) {
+        return;
+      }
+
+      await this.transitionFileStatus(file.id, current.status, FileStatus.blocked, {
+        scanResult: `content_error:${failureReason}`,
+        scanCompletedAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await this.syncFileToSearch(file.id);
+
+      await this.auditService.recordEvent({
+        action: 'file.content.blocked',
+        resourceType: 'file',
+        resourceId: file.id,
+        result: AuditResult.denied,
+        actorType: AuditActorType.system,
+        orgId: file.orgId,
+        metadata: {
+          reason: failureReason,
+          failClosed: true,
         },
       });
     }
@@ -576,7 +623,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
         attempts: this.getContentJobAttempts(),
         backoff: {
           type: 'exponential',
-          delay: 2_000,
+          delay: this.getContentJobBackoffDelayMs(),
         },
         removeOnComplete: 1_000,
         removeOnFail: 4_000,
@@ -675,8 +722,21 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
     return 3;
   }
 
+  private getContentJobBackoffDelayMs(): number {
+    const raw = Number(process.env.CONTENT_JOB_BACKOFF_DELAY_MS ?? 2_000);
+    if (Number.isFinite(raw) && raw >= 250) {
+      return Math.floor(raw);
+    }
+
+    return 2_000;
+  }
+
   private isContentPipelineEnabled(): boolean {
     return (process.env.CONTENT_PIPELINE_ENABLED ?? 'false').trim().toLowerCase() === 'true';
+  }
+
+  private isContentFailClosedEnabled(): boolean {
+    return (process.env.CONTENT_PIPELINE_FAIL_CLOSED ?? 'true').trim().toLowerCase() !== 'false';
   }
 
   private getExpireSweepIntervalMs(): number {

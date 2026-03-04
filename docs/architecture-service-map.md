@@ -63,6 +63,11 @@ Post-v1 Stage 17 additions:
 
 - `realtime` upgraded with JWT-authenticated WebSocket transport at `/realtime/ws`.
 
+Post-v1 Stage 18 additions:
+
+- worker content-processing adds retry audit telemetry and fail-closed terminal blocking control.
+- preview/OCR derivative extraction adds bounded payload and normalization guardrails.
+
 ## Dependency Map
 
 Inbound:
@@ -140,6 +145,7 @@ Operational workflows:
 - Non-`active` files are denied for download and share access.
 - MFA-enrolled users are denied login without a valid second factor.
 - Malware scan gate must transition files fail-closed on terminal scan errors.
+- Content derivation terminal failures can transition active files fail-closed to `blocked`.
 - DLP-sensitive upload/share actions deny by default when policy matches and override is not enabled.
 - Metrics endpoints remain read-only and expose process/service telemetry only.
 - Raw DEKs are not persisted in Postgres.

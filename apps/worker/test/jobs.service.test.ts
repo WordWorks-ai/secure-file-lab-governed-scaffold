@@ -302,10 +302,12 @@ function createJobsServiceHarness() {
 describe('JobsService', () => {
   let originalRetentionSeconds: string | undefined;
   let originalContentPipelineEnabled: string | undefined;
+  let originalContentPipelineFailClosed: string | undefined;
 
   beforeEach(() => {
     originalRetentionSeconds = process.env.FILE_EXPIRED_RETENTION_SECONDS;
     originalContentPipelineEnabled = process.env.CONTENT_PIPELINE_ENABLED;
+    originalContentPipelineFailClosed = process.env.CONTENT_PIPELINE_FAIL_CLOSED;
   });
 
   afterEach(() => {
@@ -319,6 +321,12 @@ describe('JobsService', () => {
       delete process.env.CONTENT_PIPELINE_ENABLED;
     } else {
       process.env.CONTENT_PIPELINE_ENABLED = originalContentPipelineEnabled;
+    }
+
+    if (originalContentPipelineFailClosed === undefined) {
+      delete process.env.CONTENT_PIPELINE_FAIL_CLOSED;
+    } else {
+      process.env.CONTENT_PIPELINE_FAIL_CLOSED = originalContentPipelineFailClosed;
     }
   });
 
@@ -525,6 +533,9 @@ describe('JobsService', () => {
     await harness.service.processContentProcessJobPayload({ fileId: file.id }, 2, 3);
 
     expect(harness.prisma.getFileArtifact(file.id)).toBeUndefined();
+    const updated = harness.prisma.getFile(file.id);
+    expect(updated?.status).toBe(FileStatus.blocked);
+    expect(updated?.scanResult).toContain('content_error:preview failure');
     expect(
       harness.audit.events.some(
         (event) =>
@@ -533,5 +544,61 @@ describe('JobsService', () => {
           event.resourceId === file.id,
       ),
     ).toBe(true);
+    expect(
+      harness.audit.events.some(
+        (event) =>
+          event.action === 'file.content.blocked' &&
+          event.result === AuditResult.denied &&
+          event.resourceId === file.id,
+      ),
+    ).toBe(true);
+  });
+
+  it('emits retry audit on non-terminal content processing errors', async () => {
+    process.env.CONTENT_PIPELINE_ENABLED = 'true';
+    const harness = createJobsServiceHarness();
+    const file = harness.prisma.seedFile({
+      status: FileStatus.active,
+    });
+    harness.contentDerivatives.generatePreview.mockImplementation(() => {
+      throw new Error('temporary preview failure');
+    });
+
+    await expect(
+      harness.service.processContentProcessJobPayload({ fileId: file.id }, 0, 3),
+    ).rejects.toThrow('temporary preview failure');
+
+    const updated = harness.prisma.getFile(file.id);
+    expect(updated?.status).toBe(FileStatus.active);
+    expect(
+      harness.audit.events.some(
+        (event) =>
+          event.action === 'file.content.retry' &&
+          event.result === AuditResult.failure &&
+          event.resourceId === file.id,
+      ),
+    ).toBe(true);
+  });
+
+  it('keeps file active on terminal content error when fail-closed is disabled', async () => {
+    process.env.CONTENT_PIPELINE_ENABLED = 'true';
+    process.env.CONTENT_PIPELINE_FAIL_CLOSED = 'false';
+    const harness = createJobsServiceHarness();
+    const file = harness.prisma.seedFile({
+      status: FileStatus.active,
+    });
+    harness.contentDerivatives.generatePreview.mockImplementation(() => {
+      throw new Error('preview failure');
+    });
+
+    await harness.service.processContentProcessJobPayload({ fileId: file.id }, 2, 3);
+
+    const updated = harness.prisma.getFile(file.id);
+    expect(updated?.status).toBe(FileStatus.active);
+    expect(
+      harness.audit.events.some(
+        (event) => event.action === 'file.content.blocked' && event.resourceId === file.id,
+      ),
+    ).toBe(false);
   });
 });

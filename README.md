@@ -79,7 +79,8 @@ Post-v1 expansion baselines completed:
 - Stage 15 baseline adds `webhook-sink` service wiring with capture/list/clear endpoints and Caddy route exposure.
 - Stage 16 baseline adds MFA enforcement with TOTP and WebAuthn registration/challenge flows.
 - Stage 17 baseline adds JWT-authenticated realtime WebSocket transport with delivery tests.
-- Remaining post-baseline completion work is prioritized as: OCR/preview hardening and DLP hardening.
+- Stage 18 baseline hardens preview/OCR pipeline retries, bounded extraction fidelity, and fail-closed terminal behavior.
+- Remaining post-baseline completion work is prioritized as: DLP hardening.
 
 ## Purpose
 

@@ -58,6 +58,7 @@ test-scaffold:
 	bash infra/scripts/tests/stage15-webhook-sink.sh
 	bash infra/scripts/tests/stage16-mfa.sh
 	bash infra/scripts/tests/stage17-realtime-websocket.sh
+	bash infra/scripts/tests/stage18-content-hardening.sh
 	bash infra/scripts/tests/secrets-hygiene.sh
 	bash infra/scripts/tests/env-loader-safety.sh
 	bash infra/scripts/tests/scope-accuracy.sh

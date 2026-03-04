@@ -5,7 +5,7 @@ const ALLOWED_TRANSITIONS: Record<FileStatus, FileStatus[]> = {
   stored: ['quarantined', 'deleted'],
   quarantined: ['scan_pending', 'blocked', 'deleted'],
   scan_pending: ['active', 'blocked', 'deleted'],
-  active: ['expired', 'deleted'],
+  active: ['blocked', 'expired', 'deleted'],
   blocked: ['deleted'],
   expired: ['deleted'],
   deleted: [],
