@@ -16,8 +16,11 @@ This document defines target baseline controls for v1. As of 2026-03-04, many co
 - Implemented now:
   - Argon2id hash generation utility (`apps/api/src/tools/hash-password.ts`).
   - bootstrap admin seed requires Argon2id-format hash (`infra/scripts/bootstrap.sh`, `infra/scripts/seed-admin.sh`).
+  - auth runtime endpoints (`login`, `refresh`, `logout`) with JWT access token issuance.
+  - refresh-token persistence, rotation, and revocation baseline in `refresh_tokens`.
+  - RBAC baseline enforcement (`admin`, `member`) on protected route checks.
 - Not implemented yet:
-  - Auth/session endpoints, JWT issuance, refresh-token persistence/rotation, runtime RBAC checks.
+  - MFA and optional external identity integration (deferred by scope).
 
 ## Authorization
 
@@ -26,6 +29,7 @@ This document defines target baseline controls for v1. As of 2026-03-04, many co
   - Organization boundaries enforced in service layer.
   - Download allowed only for `active` files and authorized principals.
 - Implemented now:
+  - auth route-level role checks via `JwtAuthGuard` + `RolesGuard`.
   - `packages/shared/src/file-lifecycle.ts` models allowed status transitions and download eligibility helper.
 - Not implemented yet:
   - API-level authorization enforcement for files/shares/org boundaries.
@@ -58,10 +62,11 @@ Target critical actions that must produce audit events:
 Implemented now:
 
 - `audit_events` table exists in schema/migrations.
+- runtime auth event emission for login/refresh/logout outcomes.
 
 Not implemented yet:
 
-- Runtime event emission for auth/file/share actions.
+- Runtime event emission for file/share actions.
 
 ## Operational Security
 
