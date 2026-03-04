@@ -41,4 +41,13 @@ describe('worker health endpoints', () => {
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({ status: 'ok', service: 'worker' });
   });
+
+  it('returns prometheus metrics payload', async () => {
+    const response = await request(app.getHttpServer()).get('/v1/metrics');
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('text/plain');
+    expect(response.text).toContain('sfl_worker_info');
+    expect(response.text).toContain('sfl_worker_uptime_seconds');
+  });
 });

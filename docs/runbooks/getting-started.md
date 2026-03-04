@@ -1,4 +1,4 @@
-# User Guide: Getting Started (Phase 8 + Stage 12 Baseline)
+# User Guide: Getting Started (Phase 8 + Stage 14 Baseline)
 
 ## What This Repository Is
 
@@ -74,6 +74,7 @@ curl -s http://localhost:8080/v1/system/info
 - Start optional search profile (OpenSearch): `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile search up -d opensearch opensearch_dashboards`
 - Start optional content profile (Preview/OCR): `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile content up -d preview ocr`
 - Start optional DLP profile: `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile dlp up -d dlp`
+- Start optional observability profile: `docker compose -f infra/compose/docker-compose.yml --env-file .env --profile observability up -d prometheus loki promtail grafana`
 - Stop stack: `make down`
 - Tail logs: `make logs`
 - Re-run bootstrap safely: `make bootstrap`
@@ -97,6 +98,11 @@ curl -s http://localhost:8080/v1/system/info
 - Preview service (profile): `http://localhost:3011/v1/preview`
 - OCR service (profile): `http://localhost:3012/v1/ocr`
 - DLP service (profile): `http://localhost:3013/v1/dlp/evaluate`
+- API metrics: `http://localhost:8080/v1/metrics`
+- Realtime metrics via Caddy: `http://localhost:8080/realtime/metrics`
+- Prometheus UI (profile): `http://localhost:9090`
+- Loki API (profile): `http://localhost:3100/ready`
+- Grafana UI (profile): `http://localhost:3002`
 
 ## Troubleshooting
 
