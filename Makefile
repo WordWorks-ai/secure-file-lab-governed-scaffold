@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 COMPOSE_FILE := infra/compose/docker-compose.yml
 
-.PHONY: help install lint typecheck test test-unit test-integration test-scaffold test-hardening test-dependency-audit test-container-build test-ops-smoke validate compose-validate up down logs bootstrap health backup restore-smoke restore-live reset clean
+.PHONY: help install lint typecheck test test-unit test-integration test-scaffold test-hardening test-dependency-audit test-container-build test-ops-smoke validate compose-validate up down logs bootstrap health backup rotate-secrets verify-audit-chain restore-smoke restore-live reset demo demo-tech demo-exec clean
 
 help:
 	@echo "Available targets:"
@@ -23,9 +23,14 @@ help:
 	@echo "  bootstrap        Run deterministic first-run bootstrap"
 	@echo "  health           Run health checks"
 	@echo "  backup           Generate local backup artifacts"
+	@echo "  rotate-secrets   Rotate app secrets in .env (requires ROTATE_CONFIRM=YES)"
+	@echo "  verify-audit-chain Verify tamper-evident audit hash chain against postgres"
 	@echo "  restore-smoke    Run restore smoke scaffold"
 	@echo "  restore-live     Restore latest or selected backup into live postgres/minio (destructive)"
 	@echo "  reset            Tear down stack + volumes with optional pre-backup (destructive)"
+	@echo "  demo             Run full demo session (exec + quality checks + backup/restore smoke)"
+	@echo "  demo-tech        Run technical demo (exec + quality checks)"
+	@echo "  demo-exec        Run executive demo (platform + API storyline only)"
 
 install:
 	pnpm install
@@ -48,6 +53,7 @@ test-integration:
 test-scaffold:
 	bash infra/scripts/tests/phase0-structure.sh
 	bash infra/scripts/tests/bootstrap-scripts.sh
+	bash infra/scripts/tests/demo-session-interface.sh
 	bash infra/scripts/tests/phase1-compose.sh
 	bash infra/scripts/tests/stage9-routing.sh
 	bash infra/scripts/tests/stage10-policy.sh
@@ -60,6 +66,8 @@ test-scaffold:
 	bash infra/scripts/tests/stage17-realtime-websocket.sh
 	bash infra/scripts/tests/stage18-content-hardening.sh
 	bash infra/scripts/tests/stage19-dlp-hardening.sh
+	bash infra/scripts/tests/audit-chain-guards.sh
+	bash infra/scripts/tests/secret-rotation-guards.sh
 	bash infra/scripts/tests/secrets-hygiene.sh
 	bash infra/scripts/tests/env-loader-safety.sh
 	bash infra/scripts/tests/scope-accuracy.sh
@@ -68,6 +76,8 @@ test-scaffold:
 
 test-hardening:
 	bash infra/scripts/tests/hardening-baseline.sh
+	bash infra/scripts/tests/audit-chain-guards.sh
+	bash infra/scripts/tests/secret-rotation-guards.sh
 	bash infra/scripts/tests/env-loader-safety.sh
 	bash infra/scripts/tests/scope-accuracy.sh
 	bash infra/scripts/tests/backup-restore-guards.sh
@@ -105,6 +115,12 @@ health:
 backup:
 	./infra/scripts/backup.sh
 
+rotate-secrets:
+	./infra/scripts/rotate-secrets.sh
+
+verify-audit-chain:
+	./infra/scripts/verify-audit-chain.sh
+
 restore-smoke:
 	./infra/scripts/restore-smoke.sh
 
@@ -113,6 +129,15 @@ restore-live:
 
 reset:
 	./infra/scripts/reset.sh
+
+demo:
+	./infra/scripts/demo-session.sh --mode full
+
+demo-tech:
+	./infra/scripts/demo-session.sh --mode tech
+
+demo-exec:
+	./infra/scripts/demo-session.sh --mode exec
 
 clean:
 	rm -rf node_modules apps/api/node_modules apps/worker/node_modules packages/shared/node_modules

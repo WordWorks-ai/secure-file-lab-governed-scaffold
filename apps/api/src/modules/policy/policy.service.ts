@@ -16,6 +16,11 @@ export class PolicyService {
   }
 
   async evaluate(input: PolicyDecisionInput): Promise<PolicyDecision> {
+    const localAbacDecision = this.evaluateLocalAbac(input);
+    if (localAbacDecision) {
+      return localAbacDecision;
+    }
+
     if (!this.isPolicyEngineEnabled()) {
       return {
         allowed: true,
@@ -107,6 +112,92 @@ export class PolicyService {
       allowed: false,
       reason: 'policy_result_missing',
     };
+  }
+
+  private evaluateLocalAbac(input: PolicyDecisionInput): PolicyDecision | null {
+    if (!this.localAbacEnabled()) {
+      return null;
+    }
+
+    if (input.actor.type === 'user' && !input.actor.id?.trim()) {
+      return this.denyByLocalAbac('missing_actor_id');
+    }
+
+    const resourceOrgId = input.resource.orgId?.trim();
+    const actorOrgId =
+      typeof input.context?.actorOrgId === 'string' ? input.context.actorOrgId.trim() : undefined;
+    if (
+      resourceOrgId &&
+      actorOrgId &&
+      resourceOrgId.length > 0 &&
+      actorOrgId.length > 0 &&
+      resourceOrgId !== actorOrgId
+    ) {
+      return this.denyByLocalAbac('org_scope_mismatch');
+    }
+
+    if (input.action === 'file.download') {
+      const status = this.readContextString(input.context?.fileStatus);
+      if (status && status !== 'active') {
+        return this.denyByLocalAbac('file_not_active');
+      }
+
+      if (this.isMemberActor(input) && this.resourceOwnerMismatch(input)) {
+        return this.denyByLocalAbac('member_not_owner');
+      }
+    }
+
+    if (input.action === 'share.create') {
+      if (this.isMemberActor(input) && this.resourceOwnerMismatch(input)) {
+        return this.denyByLocalAbac('member_not_owner');
+      }
+    }
+
+    if (input.action === 'share.revoke') {
+      if (this.isMemberActor(input) && this.resourceOwnerMismatch(input)) {
+        const actorId = input.actor.id?.trim();
+        const shareCreatedByUserId = this.readContextString(input.context?.shareCreatedByUserId);
+        if (!actorId || !shareCreatedByUserId || shareCreatedByUserId !== actorId) {
+          return this.denyByLocalAbac('member_not_share_manager');
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private denyByLocalAbac(reason: string): PolicyDecision {
+    return {
+      allowed: false,
+      source: 'local_abac',
+      reason,
+    };
+  }
+
+  private localAbacEnabled(): boolean {
+    return this.readBooleanEnv('POLICY_LOCAL_ABAC_ENABLED', true);
+  }
+
+  private isMemberActor(input: PolicyDecisionInput): boolean {
+    const membershipRole = this.readContextString(input.context?.membershipRole);
+    return membershipRole === 'member';
+  }
+
+  private resourceOwnerMismatch(input: PolicyDecisionInput): boolean {
+    const actorId = input.actor.id?.trim();
+    const ownerUserId = input.resource.ownerUserId?.trim();
+    if (!actorId || !ownerUserId) {
+      return false;
+    }
+    return actorId !== ownerUserId;
+  }
+
+  private readContextString(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : null;
   }
 
   private isPolicyEngineEnabled(): boolean {

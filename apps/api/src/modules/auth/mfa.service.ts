@@ -210,6 +210,7 @@ export class MfaService {
     userId: string;
     challengeToken: string;
     credentialId: string;
+    clientDataJson: string;
     label?: string | null;
     publicKey?: string | null;
   }): Promise<boolean> {
@@ -218,12 +219,22 @@ export class MfaService {
       return false;
     }
 
-    if (params.credentialId.trim().length < 8) {
+    const normalizedCredentialId = params.credentialId.trim();
+    if (!this.isValidWebauthnCredentialId(normalizedCredentialId)) {
+      return false;
+    }
+
+    const registrationClientDataValid = this.validateWebauthnClientData({
+      encodedClientData: params.clientDataJson,
+      expectedType: 'webauthn.create',
+      expectedChallenge: challenge.challenge,
+    });
+    if (!registrationClientDataValid) {
       return false;
     }
 
     const existing = await this.prismaService.userWebauthnCredential?.findUnique?.({
-      where: { credentialId: params.credentialId.trim() },
+      where: { credentialId: normalizedCredentialId },
     });
 
     if (existing && existing.userId !== params.userId) {
@@ -243,12 +254,12 @@ export class MfaService {
     }
 
     await this.prismaService.userWebauthnCredential?.create?.({
-      data: {
-        userId: params.userId,
-        credentialId: params.credentialId.trim(),
-        label: params.label?.trim() || null,
-        publicKey: params.publicKey?.trim() || null,
-      },
+        data: {
+          userId: params.userId,
+          credentialId: normalizedCredentialId,
+          label: params.label?.trim() || null,
+          publicKey: params.publicKey?.trim() || null,
+        },
     });
 
     return true;
@@ -314,16 +325,31 @@ export class MfaService {
     userId: string;
     challengeToken: string;
     credentialId: string;
+    clientDataJson: string;
   }): Promise<boolean> {
     const challenge = this.consumeChallenge(params.challengeToken, 'assertion', params.userId);
     if (!challenge) {
       return false;
     }
 
+    const normalizedCredentialId = params.credentialId.trim();
+    if (!this.isValidWebauthnCredentialId(normalizedCredentialId)) {
+      return false;
+    }
+
+    const assertionClientDataValid = this.validateWebauthnClientData({
+      encodedClientData: params.clientDataJson,
+      expectedType: 'webauthn.get',
+      expectedChallenge: challenge.challenge,
+    });
+    if (!assertionClientDataValid) {
+      return false;
+    }
+
     const credential = await this.prismaService.userWebauthnCredential?.findFirst?.({
       where: {
         userId: params.userId,
-        credentialId: params.credentialId.trim(),
+        credentialId: normalizedCredentialId,
       },
     });
 
@@ -362,6 +388,26 @@ export class MfaService {
       return Math.floor(raw * 1000);
     }
     return 120_000;
+  }
+
+  private getWebauthnAllowedOrigins(): Set<string> {
+    const configured = process.env.MFA_WEBAUTHN_ALLOWED_ORIGINS;
+    const defaults = ['https://localhost:8443', 'http://localhost:8080'];
+    const candidates = configured
+      ? configured
+          .split(',')
+          .map((entry) => entry.trim())
+          .filter((entry) => entry.length > 0)
+      : defaults;
+
+    const normalized = candidates
+      .map((origin) => this.normalizeOrigin(origin))
+      .filter((origin) => origin.length > 0);
+    if (normalized.length === 0) {
+      return new Set(defaults.map((origin) => this.normalizeOrigin(origin)));
+    }
+
+    return new Set(normalized);
   }
 
   private getTotpEncryptionKey(): Buffer {
@@ -493,6 +539,87 @@ export class MfaService {
       return false;
     }
     return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  }
+
+  private isValidWebauthnCredentialId(value: string): boolean {
+    return /^[A-Za-z0-9_-]{16,1024}$/.test(value);
+  }
+
+  private validateWebauthnClientData(params: {
+    encodedClientData: string;
+    expectedType: 'webauthn.create' | 'webauthn.get';
+    expectedChallenge: string;
+  }): boolean {
+    const parsed = this.parseWebauthnClientData(params.encodedClientData);
+    if (!parsed) {
+      return false;
+    }
+
+    if (parsed.type !== params.expectedType) {
+      return false;
+    }
+
+    if (!this.safeCompare(parsed.challenge, params.expectedChallenge)) {
+      return false;
+    }
+
+    const allowedOrigins = this.getWebauthnAllowedOrigins();
+    const normalizedOrigin = this.normalizeOrigin(parsed.origin);
+    return allowedOrigins.has(normalizedOrigin);
+  }
+
+  private parseWebauthnClientData(encodedClientData: string): {
+    type: string;
+    challenge: string;
+    origin: string;
+  } | null {
+    const normalized = encodedClientData.trim();
+    if (normalized.length < 16 || normalized.length > 8192 || !/^[A-Za-z0-9_-]+$/.test(normalized)) {
+      return null;
+    }
+
+    try {
+      const decoded = Buffer.from(normalized, 'base64url').toString('utf8');
+      const parsed = JSON.parse(decoded) as {
+        type?: unknown;
+        challenge?: unknown;
+        origin?: unknown;
+      };
+      if (
+        typeof parsed.type !== 'string' ||
+        typeof parsed.challenge !== 'string' ||
+        typeof parsed.origin !== 'string'
+      ) {
+        return null;
+      }
+
+      if (
+        parsed.type.length === 0 ||
+        parsed.type.length > 64 ||
+        parsed.challenge.length < 16 ||
+        parsed.challenge.length > 256 ||
+        parsed.origin.length < 8 ||
+        parsed.origin.length > 512
+      ) {
+        return null;
+      }
+
+      return {
+        type: parsed.type,
+        challenge: parsed.challenge,
+        origin: parsed.origin,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private normalizeOrigin(origin: string): string {
+    const trimmed = origin.trim().toLowerCase();
+    if (trimmed.endsWith('/')) {
+      return trimmed.slice(0, -1);
+    }
+    return trimmed;
   }
 
   private generateChallenge(): string {

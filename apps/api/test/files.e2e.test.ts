@@ -74,13 +74,31 @@ type InMemoryFileArtifact = {
   updatedAt: Date;
 };
 
+type InMemoryAuditEvent = {
+  id: string;
+  action: string;
+  resourceType: string;
+  result: string;
+  actorType: string;
+  actorUserId: string | null;
+  orgId: string | null;
+  resourceId: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  metadataJson: unknown;
+  prevEventHash: string | null;
+  eventHash: string | null;
+  chainVersion: string;
+  createdAt: Date;
+};
+
 class InMemoryPrismaService {
   private readonly usersById = new Map<string, InMemoryUser>();
   private readonly membershipsById = new Map<string, InMemoryMembership>();
   private readonly orgsById = new Map<string, InMemoryOrg>();
   private readonly filesById = new Map<string, InMemoryFile>();
   private readonly fileArtifactsByFileId = new Map<string, InMemoryFileArtifact>();
-  private readonly auditEvents: Array<Record<string, unknown>> = [];
+  private readonly auditEvents: InMemoryAuditEvent[] = [];
 
   readonly user = {
     findUnique: async (args: { where: { id?: string; email?: string } }) => {
@@ -255,11 +273,59 @@ class InMemoryPrismaService {
   };
 
   readonly auditEvent = {
-    create: async (args: { data: Record<string, unknown> }) => {
-      this.auditEvents.push(args.data);
-      return { id: randomUUID(), ...args.data };
+    findFirst: async (args: {
+      where?: { eventHash?: { not: null } };
+      orderBy?: Array<{ createdAt: 'asc' | 'desc' } | { id: 'asc' | 'desc' }>;
+      select?: { eventHash?: true };
+    }) => {
+      let rows = [...this.auditEvents];
+      if (args.where?.eventHash?.not === null) {
+        rows = rows.filter((row) => row.eventHash !== null);
+      }
+
+      rows.sort((left, right) => {
+        for (const rule of args.orderBy ?? []) {
+          if ('createdAt' in rule) {
+            const delta = left.createdAt.getTime() - right.createdAt.getTime();
+            if (delta !== 0) {
+              return rule.createdAt === 'asc' ? delta : -delta;
+            }
+          } else if ('id' in rule) {
+            const delta = left.id.localeCompare(right.id);
+            if (delta !== 0) {
+              return rule.id === 'asc' ? delta : -delta;
+            }
+          }
+        }
+        return 0;
+      });
+
+      const row = rows[0] ?? null;
+      if (!row) {
+        return null;
+      }
+      if (args.select?.eventHash) {
+        return { eventHash: row.eventHash };
+      }
+      return { ...row };
+    },
+    create: async (args: {
+      data: Omit<InMemoryAuditEvent, 'metadataJson'> & { metadataJson?: unknown };
+    }) => {
+      const row: InMemoryAuditEvent = {
+        ...args.data,
+        metadataJson: args.data.metadataJson ?? {},
+      };
+      this.auditEvents.push(row);
+      return { ...row };
     },
   };
+
+  async $transaction<T>(callback: (tx: this) => Promise<T>): Promise<T> {
+    return callback(this);
+  }
+
+  readonly $executeRaw = async (..._args: unknown[]): Promise<number> => 1;
 
   readonly fileArtifact = {
     findUnique: async (args: {

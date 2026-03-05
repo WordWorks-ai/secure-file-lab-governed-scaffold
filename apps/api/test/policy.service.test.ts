@@ -27,6 +27,7 @@ afterEach(() => {
   delete process.env.POLICY_ENGINE_TIMEOUT_MS;
   delete process.env.OPA_BASE_URL;
   delete process.env.OPA_POLICY_PATH;
+  delete process.env.POLICY_LOCAL_ABAC_ENABLED;
   globalThis.fetch = originalFetch;
   vi.restoreAllMocks();
 });
@@ -35,6 +36,68 @@ describe('PolicyService', () => {
   it('allows when policy engine is disabled', async () => {
     const service = new PolicyService();
     await expect(service.assertAllowed(sampleInput)).resolves.toBeUndefined();
+  });
+
+  it('denies org scope mismatches in local ABAC mode', async () => {
+    const service = new PolicyService();
+    await expect(
+      service.assertAllowed({
+        ...sampleInput,
+        context: {
+          actorOrgId: 'org-other',
+        },
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('denies member share revoke when actor is neither owner nor creator', async () => {
+    const service = new PolicyService();
+    await expect(
+      service.assertAllowed({
+        action: 'share.revoke',
+        actor: {
+          type: 'user',
+          id: 'member-1',
+          role: 'member',
+        },
+        resource: {
+          type: 'share',
+          id: 'share-1',
+          orgId: 'org-1',
+          ownerUserId: 'owner-1',
+        },
+        context: {
+          actorOrgId: 'org-1',
+          membershipRole: 'member',
+          shareCreatedByUserId: 'creator-1',
+        },
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('allows member share revoke when actor created the share', async () => {
+    const service = new PolicyService();
+    await expect(
+      service.assertAllowed({
+        action: 'share.revoke',
+        actor: {
+          type: 'user',
+          id: 'creator-1',
+          role: 'member',
+        },
+        resource: {
+          type: 'share',
+          id: 'share-1',
+          orgId: 'org-1',
+          ownerUserId: 'owner-1',
+        },
+        context: {
+          actorOrgId: 'org-1',
+          membershipRole: 'member',
+          shareCreatedByUserId: 'creator-1',
+        },
+      }),
+    ).resolves.toBeUndefined();
   });
 
   it('allows when OPA returns allow=true', async () => {

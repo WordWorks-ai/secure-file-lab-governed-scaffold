@@ -6,7 +6,8 @@ for marker in \
   "MFA_TOTP_SECRET_KEY=" \
   "MFA_WEBAUTHN_RP_ID=" \
   "MFA_WEBAUTHN_RP_NAME=" \
-  "MFA_WEBAUTHN_CHALLENGE_TTL_SECONDS="; do
+  "MFA_WEBAUTHN_CHALLENGE_TTL_SECONDS=" \
+  "MFA_WEBAUTHN_ALLOWED_ORIGINS="; do
   if ! grep -Fq "$marker" .env.example; then
     echo "stage16 mfa check failed: missing env marker $marker" >&2
     exit 1

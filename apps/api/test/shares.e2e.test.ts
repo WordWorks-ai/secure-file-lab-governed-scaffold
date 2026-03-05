@@ -98,6 +98,9 @@ type InMemoryAuditEvent = {
   ipAddress: string | null;
   userAgent: string | null;
   metadataJson: unknown;
+  prevEventHash: string | null;
+  eventHash: string | null;
+  chainVersion: string;
   createdAt: Date;
 };
 
@@ -341,14 +344,63 @@ class InMemoryPrismaService {
   };
 
   readonly auditEvent = {
-    create: async (args: {
-      data: Omit<InMemoryAuditEvent, 'id' | 'createdAt'> & { createdAt?: Date };
+    findFirst: async (args: {
+      where?: { eventHash?: { not: null } };
+      orderBy?: Array<{ createdAt: 'asc' | 'desc' } | { id: 'asc' | 'desc' }>;
+      select?: { eventHash?: true };
     }) => {
-      const { createdAt, ...data } = args.data;
+      let rows = [...this.auditEvents];
+      if (args.where?.eventHash?.not === null) {
+        rows = rows.filter((row) => row.eventHash !== null);
+      }
+
+      rows.sort((left, right) => {
+        for (const rule of args.orderBy ?? []) {
+          if ('createdAt' in rule) {
+            const delta = left.createdAt.getTime() - right.createdAt.getTime();
+            if (delta !== 0) {
+              return rule.createdAt === 'asc' ? delta : -delta;
+            }
+          } else if ('id' in rule) {
+            const delta = left.id.localeCompare(right.id);
+            if (delta !== 0) {
+              return rule.id === 'asc' ? delta : -delta;
+            }
+          }
+        }
+        return 0;
+      });
+
+      const row = rows[0] ?? null;
+      if (!row) {
+        return null;
+      }
+      if (args.select?.eventHash) {
+        return { eventHash: row.eventHash };
+      }
+      return { ...row };
+    },
+    create: async (args: {
+      data: Omit<
+        InMemoryAuditEvent,
+        'id' | 'metadataJson' | 'prevEventHash' | 'eventHash' | 'chainVersion' | 'createdAt'
+      > & {
+        id?: string;
+        metadataJson?: unknown;
+        prevEventHash?: string | null;
+        eventHash?: string | null;
+        chainVersion?: string;
+        createdAt?: Date;
+      };
+    }) => {
       const row: InMemoryAuditEvent = {
-        id: randomUUID(),
-        ...data,
-        createdAt: createdAt ? new Date(createdAt) : new Date(),
+        ...args.data,
+        id: args.data.id ?? randomUUID(),
+        metadataJson: args.data.metadataJson ?? {},
+        prevEventHash: args.data.prevEventHash ?? null,
+        eventHash: args.data.eventHash ?? null,
+        chainVersion: args.data.chainVersion ?? 'sha256-v1',
+        createdAt: args.data.createdAt ? new Date(args.data.createdAt) : new Date(),
       };
       this.auditEvents.push(row);
       return { ...row };
@@ -413,6 +465,12 @@ class InMemoryPrismaService {
   async checkConnection(): Promise<boolean> {
     return true;
   }
+
+  async $transaction<T>(callback: (tx: this) => Promise<T>): Promise<T> {
+    return callback(this);
+  }
+
+  readonly $executeRaw = async (..._args: unknown[]): Promise<number> => 1;
 
   reset(): void {
     this.usersById.clear();
@@ -1229,6 +1287,16 @@ describe('shares and audit endpoints', () => {
     expect(adminQuery.body.events.some((event: { action: string }) => event.action === 'share.create')).toBe(
       true,
     );
+    expect(
+      adminQuery.body.events.every(
+        (event: { chainVersion?: string; eventHash?: string | null; prevEventHash?: string | null }) =>
+          event.chainVersion === 'sha256-v1' &&
+          typeof event.eventHash === 'string' &&
+          /^[a-f0-9]{64}$/.test(event.eventHash) &&
+          (event.prevEventHash === null ||
+            (typeof event.prevEventHash === 'string' && /^[a-f0-9]{64}$/.test(event.prevEventHash))),
+      ),
+    ).toBe(true);
 
     const exportResponse = await request(app.getHttpServer())
       .get('/v1/audit/events/export?resourceType=share&limit=20')
@@ -1236,6 +1304,7 @@ describe('shares and audit endpoints', () => {
     expect(exportResponse.statusCode).toBe(200);
     expect(exportResponse.headers['content-type']).toContain('application/x-ndjson');
     expect(exportResponse.text).toContain('"action":"share.create"');
+    expect(exportResponse.text).toContain('"chainVersion":"sha256-v1"');
 
     const summaryResponse = await request(app.getHttpServer())
       .get('/v1/audit/events/summary?resourceType=share&limit=20&top=5')

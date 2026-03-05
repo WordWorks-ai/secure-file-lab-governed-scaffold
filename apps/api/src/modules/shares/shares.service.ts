@@ -89,7 +89,9 @@ export class SharesService {
         ownerUserId: file.ownerUserId,
       },
       context: {
+        actorOrgId: file.orgId,
         membershipRole: membership.role,
+        actorOwnsResource: file.ownerUserId === user.sub,
       },
     });
 
@@ -216,7 +218,10 @@ export class SharesService {
         ownerUserId: share.file.ownerUserId,
       },
       context: {
+        actorOrgId: share.orgId,
         membershipRole: membership.role,
+        actorOwnsResource: share.file.ownerUserId === user.sub,
+        shareCreatedByUserId: share.createdByUserId,
       },
     });
 

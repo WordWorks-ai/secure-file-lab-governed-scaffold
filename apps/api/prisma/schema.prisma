@@ -227,6 +227,9 @@ model AuditEvent {
   ipAddress    String?        @map("ip_address")
   userAgent    String?        @map("user_agent")
   metadataJson Json           @default("{}") @map("metadata_json")
+  prevEventHash String?       @map("prev_event_hash") @db.VarChar(64)
+  eventHash     String?       @map("event_hash") @db.VarChar(64)
+  chainVersion  String        @default("sha256-v1") @map("chain_version")
   createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   org          Org?           @relation(fields: [orgId], references: [id], onDelete: SetNull)
   actorUser    User?          @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
@@ -234,5 +237,6 @@ model AuditEvent {
   @@index([orgId])
   @@index([actorUserId])
   @@index([createdAt])
+  @@index([eventHash])
   @@map("audit_events")
 }

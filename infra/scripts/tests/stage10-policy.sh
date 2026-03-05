@@ -23,6 +23,7 @@ required_env_markers=(
   "OPA_POLICY_PATH="
   "POLICY_ENGINE_ENABLED="
   "POLICY_ENGINE_FAIL_SAFE_DENY="
+  "POLICY_LOCAL_ABAC_ENABLED="
 )
 
 for marker in "${required_env_markers[@]}"; do

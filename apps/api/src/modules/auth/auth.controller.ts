@@ -52,6 +52,7 @@ export class AuthController {
         totpCode: payload.totpCode,
         webauthnChallengeToken: payload.webauthnChallengeToken,
         webauthnCredentialId: payload.webauthnCredentialId,
+        webauthnClientDataJson: payload.webauthnClientDataJson,
       },
       this.getRequestContext(request),
     );

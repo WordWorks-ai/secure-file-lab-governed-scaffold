@@ -19,6 +19,7 @@ type LoginSecondFactorPayload = {
   totpCode?: string;
   webauthnChallengeToken?: string;
   webauthnCredentialId?: string;
+  webauthnClientDataJson?: string;
 };
 
 export type AuthTokenResponse = {
@@ -82,7 +83,9 @@ export class AuthService {
     if (mfaRequired) {
       const hasTotpAttempt = Boolean(secondFactor.totpCode);
       const hasWebauthnAttempt =
-        Boolean(secondFactor.webauthnChallengeToken) && Boolean(secondFactor.webauthnCredentialId);
+        Boolean(secondFactor.webauthnChallengeToken) &&
+        Boolean(secondFactor.webauthnCredentialId) &&
+        Boolean(secondFactor.webauthnClientDataJson);
       const attemptedSecondFactor = hasTotpAttempt || hasWebauthnAttempt;
       let mfaVerified = false;
 
@@ -97,12 +100,14 @@ export class AuthService {
         !mfaVerified &&
         hasWebauthnAttempt &&
         secondFactor.webauthnChallengeToken &&
-        secondFactor.webauthnCredentialId
+        secondFactor.webauthnCredentialId &&
+        secondFactor.webauthnClientDataJson
       ) {
         mfaVerified = await this.mfaService.verifyWebauthnAssertion({
           userId: user.id,
           challengeToken: secondFactor.webauthnChallengeToken,
           credentialId: secondFactor.webauthnCredentialId,
+          clientDataJson: secondFactor.webauthnClientDataJson,
         });
         if (mfaVerified) {
           mfaMethod = 'webauthn';
@@ -293,6 +298,7 @@ export class AuthService {
     payload: {
       challengeToken: string;
       credentialId: string;
+      clientDataJson: string;
       label?: string;
       publicKey?: string;
     },
@@ -302,6 +308,7 @@ export class AuthService {
       userId: user.id,
       challengeToken: payload.challengeToken,
       credentialId: payload.credentialId,
+      clientDataJson: payload.clientDataJson,
       label: payload.label,
       publicKey: payload.publicKey,
     });

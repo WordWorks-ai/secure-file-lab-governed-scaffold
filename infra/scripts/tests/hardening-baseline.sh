@@ -7,6 +7,8 @@ CADDY_FILE="$ROOT_DIR/infra/caddy/Caddyfile"
 BOOTSTRAP_SCRIPT="$ROOT_DIR/infra/scripts/bootstrap.sh"
 SEED_SCRIPT="$ROOT_DIR/infra/scripts/seed-admin.sh"
 BACKUP_SCRIPT="$ROOT_DIR/infra/scripts/backup.sh"
+ROTATE_SECRETS_SCRIPT="$ROOT_DIR/infra/scripts/rotate-secrets.sh"
+VERIFY_AUDIT_CHAIN_SCRIPT="$ROOT_DIR/infra/scripts/verify-audit-chain.sh"
 RESTORE_SCRIPT="$ROOT_DIR/infra/scripts/restore-smoke.sh"
 RESTORE_LIVE_SCRIPT="$ROOT_DIR/infra/scripts/restore-live.sh"
 RESET_SCRIPT="$ROOT_DIR/infra/scripts/reset.sh"
@@ -24,6 +26,8 @@ for required_file in \
   "$BOOTSTRAP_SCRIPT" \
   "$SEED_SCRIPT" \
   "$BACKUP_SCRIPT" \
+  "$ROTATE_SECRETS_SCRIPT" \
+  "$VERIFY_AUDIT_CHAIN_SCRIPT" \
   "$RESTORE_SCRIPT" \
   "$RESTORE_LIVE_SCRIPT" \
   "$RESET_SCRIPT" \
@@ -243,6 +247,8 @@ done
 for env_script in \
   "$BOOTSTRAP_SCRIPT" \
   "$BACKUP_SCRIPT" \
+  "$ROTATE_SECRETS_SCRIPT" \
+  "$VERIFY_AUDIT_CHAIN_SCRIPT" \
   "$RESTORE_SCRIPT" \
   "$RESTORE_LIVE_SCRIPT" \
   "$RESET_SCRIPT" \

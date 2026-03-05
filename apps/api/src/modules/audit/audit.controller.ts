@@ -55,6 +55,9 @@ export class AuditController {
       ipAddress: string | null;
       userAgent: string | null;
       metadata: unknown;
+      prevEventHash: string | null;
+      eventHash: string | null;
+      chainVersion: string;
       createdAt: string;
     }>;
   }> {
@@ -85,6 +88,9 @@ export class AuditController {
         ipAddress: event.ipAddress,
         userAgent: event.userAgent,
         metadata: event.metadataJson,
+        prevEventHash: event.prevEventHash,
+        eventHash: event.eventHash,
+        chainVersion: event.chainVersion,
         createdAt: event.createdAt.toISOString(),
       })),
     };
@@ -132,6 +138,9 @@ export class AuditController {
           ipAddress: event.ipAddress,
           userAgent: event.userAgent,
           metadata: event.metadataJson,
+          prevEventHash: event.prevEventHash,
+          eventHash: event.eventHash,
+          chainVersion: event.chainVersion,
           createdAt: event.createdAt.toISOString(),
         }),
       )

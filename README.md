@@ -53,10 +53,12 @@ Implemented now:
   - `GET /v1/audit/events/summary` (aggregated counts by action/result/resource/actor, admin-gated)
   - `GET /v1/audit/events/timeseries` (hour/day trend buckets with result breakdowns, admin-gated)
   - `GET /v1/audit/events/kpis` (windowed KPI/delta metrics for success/failure/denied rates, admin-gated)
+  - tamper-evident hash-chain fields on audit writes (`prevEventHash`, `eventHash`, `chainVersion`)
 - Core Prisma schema + migration baseline for `users`, `orgs`, `memberships`, `files`, `shares`, `refresh_tokens`, `bootstrap_state`, and `audit_events`.
 - Structured request logging interceptor and stricter global request validation baseline.
 - Runtime auth + file audit event emission.
 - Backup artifact generation and restore smoke for PostgreSQL + MinIO verification.
+- Local secret rotation automation for JWT/TOTP app secrets plus optional Vault transit key-version rotation.
 - Destructive live restore workflow for running compose `postgres` + `minio` with guardrails.
 - Destructive reset workflow for clean-volume rebuild scenarios.
 - CI split gates for lint, typecheck, unit tests, and integration tests.
@@ -206,10 +208,17 @@ Before bootstrap, set a real Argon2id hash for `BOOTSTRAP_ADMIN_PASSWORD_HASH` i
 - `make down` - stop stack
 - `make bootstrap` - run deterministic first-run init
 - `make backup` - run local backup procedure
+- `ROTATE_CONFIRM=YES make rotate-secrets` - rotate app secrets in `.env` (optional transit key rotation via `ROTATE_VAULT_TRANSIT=true`)
+- `make verify-audit-chain` - verify persisted audit hash-chain integrity against postgres
 - `make restore-smoke` - run smoke restore path
 - `RESTORE_CONFIRM=YES make restore-live` - restore selected/latest backup into live postgres/minio (destructive)
 - `RESET_CONFIRM=YES make reset` - down volumes and optionally re-bootstrap from clean state (destructive)
-- `./infra/scripts/demo-session.sh` - run end-to-end technical demo validation script
+- `make demo-exec` - run executive demo flow (platform + API storyline)
+- `make demo-tech` - run technical demo flow (exec + scaffold/hardening checks)
+- `make demo` - run full demo flow (tech + backup/restore smoke checks)
+- `./infra/scripts/demo-session.sh --mode full --report-dir artifacts/demo` - run demo directly and write JSON/Markdown scorecard artifacts (`latest.json`, `latest.md`)
+- `./infra/scripts/rotate-secrets.sh` - direct secret-rotation entrypoint (same as `make rotate-secrets`)
+- `./infra/scripts/verify-audit-chain.sh` - direct audit-chain verification entrypoint (same as `make verify-audit-chain`)
 
 ## Governance Documents
 

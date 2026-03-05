@@ -68,6 +68,9 @@ type FakeAuditEvent = {
   ipAddress: string | null;
   userAgent: string | null;
   metadataJson: unknown;
+  prevEventHash: string | null;
+  eventHash: string | null;
+  chainVersion: string;
   createdAt: Date;
 };
 
@@ -364,11 +367,46 @@ class InMemoryPrismaService {
   };
 
   readonly auditEvent = {
+    findFirst: async (args: {
+      where?: { eventHash?: { not: null } };
+      orderBy?: Array<{ createdAt: 'asc' | 'desc' } | { id: 'asc' | 'desc' }>;
+      select?: { eventHash?: true };
+    }) => {
+      let rows = [...this.auditEvents];
+      if (args.where?.eventHash?.not === null) {
+        rows = rows.filter((row) => row.eventHash !== null);
+      }
+      rows.sort((left, right) => {
+        for (const rule of args.orderBy ?? []) {
+          if ('createdAt' in rule) {
+            const delta = left.createdAt.getTime() - right.createdAt.getTime();
+            if (delta !== 0) {
+              return rule.createdAt === 'asc' ? delta : -delta;
+            }
+          } else if ('id' in rule) {
+            const delta = left.id.localeCompare(right.id);
+            if (delta !== 0) {
+              return rule.id === 'asc' ? delta : -delta;
+            }
+          }
+        }
+        return 0;
+      });
+
+      const row = rows[0] ?? null;
+      if (!row) {
+        return null;
+      }
+      if (args.select?.eventHash) {
+        return { eventHash: row.eventHash };
+      }
+      return { ...row };
+    },
     create: async (args: {
-      data: Omit<FakeAuditEvent, 'id' | 'createdAt'> & { metadataJson?: unknown };
+      data: Omit<FakeAuditEvent, 'metadataJson'> & { metadataJson?: unknown };
     }) => {
       const event: FakeAuditEvent = {
-        id: randomUUID(),
+        id: args.data.id,
         action: args.data.action,
         resourceType: args.data.resourceType,
         result: args.data.result,
@@ -379,13 +417,22 @@ class InMemoryPrismaService {
         ipAddress: args.data.ipAddress ?? null,
         userAgent: args.data.userAgent ?? null,
         metadataJson: args.data.metadataJson ?? {},
-        createdAt: new Date(),
+        prevEventHash: args.data.prevEventHash ?? null,
+        eventHash: args.data.eventHash ?? null,
+        chainVersion: args.data.chainVersion,
+        createdAt: new Date(args.data.createdAt),
       };
 
       this.auditEvents.push(event);
       return { ...event };
     },
   };
+
+  async $transaction<T>(callback: (tx: this) => Promise<T>): Promise<T> {
+    return callback(this);
+  }
+
+  readonly $executeRaw = async (..._args: unknown[]): Promise<number> => 1;
 
   async checkConnection(): Promise<boolean> {
     return true;
@@ -511,6 +558,21 @@ function generateTotpCode(secretBase32: string, atMs = Date.now()): string {
     ((hmac[offset + 2] & 0xff) << 8) |
     (hmac[offset + 3] & 0xff);
   return (binaryCode % 1_000_000).toString().padStart(6, '0');
+}
+
+function encodeWebauthnClientData(params: {
+  type: 'webauthn.create' | 'webauthn.get';
+  challenge: string;
+  origin: string;
+}): string {
+  return Buffer.from(
+    JSON.stringify({
+      type: params.type,
+      challenge: params.challenge,
+      origin: params.origin,
+    }),
+    'utf8',
+  ).toString('base64url');
 }
 
 describe('auth endpoints', () => {
@@ -776,7 +838,12 @@ describe('auth endpoints', () => {
       .set('Authorization', `Bearer ${initialLogin.body.accessToken as string}`)
       .send({
         challengeToken: registrationOptions.body.challengeToken,
-        credentialId: 'webauthn-credential-local-12345',
+        credentialId: Buffer.from('webauthn-credential-local-12345', 'utf8').toString('base64url'),
+        clientDataJson: encodeWebauthnClientData({
+          type: 'webauthn.create',
+          challenge: registrationOptions.body.options.challenge as string,
+          origin: 'https://localhost:8443',
+        }),
         label: 'Laptop key',
       });
     expect(registerVerify.statusCode).toBe(201);
@@ -802,6 +869,11 @@ describe('auth endpoints', () => {
       password: 'StrongPassword!123',
       webauthnChallengeToken: missingMfaLogin.body.webauthn.challengeToken,
       webauthnCredentialId: 'invalid-credential-id',
+      webauthnClientDataJson: encodeWebauthnClientData({
+        type: 'webauthn.get',
+        challenge: missingMfaLogin.body.webauthn.challenge as string,
+        origin: 'https://localhost:8443',
+      }),
     });
     expect(invalidCredentialLogin.statusCode).toBe(401);
     expect(invalidCredentialLogin.body.code).toBe('MFA_INVALID');
@@ -813,11 +885,37 @@ describe('auth endpoints', () => {
     expect(freshChallenge.statusCode).toBe(401);
     expect(typeof freshChallenge.body.webauthn?.challengeToken).toBe('string');
 
-    const validCredentialLogin = await request(app.getHttpServer()).post('/v1/auth/login').send({
+    const invalidOriginLogin = await request(app.getHttpServer()).post('/v1/auth/login').send({
       email: 'webauthn-user@local.test',
       password: 'StrongPassword!123',
       webauthnChallengeToken: freshChallenge.body.webauthn.challengeToken,
-      webauthnCredentialId: 'webauthn-credential-local-12345',
+      webauthnCredentialId: Buffer.from('webauthn-credential-local-12345', 'utf8').toString('base64url'),
+      webauthnClientDataJson: encodeWebauthnClientData({
+        type: 'webauthn.get',
+        challenge: freshChallenge.body.webauthn.challenge as string,
+        origin: 'https://evil.local',
+      }),
+    });
+    expect(invalidOriginLogin.statusCode).toBe(401);
+    expect(invalidOriginLogin.body.code).toBe('MFA_INVALID');
+
+    const finalChallenge = await request(app.getHttpServer()).post('/v1/auth/login').send({
+      email: 'webauthn-user@local.test',
+      password: 'StrongPassword!123',
+    });
+    expect(finalChallenge.statusCode).toBe(401);
+    expect(typeof finalChallenge.body.webauthn?.challengeToken).toBe('string');
+
+    const validCredentialLogin = await request(app.getHttpServer()).post('/v1/auth/login').send({
+      email: 'webauthn-user@local.test',
+      password: 'StrongPassword!123',
+      webauthnChallengeToken: finalChallenge.body.webauthn.challengeToken,
+      webauthnCredentialId: Buffer.from('webauthn-credential-local-12345', 'utf8').toString('base64url'),
+      webauthnClientDataJson: encodeWebauthnClientData({
+        type: 'webauthn.get',
+        challenge: finalChallenge.body.webauthn.challenge as string,
+        origin: 'https://localhost:8443',
+      }),
     });
     expect(validCredentialLogin.statusCode).toBe(201);
     expect(typeof validCredentialLogin.body.accessToken).toBe('string');

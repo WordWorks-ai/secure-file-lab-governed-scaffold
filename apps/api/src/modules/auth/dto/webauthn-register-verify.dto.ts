@@ -11,6 +11,11 @@ export class WebauthnRegisterVerifyDto {
   @MaxLength(512)
   credentialId!: string;
 
+  @IsString()
+  @MinLength(32)
+  @MaxLength(8192)
+  clientDataJson!: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(120)

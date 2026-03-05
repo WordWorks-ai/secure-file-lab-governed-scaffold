@@ -6,4 +6,5 @@ coverage
 dist
 *.log
 backups
+artifacts
 .DS_Store

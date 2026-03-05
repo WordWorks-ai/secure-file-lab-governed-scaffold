@@ -84,6 +84,7 @@ export class FilesService {
         orgId: org.id,
       },
       context: {
+        actorOrgId: org.id,
         contentType: normalizedContentType,
         sizeBytes: plaintext.byteLength,
       },
@@ -228,7 +229,7 @@ export class FilesService {
     user: AuthenticatedUser,
     context: RequestContext,
   ): Promise<{ fileId: string; status: FileStatus }> {
-    const file = await this.findFileForUser(fileId, user);
+    const { file, membershipRole } = await this.findFileForUser(fileId, user);
     await this.enforcePolicy({
       action: 'file.activate',
       actor: {
@@ -242,6 +243,11 @@ export class FilesService {
         id: file.id,
         orgId: file.orgId,
         ownerUserId: file.ownerUserId,
+      },
+      context: {
+        actorOrgId: file.orgId,
+        membershipRole,
+        actorOwnsResource: file.ownerUserId === user.sub,
       },
     });
     const activated = await this.transitionFileStatus(file.id, file.status, FileStatus.active, {
@@ -332,7 +338,7 @@ export class FilesService {
     createdAt: string;
     updatedAt: string;
   }> {
-    const file = await this.findFileForUser(fileId, user);
+    const { file } = await this.findFileForUser(fileId, user);
     return {
       id: file.id,
       filename: file.filename,
@@ -354,7 +360,7 @@ export class FilesService {
     contentType: string;
     contentBase64: string;
   }> {
-    const file = await this.findFileForUser(fileId, user);
+    const { file, membershipRole } = await this.findFileForUser(fileId, user);
     await this.enforcePolicy({
       action: 'file.download',
       actor: {
@@ -370,7 +376,11 @@ export class FilesService {
         ownerUserId: file.ownerUserId,
       },
       context: {
+        actorOrgId: file.orgId,
+        membershipRole,
+        actorOwnsResource: file.ownerUserId === user.sub,
         status: file.status,
+        fileStatus: file.status,
       },
     });
 
@@ -430,7 +440,27 @@ export class FilesService {
     };
   }
 
-  private async findFileForUser(fileId: string, user: AuthenticatedUser) {
+  private async findFileForUser(
+    fileId: string,
+    user: AuthenticatedUser,
+  ): Promise<{
+    file: {
+      id: string;
+      orgId: string;
+      ownerUserId: string;
+      filename: string;
+      contentType: string;
+      sizeBytes: bigint;
+      storageKey: string;
+      status: FileStatus;
+      wrappedDek: string | null;
+      encryptionIv: string | null;
+      encryptionTag: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+    };
+    membershipRole: MembershipRole;
+  }> {
     const file = await this.prismaService.file.findUnique({
       where: { id: fileId },
     });
@@ -452,7 +482,10 @@ export class FilesService {
       throw new ForbiddenException('Not authorized to access this file');
     }
 
-    return file;
+    return {
+      file,
+      membershipRole: membership.role,
+    };
   }
 
   private async ensurePrimaryOrg(user: AuthenticatedUser): Promise<{ id: string }> {

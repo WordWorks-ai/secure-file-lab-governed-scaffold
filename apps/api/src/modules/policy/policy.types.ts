@@ -18,11 +18,18 @@ export type PolicyDecisionInput = {
   action: string;
   actor: PolicyActor;
   resource: PolicyResource;
-  context?: Record<string, unknown>;
+  context?: {
+    actorOrgId?: string | null;
+    membershipRole?: string | null;
+    fileStatus?: string | null;
+    shareCreatedByUserId?: string | null;
+    actorOwnsResource?: boolean;
+    [key: string]: unknown;
+  };
 };
 
 export type PolicyDecision = {
   allowed: boolean;
-  source: 'disabled' | 'opa' | 'opa_error' | 'fallback_allow';
+  source: 'disabled' | 'opa' | 'opa_error' | 'fallback_allow' | 'local_abac';
   reason: string;
 };

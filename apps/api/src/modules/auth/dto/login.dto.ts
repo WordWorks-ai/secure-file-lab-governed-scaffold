@@ -25,4 +25,10 @@ export class LoginDto {
   @MinLength(8)
   @MaxLength(512)
   webauthnCredentialId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(32)
+  @MaxLength(8192)
+  webauthnClientDataJson?: string;
 }

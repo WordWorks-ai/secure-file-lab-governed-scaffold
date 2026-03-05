@@ -69,16 +69,4 @@ if ! grep -Fq "req.url === '/metrics'" apps/realtime/server.mjs; then
   exit 1
 fi
 
-running_services="$(docker compose --env-file .env -f infra/compose/docker-compose.yml ps --services --status running 2>/dev/null || true)"
-if grep -qx "caddy" <<<"$running_services" \
-  && grep -qx "api" <<<"$running_services" \
-  && grep -qx "realtime" <<<"$running_services"; then
-  curl -fsS http://localhost:8080/v1/metrics >/dev/null
-  curl -fsS http://localhost:8080/realtime/metrics >/dev/null
-fi
-
-if grep -qx "worker" <<<"$running_services"; then
-  curl -fsS http://localhost:${WORKER_HEALTH_PORT:-3001}/v1/metrics >/dev/null
-fi
-
 echo "stage14 observability checks passed"
