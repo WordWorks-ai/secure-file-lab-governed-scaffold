@@ -1,4 +1,4 @@
-# Schwass Secure File Lab (Governed Prototype)
+# Secure File Lab (Governed Prototype)
 
 Self-hosted secure file sharing prototype focused on deterministic local deployment, explicit security controls, and governance-first delivery.
 

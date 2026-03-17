@@ -1,4 +1,4 @@
-package schwass
+package secure_file_lab
 
 default allow = false
 

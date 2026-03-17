@@ -210,7 +210,7 @@ export class PolicyService {
 
   private getPolicyDecisionUrl(): string {
     const base = (process.env.OPA_BASE_URL ?? 'http://opa:8181').replace(/\/+$/, '');
-    const path = process.env.OPA_POLICY_PATH ?? '/v1/data/schwass/allow';
+    const path = process.env.OPA_POLICY_PATH ?? '/v1/data/secure_file_lab/allow';
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
     return `${base}${normalizedPath}`;
   }

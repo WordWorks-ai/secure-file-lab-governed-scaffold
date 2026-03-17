@@ -1,4 +1,4 @@
-name: schwass_secure_file_lab
+name: secure_file_lab
 
 services:
   caddy:
@@ -481,7 +481,7 @@ services:
       POLICY_ENGINE_FAIL_SAFE_DENY: ${POLICY_ENGINE_FAIL_SAFE_DENY:-true}
       POLICY_ENGINE_TIMEOUT_MS: ${POLICY_ENGINE_TIMEOUT_MS:-3000}
       OPA_BASE_URL: ${OPA_BASE_URL:-http://opa:8181}
-      OPA_POLICY_PATH: ${OPA_POLICY_PATH:-/v1/data/schwass/allow}
+      OPA_POLICY_PATH: ${OPA_POLICY_PATH:-/v1/data/secure_file_lab/allow}
       KEYCLOAK_SSO_ENABLED: ${KEYCLOAK_SSO_ENABLED:-false}
       KEYCLOAK_BASE_URL: ${KEYCLOAK_BASE_URL:-http://keycloak:8080}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM:-master}

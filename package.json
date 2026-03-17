@@ -1,5 +1,5 @@
 {
-  "name": "schwass-secure-file-lab",
+  "name": "secure-file-lab",
   "version": "0.1.0",
   "private": true,
   "description": "Governed scaffold for a self-hosted secure file sharing prototype",

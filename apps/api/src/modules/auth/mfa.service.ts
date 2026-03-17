@@ -368,8 +368,8 @@ export class MfaService {
   }
 
   private getTotpIssuer(): string {
-    const value = (process.env.MFA_TOTP_ISSUER ?? 'Schwass Secure File Lab').trim();
-    return value.length > 0 ? value : 'Schwass Secure File Lab';
+    const value = (process.env.MFA_TOTP_ISSUER ?? 'Secure File Lab').trim();
+    return value.length > 0 ? value : 'Secure File Lab';
   }
 
   private getWebauthnRpId(): string {
@@ -378,8 +378,8 @@ export class MfaService {
   }
 
   private getWebauthnRpName(): string {
-    const value = (process.env.MFA_WEBAUTHN_RP_NAME ?? 'Schwass Secure File Lab').trim();
-    return value.length > 0 ? value : 'Schwass Secure File Lab';
+    const value = (process.env.MFA_WEBAUTHN_RP_NAME ?? 'Secure File Lab').trim();
+    return value.length > 0 ? value : 'Secure File Lab';
   }
 
   private getWebauthnChallengeTtlMs(): number {

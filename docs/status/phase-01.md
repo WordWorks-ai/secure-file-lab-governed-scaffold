@@ -93,7 +93,7 @@ Phase 1 delivered a deterministic local infrastructure scaffold for required v1 
 
 ## Architecture Decisions Made
 
-- Compose project name fixed (`schwass_secure_file_lab`) for stable network/volume naming.
+- Compose project name fixed (`secure_file_lab`) for stable network/volume naming.
 - ClamAV pinned to `platform: linux/amd64` for Apple Silicon compatibility in this environment.
 - Vault healthcheck switched to `vault status` for deterministic health reporting.
 - Bootstrap uses `DOCKER_BUILDKIT=0` due BuildKit session-header incompatibility in this workspace path context.
