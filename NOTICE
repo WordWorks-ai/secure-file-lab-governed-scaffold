@@ -6,8 +6,3 @@ under the Elastic License 2.0 in the repository root LICENSE file.
 
 This repository is public and source-available, but it is not offered under an
 OSI-approved open source license.
-
-Files under `docs/client-source/` are excluded from the repository root license
-grant. Those materials remain client-provided and client-owned, and no license
-to use, reproduce, modify, or redistribute them is granted by the repository
-owner.

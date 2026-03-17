@@ -432,7 +432,10 @@ class InMemoryPrismaService {
     return callback(this);
   }
 
-  readonly $executeRaw = async (..._args: unknown[]): Promise<number> => 1;
+  readonly $executeRaw = async (...args: unknown[]): Promise<number> => {
+    void args;
+    return 1;
+  };
 
   async checkConnection(): Promise<boolean> {
     return true;

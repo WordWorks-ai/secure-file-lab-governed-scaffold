@@ -2,7 +2,10 @@
 
 ## Status Note
 
-This document defines target baseline controls for v1. As of 2026-03-04, auth, file malware-gate, share policy, audit query/export, backup/restore operational baselines, and CI security gates are implemented.
+This document defines target baseline controls for v1. As of 2026-03-17, auth,
+MFA, encrypted file ingest, malware-gated activation, share policy, audit
+query/export/analytics, backup/restore, secret rotation, and CI security gates
+are implemented.
 
 ## Authentication and Identity
 
@@ -112,6 +115,5 @@ Current limitation:
 ## Deferred Hardening (Documented)
 
 - MFA anti-phishing controls and recovery-factor hardening.
-- Fine-grained ABAC/policy engine.
-- Tamper-evident audit chain.
-- Full secret rotation automation.
+- Fine-grained ABAC/policy engine depth and externalized policy operations.
+- Production-grade key custody, secret distribution, and post-rotation observability.

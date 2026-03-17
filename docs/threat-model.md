@@ -2,7 +2,10 @@
 
 ## Implementation Status Note
 
-This threat model captures target controls. Current codebase is Phase 0/8 with share-policy, audit-query/export, operational backup/restore baseline, and CI quality-gate baseline implemented. Stage 16 additionally introduces MFA baseline auth controls. Stage 17 additionally introduces authenticated realtime WebSocket transport. Stage 18 additionally hardens preview/OCR retry and fail-closed behavior. Stage 19 additionally hardens DLP corpus depth and override governance.
+This threat model captures target controls. Current codebase includes working
+auth and MFA flows, share-policy enforcement, audit query/export paths,
+operational backup/restore baselines, CI quality gates, authenticated realtime
+transport, preview/OCR fail-closed handling, and DLP override governance.
 
 ## Scope
 

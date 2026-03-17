@@ -2,9 +2,16 @@
 
 Self-hosted secure file sharing prototype focused on deterministic local deployment, explicit security controls, and governance-first delivery.
 
-## Current Implementation Status (2026-03-04)
+## What This Repo Demonstrates
 
-This repository currently implements a **Phase 0/8 governed prototype baseline** with runtime flows, operational backup/restore readiness, and CI/handoff quality gates.
+- End-to-end secure-file workflows across API, worker, storage, scanning, and policy boundaries.
+- Local-first platform operations with deterministic bootstrap, backup, restore, and recovery guardrails.
+- Governance-heavy delivery: ADRs, runbooks, scoped status artifacts, and shell-enforced quality gates.
+- A portfolio example of shipping across application code, infrastructure, security controls, and operator workflows in one coherent codebase.
+
+## Current Implementation Status (2026-03-17)
+
+This repository currently implements a governed secure-file-sharing prototype baseline with working auth, MFA, encrypted file ingest, malware-gated activation, share-link controls, audit analytics/export, and local backup/restore operations.
 
 Implemented now:
 
@@ -66,9 +73,9 @@ Implemented now:
 - Container build validation for `api` and `worker` images.
 - Architecture and service-map handoff documentation.
 
-Not implemented in v1 (intentionally out of scope):
+Not implemented as production-depth defaults (intentionally deferred):
 
-- Enterprise identity/policy/search/DLP/observability add-ons.
+- Enterprise-grade identity, policy, search, content, and observability depth beyond the current prototype and baseline shells.
 
 Post-v1 expansion baselines completed:
 
@@ -225,6 +232,7 @@ Before bootstrap, set a real Argon2id hash for `BOOTSTRAP_ADMIN_PASSWORD_HASH` i
 See:
 
 - `IMPLEMENTATION_PLAN.md`
+- `docs/public-release-notes.md`
 - `docs/adr/ADR-001-architecture-and-stack.md`
 - `docs/adr/ADR-002-file-lifecycle.md`
 - `docs/adr/ADR-003-encryption-and-key-management.md`
@@ -240,64 +248,22 @@ See:
 - `docs/runbooks/getting-started.md`
 - `CONTRIBUTING.md`
 
-## Commercial Add-On Artifacts
+## Public Release Notes
 
-- `docs/addons/ADDON-001-HARDENING-REPRODUCIBILITY-CHANGELOG.md`
+This public repository is curated as an engineering portfolio artifact. Client
+materials, valuation memos, negotiation templates, consent paperwork, and other
+non-public working docs are intentionally excluded from the public tree.
 
-## Valuation Artifacts
+## License
 
-- `docs/valuation/INDEPENDENT_VALUATION_REPORT.md`
-- `docs/valuation/CONVERSATION_REVIEW_AND_FORWARD_POSITION.md`
-- `docs/valuation/AUTHORSHIP_MODEL_COMMERCIAL_POSITION.md`
-- `docs/valuation/verify-valuation-claims.sh`
-- `docs/valuation/verify-history-and-authorship-signals.sh`
-
-## Client-Provided Source Materials
-
-- `docs/client-source/CLIENT-PROVIDED-SOURCE.md`
-- `docs/client-source/LICENSE.md`
-- `docs/client-source/README.md`
-
-Client-provided materials in this directory remain 100% owned by the client and
-are excluded from the repository root license grant.
-
-## Legal And Demo Package
-
-Repository-owned materials are public and source-available under Elastic License
-2.0. This is not an OSI-approved open source license. See:
-
-- `LICENSE`
-- `NOTICE`
-- `docs/legal/LEGAL_DECISIONS.md`
-- `docs/legal/DEMO_EVALUATION_TERMS.md`
-- `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md`
-- `docs/legal/COMMERCIAL_RIGHTS_OPTIONS.md`
-- `docs/legal/PRICING_AND_EFFORT_ESTIMATE.md`
-- `docs/legal/COMMERCIAL_POSITION_BASELINE.md`
-- `docs/legal/CLIENT_PRICING_TALK_TRACK.md`
-- `docs/legal/FORK_LICENSE_TEMPLATE.md`
-- `docs/legal/SESSION_PREP_PACKAGE.md`
-- `docs/legal/CLIENT_MEETING_CHECKLIST.md`
-- `docs/legal/SESSION_RUN_SCRIPT.md`
-- `docs/legal/PRE_SESSION_EMAIL_TEMPLATE.md`
-- `docs/legal/INITIAL_ENGAGEMENT_EMAIL_DRAFT.md`
-
-Under ELv2, covered repository materials may be used, modified, and
-redistributed subject to the license limitations, including no hosted/managed
-service offering and no removal of licensing notices.
-
-Separate signed agreements are still required for:
-
-- ownership transfer
-- custom commercial terms beyond the repository license
-- support or services obligations
-- use of excluded client-provided materials under `docs/client-source/`
+Repository materials are source-available under Elastic License 2.0. This
+repository is public, but it is not offered under an OSI-approved open source
+license. See `LICENSE` and `NOTICE`.
 
 ## Current Status
 
-- Completed: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and Phase 8.
-- Completed: Stage 9, Stage 10, Stage 11, Stage 12, Stage 13, and Stage 14 baseline shells for post-v1 expansion.
-- Completed: hardening validation pass for scaffold.
-- Remaining work is production hardening and operational depth beyond baseline expansion scope.
+- Implemented now: auth/login/logout/refresh, MFA enrollment and enforcement, encrypted file ingest, malware-gated activation, share creation/access/revocation, audit export/analytics, backup/restore flows, governed secret rotation, and authenticated realtime delivery.
+- Available as profile-driven or expansion baselines: Keycloak, OPA, OpenSearch, preview/OCR, DLP, observability, and webhook-sink services.
+- Remaining work is production-depth hardening, richer policy/search/content pipelines, and deeper operator observability beyond the current prototype baseline.
 
 Detailed evidence is tracked in `docs/status`.
