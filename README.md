@@ -255,15 +255,19 @@ See:
 ## Client-Provided Source Materials
 
 - `docs/client-source/CLIENT-PROVIDED-SOURCE.md`
+- `docs/client-source/LICENSE.md`
 - `docs/client-source/README.md`
 
-Client-provided materials in this directory remain 100% owned by the client.
+Client-provided materials in this directory remain 100% owned by the client and
+are excluded from the repository root license grant.
 
 ## Legal And Demo Package
 
-Default licensing posture is proprietary (All Rights Reserved). See:
+Repository-owned materials are public and source-available under Elastic License
+2.0. This is not an OSI-approved open source license. See:
 
 - `LICENSE`
+- `NOTICE`
 - `docs/legal/LEGAL_DECISIONS.md`
 - `docs/legal/DEMO_EVALUATION_TERMS.md`
 - `docs/legal/RECORDING_AND_REFERENCE_CONSENT.md`
@@ -278,7 +282,16 @@ Default licensing posture is proprietary (All Rights Reserved). See:
 - `docs/legal/PRE_SESSION_EMAIL_TEMPLATE.md`
 - `docs/legal/INITIAL_ENGAGEMENT_EMAIL_DRAFT.md`
 
-Commercialization or enterprise-core use of this IP requires a separate signed commercial rights agreement.
+Under ELv2, covered repository materials may be used, modified, and
+redistributed subject to the license limitations, including no hosted/managed
+service offering and no removal of licensing notices.
+
+Separate signed agreements are still required for:
+
+- ownership transfer
+- custom commercial terms beyond the repository license
+- support or services obligations
+- use of excluded client-provided materials under `docs/client-source/`
 
 ## Current Status
 

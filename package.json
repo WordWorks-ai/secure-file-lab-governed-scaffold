@@ -2,6 +2,7 @@
   "name": "secure-file-lab",
   "version": "0.1.0",
   "private": true,
+  "license": "Elastic-2.0",
   "description": "Governed scaffold for a self-hosted secure file sharing prototype",
   "packageManager": "pnpm@8.11.0",
   "engines": {

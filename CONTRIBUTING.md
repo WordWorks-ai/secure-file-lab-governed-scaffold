@@ -115,5 +115,8 @@ In PR descriptions, include:
 
 ## License Note
 
-This repository is currently under an All Rights Reserved licensing posture.
-Review `LICENSE` and `docs/legal` before reusing or distributing outside approved agreements.
+Repository-owned materials are source-available under Elastic License 2.0.
+Review `LICENSE`, `NOTICE`, and `docs/legal` before reusing or redistributing.
+
+Files under `docs/client-source/` are excluded from the repository root license
+grant and remain client-owned.
