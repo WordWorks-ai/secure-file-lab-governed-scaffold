@@ -95,6 +95,7 @@ pnpm run test:ops-smoke
 - Use `.env.example` placeholders only.
 - Do not log secrets, token material, or sensitive payloads.
 - Preserve explicit file lifecycle states and do not skip quarantine/scan gates in future file workflows.
+- Route vulnerability reports through `SECURITY.md`, not public issues.
 
 ## Contribution DoD (Definition of Done)
 
@@ -116,4 +117,4 @@ In PR descriptions, include:
 ## License Note
 
 Repository-owned materials are source-available under Elastic License 2.0.
-Review `LICENSE` and `NOTICE` before reusing or redistributing.
+Review `LICENSE`, `NOTICE`, and `LICENSING.md` before reusing or redistributing.

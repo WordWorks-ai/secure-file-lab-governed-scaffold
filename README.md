@@ -2,6 +2,8 @@
 
 Self-hosted secure file sharing prototype focused on deterministic local deployment, explicit security controls, and governance-first delivery.
 
+Published as a source-available portfolio artifact under Elastic License 2.0.
+
 ## What This Repo Demonstrates
 
 - End-to-end secure-file workflows across API, worker, storage, scanning, and policy boundaries.
@@ -233,6 +235,7 @@ See:
 
 - `IMPLEMENTATION_PLAN.md`
 - `docs/public-release-notes.md`
+- `docs/attribution.md`
 - `docs/adr/ADR-001-architecture-and-stack.md`
 - `docs/adr/ADR-002-file-lifecycle.md`
 - `docs/adr/ADR-003-encryption-and-key-management.md`
@@ -254,11 +257,13 @@ This public repository is curated as an engineering portfolio artifact. Client
 materials, valuation memos, negotiation templates, consent paperwork, and other
 non-public working docs are intentionally excluded from the public tree.
 
+See `docs/public-release-notes.md`, `LICENSING.md`, and `SECURITY.md`.
+
 ## License
 
 Repository materials are source-available under Elastic License 2.0. This
 repository is public, but it is not offered under an OSI-approved open source
-license. See `LICENSE` and `NOTICE`.
+license. See `LICENSE`, `NOTICE`, and `LICENSING.md`.
 
 ## Current Status
 
