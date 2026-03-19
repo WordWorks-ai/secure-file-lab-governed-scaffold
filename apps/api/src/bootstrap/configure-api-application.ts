@@ -31,6 +31,16 @@ export function validateRequiredSecrets(): void {
     );
   }
 
+  const MIN_SECRET_LENGTH = 32;
+  const weak = required.filter(
+    (name) => process.env[name]!.trim().length < MIN_SECRET_LENGTH,
+  );
+  if (weak.length > 0) {
+    throw new Error(
+      `Weak secrets detected: ${weak.join(', ')} must be at least ${MIN_SECRET_LENGTH} characters.`,
+    );
+  }
+
   const secretEntries: Array<[string, string]> = [
     'JWT_ACCESS_SECRET',
     'JWT_REFRESH_SECRET',

@@ -13,8 +13,8 @@ describe('system endpoints', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    process.env.JWT_ACCESS_SECRET = 'test-system-secret';
-    process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key';
+    process.env.JWT_ACCESS_SECRET = 'test-system-secret-that-is-at-least-32-chars';
+    process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key-at-least-32-chars';
 
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],

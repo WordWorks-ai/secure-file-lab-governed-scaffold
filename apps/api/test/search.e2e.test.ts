@@ -168,11 +168,11 @@ function signAccessToken(claims: {
 describe('search endpoints', () => {
   let app: INestApplication;
   let prisma: InMemoryPrismaService;
-  const jwtSecret = 'search-test-secret';
+  const jwtSecret = 'search-test-secret-that-is-at-least-32-chars-long';
 
   beforeAll(async () => {
     process.env.JWT_ACCESS_SECRET = jwtSecret;
-    process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key';
+    process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key-at-least-32-chars';
     process.env.OPENSEARCH_ENABLED = 'false';
 
     prisma = new InMemoryPrismaService();

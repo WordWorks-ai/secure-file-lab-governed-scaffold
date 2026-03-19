@@ -56,7 +56,10 @@ export class AuthService {
       where: { email: normalizedEmail },
     });
 
-    const passwordValid = user ? await this.verifyPassword(user.passwordHash, password) : false;
+    // Always run password verification to prevent timing-based user enumeration.
+    // If user doesn't exist, verify against a dummy hash so response time is constant.
+    const DUMMY_HASH = '$argon2id$v=19$m=19456,t=2,p=1$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+    const passwordValid = await this.verifyPassword(user?.passwordHash ?? DUMMY_HASH, password);
     const activeUser = Boolean(user?.isActive);
 
     if (!user || !passwordValid || !activeUser) {

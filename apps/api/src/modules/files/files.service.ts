@@ -10,6 +10,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   PayloadTooLargeException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -40,6 +41,7 @@ type RequestContext = {
 
 @Injectable()
 export class FilesService {
+  private readonly logger = new Logger(FilesService.name);
   private readonly maxFileBytes = this.getMaxFileBytes();
   private readonly allowedMimeTypes = this.getAllowedMimeTypes();
 
@@ -624,16 +626,16 @@ export class FilesService {
   private async tryEnqueueSearchUpsert(fileId: string): Promise<void> {
     try {
       await this.searchQueueService.enqueue('upsert', fileId);
-    } catch {
-      // Search indexing must not block core file workflow.
+    } catch (error) {
+      this.logger.warn(`Search indexing enqueue failed for file ${fileId}: ${error instanceof Error ? error.message : 'unknown'}`);
     }
   }
 
   private async tryEnqueueContentProcessing(fileId: string): Promise<void> {
     try {
       await this.contentQueueService.enqueue(fileId);
-    } catch {
-      // Content derivation must not block core file workflow.
+    } catch (error) {
+      this.logger.warn(`Content processing enqueue failed for file ${fileId}: ${error instanceof Error ? error.message : 'unknown'}`);
     }
   }
 

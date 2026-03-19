@@ -8,13 +8,13 @@ import {
   ParseUUIDPipe,
   Post,
   Req,
-  UnauthorizedException,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 
+import { getRequestContext, requireAuthenticatedUser } from '../../common/request-context.js';
 import { createValidationException } from '../../common/validation/validation-exception.factory.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { ActiveUserGuard } from '../auth/guards/active-user.guard.js';
@@ -47,7 +47,7 @@ export class FilesController {
     status: string;
     storageKey: string;
   }> {
-    return this.filesService.uploadFile(payload, this.requireUser(request), this.getRequestContext(request));
+    return this.filesService.uploadFile(payload, requireAuthenticatedUser(request), getRequestContext(request));
   }
 
   @Post(':fileId/activate')
@@ -58,7 +58,7 @@ export class FilesController {
     @Param('fileId', new ParseUUIDPipe({ version: '4' })) fileId: string,
     @Req() request: AuthenticatedRequest,
   ): Promise<{ fileId: string; status: string }> {
-    return this.filesService.activateFile(fileId, this.requireUser(request), this.getRequestContext(request));
+    return this.filesService.activateFile(fileId, requireAuthenticatedUser(request), getRequestContext(request));
   }
 
   @Get(':fileId')
@@ -74,7 +74,7 @@ export class FilesController {
     createdAt: string;
     updatedAt: string;
   }> {
-    return this.filesService.getFileMetadata(fileId, this.requireUser(request));
+    return this.filesService.getFileMetadata(fileId, requireAuthenticatedUser(request));
   }
 
   @Get(':fileId/artifacts')
@@ -94,7 +94,7 @@ export class FilesController {
       generatedAt: string | null;
     };
   }> {
-    return this.filesService.getFileArtifacts(fileId, this.requireUser(request));
+    return this.filesService.getFileArtifacts(fileId, requireAuthenticatedUser(request));
   }
 
   @Get(':fileId/download')
@@ -109,28 +109,9 @@ export class FilesController {
   }> {
     return this.filesService.downloadFile(
       fileId,
-      this.requireUser(request),
-      this.getRequestContext(request),
+      requireAuthenticatedUser(request),
+      getRequestContext(request),
     );
   }
 
-  private requireUser(request: AuthenticatedRequest): AuthenticatedUser {
-    if (!request.user) {
-      throw new UnauthorizedException('Invalid access token');
-    }
-
-    return request.user;
-  }
-
-  private getRequestContext(request: AuthenticatedRequest): {
-    ipAddress: string | null;
-    userAgent: string | null;
-  } {
-    const header = request.headers?.['user-agent'];
-    const userAgent = Array.isArray(header) ? header[0] : header;
-    return {
-      ipAddress: request.ip ?? request.socket?.remoteAddress ?? null,
-      userAgent: userAgent ?? null,
-    };
-  }
 }

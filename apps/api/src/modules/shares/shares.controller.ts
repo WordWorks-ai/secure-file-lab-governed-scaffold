@@ -7,7 +7,6 @@ import {
   ParseUUIDPipe,
   Post,
   Req,
-  UnauthorizedException,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -15,6 +14,7 @@ import {
 
 import { Throttle } from '@nestjs/throttler';
 
+import { getRequestContext, requireAuthenticatedUser } from '../../common/request-context.js';
 import { createValidationException } from '../../common/validation/validation-exception.factory.js';
 import { AuthenticatedRequest, AuthenticatedUser } from '../auth/types/authenticated-request.js';
 import { ActiveUserGuard } from '../auth/guards/active-user.guard.js';
@@ -49,7 +49,7 @@ export class SharesController {
     maxDownloads: number | null;
     requiresPassword: boolean;
   }> {
-    return this.sharesService.createShare(payload, this.requireUser(request), this.getRequestContext(request));
+    return this.sharesService.createShare(payload, requireAuthenticatedUser(request), getRequestContext(request));
   }
 
   @Post(':shareId/revoke')
@@ -59,7 +59,7 @@ export class SharesController {
     @Param('shareId', new ParseUUIDPipe({ version: '4' })) shareId: string,
     @Req() request: AuthenticatedRequest,
   ): Promise<{ shareId: string; revokedAt: string }> {
-    return this.sharesService.revokeShare(shareId, this.requireUser(request), this.getRequestContext(request));
+    return this.sharesService.revokeShare(shareId, requireAuthenticatedUser(request), getRequestContext(request));
   }
 
   @Post('access')
@@ -84,26 +84,7 @@ export class SharesController {
     contentType: string;
     contentBase64: string;
   }> {
-    return this.sharesService.accessShare(payload, this.getRequestContext(request));
+    return this.sharesService.accessShare(payload, getRequestContext(request));
   }
 
-  private requireUser(request: AuthenticatedRequest): AuthenticatedUser {
-    if (!request.user) {
-      throw new UnauthorizedException('Invalid access token');
-    }
-
-    return request.user;
-  }
-
-  private getRequestContext(request: AuthenticatedRequest): {
-    ipAddress: string | null;
-    userAgent: string | null;
-  } {
-    const header = request.headers?.['user-agent'];
-    const userAgent = Array.isArray(header) ? header[0] : header;
-    return {
-      ipAddress: request.ip ?? request.socket?.remoteAddress ?? null,
-      userAgent: userAgent ?? null,
-    };
-  }
 }

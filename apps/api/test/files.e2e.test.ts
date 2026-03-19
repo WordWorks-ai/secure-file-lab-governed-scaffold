@@ -596,7 +596,7 @@ describe('files endpoints', () => {
   let originalDlpAdminOverrideMinReasonLength: string | undefined;
   let originalDlpAdminOverrideRequireTicket: string | undefined;
   let originalDlpAdminOverrideTicketPattern: string | undefined;
-  const jwtSecret = 'files-test-secret';
+  const jwtSecret = 'files-test-secret-that-is-at-least-32-chars-long';
 
   beforeAll(async () => {
     originalDlpEngineEnabled = process.env.DLP_ENGINE_ENABLED;
@@ -606,7 +606,7 @@ describe('files endpoints', () => {
     originalDlpAdminOverrideRequireTicket = process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET;
     originalDlpAdminOverrideTicketPattern = process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN;
     process.env.JWT_ACCESS_SECRET = jwtSecret;
-    process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key';
+    process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key-at-least-32-chars';
     process.env.FILE_UPLOAD_MAX_BYTES = '1024';
     process.env.FILE_UPLOAD_ALLOWED_MIME_TYPES = 'text/plain,application/json';
     process.env.DLP_ENGINE_ENABLED = 'false';

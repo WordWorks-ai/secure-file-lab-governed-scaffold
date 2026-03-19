@@ -693,7 +693,7 @@ describe('shares and audit endpoints', () => {
   let originalDlpAdminOverrideMinReasonLength: string | undefined;
   let originalDlpAdminOverrideRequireTicket: string | undefined;
   let originalDlpAdminOverrideTicketPattern: string | undefined;
-  const jwtSecret = 'shares-test-secret';
+  const jwtSecret = 'shares-test-secret-that-is-at-least-32-chars-long';
 
   beforeAll(async () => {
     originalDlpEngineEnabled = process.env.DLP_ENGINE_ENABLED;
@@ -703,7 +703,7 @@ describe('shares and audit endpoints', () => {
     originalDlpAdminOverrideRequireTicket = process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET;
     originalDlpAdminOverrideTicketPattern = process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN;
     process.env.JWT_ACCESS_SECRET = jwtSecret;
-    process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key';
+    process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key-at-least-32-chars';
     process.env.DLP_ENGINE_ENABLED = 'false';
     process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'false';
     process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON = 'true';

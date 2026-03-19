@@ -16,6 +16,7 @@ import {
 
 import { Throttle } from '@nestjs/throttler';
 
+import { getRequestContext, requireAuthenticatedUser } from '../../common/request-context.js';
 import { createValidationException } from '../../common/validation/validation-exception.factory.js';
 import { Roles } from './decorators/roles.decorator.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -58,7 +59,7 @@ export class AuthController {
         webauthnCredentialId: payload.webauthnCredentialId,
         webauthnClientDataJson: payload.webauthnClientDataJson,
       },
-      this.getRequestContext(request),
+      getRequestContext(request),
     );
   }
 
@@ -77,10 +78,11 @@ export class AuthController {
     @Body() payload: RefreshDto,
     @Req() request: AuthenticatedRequest,
   ): Promise<AuthTokenResponse> {
-    return this.authService.refresh(payload.refreshToken, this.getRequestContext(request));
+    return this.authService.refresh(payload.refreshToken, getRequestContext(request));
   }
 
   @Post('sso/exchange')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @UsePipes(
     new ValidationPipe({
       transform: true,
@@ -94,7 +96,7 @@ export class AuthController {
     @Body() payload: SsoExchangeDto,
     @Req() request: AuthenticatedRequest,
   ): Promise<AuthTokenResponse> {
-    return this.authService.exchangeSsoAccessToken(payload.accessToken, this.getRequestContext(request));
+    return this.authService.exchangeSsoAccessToken(payload.accessToken, getRequestContext(request));
   }
 
   @Post('logout')
@@ -112,7 +114,7 @@ export class AuthController {
     @Body() payload: LogoutDto,
     @Req() request: AuthenticatedRequest,
   ): Promise<{ success: true }> {
-    return this.authService.logout(payload.refreshToken, this.getRequestContext(request));
+    return this.authService.logout(payload.refreshToken, getRequestContext(request));
   }
 
   @Get('me')
@@ -143,7 +145,7 @@ export class AuthController {
       credentialCount: number;
     };
   }> {
-    const user = this.requireAuthenticatedUser(request);
+    const user = requireAuthenticatedUser(request);
     return this.authService.getMfaStatus(user.sub);
   }
 
@@ -157,13 +159,13 @@ export class AuthController {
     secret: string;
     otpauthUri: string;
   }> {
-    const user = this.requireAuthenticatedUser(request);
+    const user = requireAuthenticatedUser(request);
     return this.authService.beginTotpEnrollment(
       {
         id: user.sub,
         email: user.email,
       },
-      this.getRequestContext(request),
+      getRequestContext(request),
     );
   }
 
@@ -182,25 +184,25 @@ export class AuthController {
     @Req() request: AuthenticatedRequest,
     @Body() payload: VerifyTotpDto,
   ): Promise<{ enabled: true }> {
-    const user = this.requireAuthenticatedUser(request);
+    const user = requireAuthenticatedUser(request);
     return this.authService.verifyTotpEnrollment(
       {
         id: user.sub,
       },
       payload.code,
-      this.getRequestContext(request),
+      getRequestContext(request),
     );
   }
 
   @Delete('mfa/totp')
   @UseGuards(JwtAuthGuard, ActiveUserGuard)
   async disableTotp(@Req() request: AuthenticatedRequest): Promise<{ disabled: true }> {
-    const user = this.requireAuthenticatedUser(request);
+    const user = requireAuthenticatedUser(request);
     return this.authService.disableTotp(
       {
         id: user.sub,
       },
-      this.getRequestContext(request),
+      getRequestContext(request),
     );
   }
 
@@ -228,13 +230,13 @@ export class AuthController {
       }>;
     };
   }> {
-    const user = this.requireAuthenticatedUser(request);
+    const user = requireAuthenticatedUser(request);
     return this.authService.beginWebauthnRegistration(
       {
         id: user.sub,
         email: user.email,
       },
-      this.getRequestContext(request),
+      getRequestContext(request),
     );
   }
 
@@ -253,33 +255,14 @@ export class AuthController {
     @Req() request: AuthenticatedRequest,
     @Body() payload: WebauthnRegisterVerifyDto,
   ): Promise<{ registered: true }> {
-    const user = this.requireAuthenticatedUser(request);
+    const user = requireAuthenticatedUser(request);
     return this.authService.finishWebauthnRegistration(
       {
         id: user.sub,
       },
       payload,
-      this.getRequestContext(request),
+      getRequestContext(request),
     );
   }
 
-  private getRequestContext(request: AuthenticatedRequest): {
-    ipAddress: string | null;
-    userAgent: string | null;
-  } {
-    const header = request.headers?.['user-agent'];
-    const userAgent = Array.isArray(header) ? header[0] : header;
-    return {
-      ipAddress: request.ip ?? request.socket?.remoteAddress ?? null,
-      userAgent: userAgent ?? null,
-    };
-  }
-
-  private requireAuthenticatedUser(request: AuthenticatedRequest): AuthenticatedUser {
-    if (!request.user) {
-      throw new UnauthorizedException('Invalid access token');
-    }
-
-    return request.user;
-  }
 }
