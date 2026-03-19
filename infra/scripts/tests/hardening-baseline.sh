@@ -265,4 +265,19 @@ if rg -n --glob '!infra/scripts/tests/hardening-baseline.sh' 'source[[:space:]]+
   exit 1
 fi
 
+# verify API healthcheck uses /health/ready (not /health/live) for proper readiness gating
+if rg -n 'fetch.*3000/v1/health/live' "$COMPOSE_FILE" >/dev/null 2>&1; then
+  echo "API healthcheck must use /health/ready instead of /health/live" >&2
+  exit 1
+fi
+
+# verify policy service contains startup security warnings
+POLICY_SERVICE="$ROOT_DIR/apps/api/src/modules/policy/policy.service.ts"
+if [[ -f "$POLICY_SERVICE" ]]; then
+  if ! rg -n 'SECURITY WARNING' "$POLICY_SERVICE" >/dev/null 2>&1; then
+    echo "policy service must contain SECURITY WARNING for disabled/fail-open states" >&2
+    exit 1
+  fi
+fi
+
 echo "hardening baseline checks passed"

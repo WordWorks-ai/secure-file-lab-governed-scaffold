@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
 import { PolicyDecision, PolicyDecisionInput } from './policy.types.js';
 
@@ -7,7 +7,27 @@ type OpaResponse = {
 };
 
 @Injectable()
-export class PolicyService {
+export class PolicyService implements OnModuleInit {
+  private readonly logger = new Logger(PolicyService.name);
+
+  onModuleInit(): void {
+    if (!this.isPolicyEngineEnabled()) {
+      const env = process.env.NODE_ENV ?? 'development';
+      if (env !== 'development' && env !== 'test') {
+        this.logger.warn(
+          'SECURITY WARNING: Policy engine is DISABLED. All policy decisions will default to allowed. ' +
+            'Enable POLICY_ENGINE_ENABLED=true for production environments.',
+        );
+      }
+    }
+    if (!this.failSafeDeny()) {
+      this.logger.warn(
+        'SECURITY WARNING: POLICY_ENGINE_FAIL_SAFE_DENY is false. ' +
+          'OPA errors will result in allowing requests instead of denying.',
+      );
+    }
+  }
+
   async assertAllowed(input: PolicyDecisionInput): Promise<void> {
     const decision = await this.evaluate(input);
     if (!decision.allowed) {

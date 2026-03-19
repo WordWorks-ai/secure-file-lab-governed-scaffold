@@ -54,6 +54,9 @@ jobs:
       - name: Integration tests
         run: pnpm test:integration
 
+      - name: Validate web harness
+        run: node infra/scripts/tests/validate-harness.js apps/web/index.html
+
       - name: Dependency audit
         run: bash infra/scripts/tests/dependency-audit.sh
 

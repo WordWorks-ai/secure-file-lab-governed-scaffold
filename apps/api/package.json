@@ -17,13 +17,14 @@
     "prisma:migrate:deploy": "prisma migrate deploy --schema prisma/schema.prisma"
   },
   "dependencies": {
-    "@node-rs/argon2": "^2.0.2",
-    "@prisma/client": "^6.4.1",
     "@nestjs/common": "^11.0.11",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.11",
-    "@nestjs/platform-fastify": "^11.0.11",
+    "@nestjs/platform-fastify": "^11.1.17",
     "@nestjs/terminus": "^11.0.0",
+    "@nestjs/throttler": "^6.5.0",
+    "@node-rs/argon2": "^2.0.2",
+    "@prisma/client": "^6.4.1",
     "bullmq": "^5.43.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",

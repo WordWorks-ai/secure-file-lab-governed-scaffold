@@ -380,6 +380,9 @@ services:
     command: ['-config.file=/etc/promtail/promtail-config.yml']
     volumes:
       - ../observability/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      # SECURITY: Docker socket mount grants container access to Docker API.
+      # In production, replace with log-shipping sidecar or journal-based collection.
+      # See: docs/client-source/security-review-findings-2026-03-19.md (D15)
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       loki:
@@ -549,7 +552,7 @@ services:
           'CMD',
           'node',
           '-e',
-          'fetch("http://127.0.0.1:3000/v1/health/live").then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1));'
+          'fetch("http://127.0.0.1:3000/v1/health/ready").then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1));'
         ]
       interval: 15s
       timeout: 5s

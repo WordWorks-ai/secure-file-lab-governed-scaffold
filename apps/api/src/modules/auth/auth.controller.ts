@@ -14,6 +14,8 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 
+import { Throttle } from '@nestjs/throttler';
+
 import { createValidationException } from '../../common/validation/validation-exception.factory.js';
 import { Roles } from './decorators/roles.decorator.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -22,6 +24,7 @@ import { RefreshDto } from './dto/refresh.dto.js';
 import { SsoExchangeDto } from './dto/sso-exchange.dto.js';
 import { VerifyTotpDto } from './dto/verify-totp.dto.js';
 import { WebauthnRegisterVerifyDto } from './dto/webauthn-register-verify.dto.js';
+import { ActiveUserGuard } from './guards/active-user.guard.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { RolesGuard } from './guards/roles.guard.js';
 import { AuthService, AuthTokenResponse } from './auth.service.js';
@@ -32,6 +35,7 @@ export class AuthController {
   constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
   @Post('login')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @UsePipes(
     new ValidationPipe({
       transform: true,
@@ -59,6 +63,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @UsePipes(
     new ValidationPipe({
       transform: true,
@@ -111,7 +116,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard)
   me(@Req() request: AuthenticatedRequest): { user: AuthenticatedUser } {
     if (!request.user) {
       throw new UnauthorizedException('Invalid access token');
@@ -121,14 +126,14 @@ export class AuthController {
   }
 
   @Get('admin-check')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard, RolesGuard)
   @Roles(UserRole.admin)
   adminCheck(): { allowed: true } {
     return { allowed: true };
   }
 
   @Get('mfa/status')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard)
   async getMfaStatus(@Req() request: AuthenticatedRequest): Promise<{
     totp: {
       enrolled: boolean;
@@ -143,7 +148,7 @@ export class AuthController {
   }
 
   @Post('mfa/totp/enroll')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard)
   async beginTotpEnrollment(
     @Req() request: AuthenticatedRequest,
   ): Promise<{
@@ -163,7 +168,7 @@ export class AuthController {
   }
 
   @Post('mfa/totp/verify')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard)
   @UsePipes(
     new ValidationPipe({
       transform: true,
@@ -188,7 +193,7 @@ export class AuthController {
   }
 
   @Delete('mfa/totp')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard)
   async disableTotp(@Req() request: AuthenticatedRequest): Promise<{ disabled: true }> {
     const user = this.requireAuthenticatedUser(request);
     return this.authService.disableTotp(
@@ -200,7 +205,7 @@ export class AuthController {
   }
 
   @Post('mfa/webauthn/register/options')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard)
   async beginWebauthnRegistration(
     @Req() request: AuthenticatedRequest,
   ): Promise<{
@@ -234,7 +239,7 @@ export class AuthController {
   }
 
   @Post('mfa/webauthn/register/verify')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard)
   @UsePipes(
     new ValidationPipe({
       transform: true,

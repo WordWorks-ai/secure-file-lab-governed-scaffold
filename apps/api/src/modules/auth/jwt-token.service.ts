@@ -115,6 +115,10 @@ export class JwtTokenService {
   }
 
   private getAccessTokenSecret(): string {
-    return process.env.JWT_ACCESS_SECRET ?? 'local-dev-insecure-access-secret';
+    const secret = process.env.JWT_ACCESS_SECRET;
+    if (!secret || secret.trim().length === 0) {
+      throw new Error('JWT_ACCESS_SECRET environment variable is required');
+    }
+    return secret;
   }
 }

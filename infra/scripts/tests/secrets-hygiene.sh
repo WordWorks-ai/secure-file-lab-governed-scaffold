@@ -29,4 +29,13 @@ if ! rg -n '^\.env$' "$ROOT_DIR/.dockerignore" >/dev/null; then
   exit 1
 fi
 
+# verify hard-coded fallback secrets have been removed from source
+FALLBACK_PATTERNS='local-dev-insecure-access-secret|dev-mfa-secret'
+if rg -n --hidden --glob '!.git/**' --glob '!.env' --glob '!infra/scripts/tests/secrets-hygiene.sh' \
+  --glob '!docs/**' --glob '!*.md' \
+  "$FALLBACK_PATTERNS" "$ROOT_DIR" >/dev/null 2>&1; then
+  echo "hard-coded fallback secrets still present in source (must be removed)" >&2
+  exit 1
+fi
+
 echo "secrets hygiene checks passed"

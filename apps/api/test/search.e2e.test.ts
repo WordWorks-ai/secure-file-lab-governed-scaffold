@@ -172,6 +172,7 @@ describe('search endpoints', () => {
 
   beforeAll(async () => {
     process.env.JWT_ACCESS_SECRET = jwtSecret;
+    process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key';
     process.env.OPENSEARCH_ENABLED = 'false';
 
     prisma = new InMemoryPrismaService();
