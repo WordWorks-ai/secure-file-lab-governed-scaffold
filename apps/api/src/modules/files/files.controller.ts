@@ -52,7 +52,7 @@ export class FilesController {
 
   @Post(':fileId/activate')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard, RolesGuard)
   @Roles(UserRole.admin)
   async activate(
     @Param('fileId', new ParseUUIDPipe({ version: '4' })) fileId: string,
