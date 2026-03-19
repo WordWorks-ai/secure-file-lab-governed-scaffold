@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AuditModule } from './modules/audit/audit.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
@@ -18,6 +20,7 @@ import { UsersOrgsModule } from './modules/users-orgs/users-orgs.module.js';
       cache: true,
       ignoreEnvFile: false,
     }),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     HealthModule,
     MetricsModule,
     SystemModule,
@@ -27,6 +30,12 @@ import { UsersOrgsModule } from './modules/users-orgs/users-orgs.module.js';
     SharesModule,
     SearchModule,
     AuditModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

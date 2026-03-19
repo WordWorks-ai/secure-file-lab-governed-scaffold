@@ -70,6 +70,7 @@ export class MfaService {
     secret: string;
     otpauthUri: string;
   }> {
+    await this.requireActiveUser(userId);
     const issuer = this.getTotpIssuer();
     const accountName = email.trim().toLowerCase();
     const secret = this.generateTotpSecret();
@@ -172,6 +173,7 @@ export class MfaService {
       }>;
     };
   }> {
+    await this.requireActiveUser(userId);
     this.pruneExpiredChallenges();
     const challenge = this.generateChallenge();
     const challengeToken = this.generateChallengeToken({
@@ -410,10 +412,22 @@ export class MfaService {
     return new Set(normalized);
   }
 
+  private async requireActiveUser(userId: string): Promise<void> {
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: { id: true, isActive: true },
+    });
+    if (!user || !user.isActive) {
+      throw new Error('User does not exist or is not active');
+    }
+  }
+
   private getTotpEncryptionKey(): Buffer {
-    const material = (process.env.MFA_TOTP_SECRET_KEY ?? process.env.JWT_ACCESS_SECRET ?? 'dev-mfa-secret')
-      .trim();
-    return createHash('sha256').update(material).digest();
+    const material = process.env.MFA_TOTP_SECRET_KEY;
+    if (!material || material.trim().length === 0) {
+      throw new Error('MFA_TOTP_SECRET_KEY environment variable is required');
+    }
+    return createHash('sha256').update(material.trim()).digest();
   }
 
   private encryptSecret(secret: string): string {

@@ -11,13 +11,14 @@ import {
 } from '@nestjs/common';
 
 import { createValidationException } from '../../common/validation/validation-exception.factory.js';
+import { ActiveUserGuard } from '../auth/guards/active-user.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AuthenticatedRequest, AuthenticatedUser } from '../auth/types/authenticated-request.js';
 import { QuerySearchFilesDto } from './dto/query-search-files.dto.js';
 import { SearchService } from './search.service.js';
 
 @Controller('search')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ActiveUserGuard)
 export class SearchController {
   constructor(@Inject(SearchService) private readonly searchService: SearchService) {}
 

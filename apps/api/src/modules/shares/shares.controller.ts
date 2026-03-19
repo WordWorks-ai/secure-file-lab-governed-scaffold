@@ -13,8 +13,11 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 
+import { Throttle } from '@nestjs/throttler';
+
 import { createValidationException } from '../../common/validation/validation-exception.factory.js';
 import { AuthenticatedRequest, AuthenticatedUser } from '../auth/types/authenticated-request.js';
+import { ActiveUserGuard } from '../auth/guards/active-user.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AccessShareDto } from './dto/access-share.dto.js';
 import { CreateShareDto } from './dto/create-share.dto.js';
@@ -25,7 +28,7 @@ export class SharesController {
   constructor(@Inject(SharesService) private readonly sharesService: SharesService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard)
   @UsePipes(
     new ValidationPipe({
       transform: true,
@@ -51,7 +54,7 @@ export class SharesController {
 
   @Post(':shareId/revoke')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard)
   async revoke(
     @Param('shareId', new ParseUUIDPipe({ version: '4' })) shareId: string,
     @Req() request: AuthenticatedRequest,
@@ -61,6 +64,7 @@ export class SharesController {
 
   @Post('access')
   @HttpCode(200)
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
   @UsePipes(
     new ValidationPipe({
       transform: true,

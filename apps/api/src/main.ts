@@ -11,7 +11,7 @@ async function bootstrap(): Promise<void> {
   const port = Number(process.env.API_PORT ?? 3000);
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ logger: true }),
+    new FastifyAdapter({ logger: true, bodyLimit: 8_388_608 }),
   );
 
   configureApiApplication(app);

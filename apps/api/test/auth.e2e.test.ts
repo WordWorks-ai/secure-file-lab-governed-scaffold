@@ -584,6 +584,7 @@ describe('auth endpoints', () => {
 
   beforeAll(async () => {
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
+    process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key';
     process.env.JWT_REFRESH_TTL = '1209600';
     process.env.JWT_ACCESS_TTL = '900';
 

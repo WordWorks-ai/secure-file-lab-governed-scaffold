@@ -7,13 +7,14 @@ import { AuthService } from './auth.service.js';
 import { JwtTokenService } from './jwt-token.service.js';
 import { KeycloakSsoService } from './keycloak-sso.service.js';
 import { MfaService } from './mfa.service.js';
+import { ActiveUserGuard } from './guards/active-user.guard.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { RolesGuard } from './guards/roles.guard.js';
 
 @Module({
   imports: [PrismaModule, AuditModule],
   controllers: [AuthController],
-  providers: [AuthService, JwtTokenService, KeycloakSsoService, MfaService, JwtAuthGuard, RolesGuard],
-  exports: [AuthService, JwtTokenService, KeycloakSsoService, MfaService, JwtAuthGuard, RolesGuard],
+  providers: [AuthService, JwtTokenService, KeycloakSsoService, MfaService, JwtAuthGuard, ActiveUserGuard, RolesGuard],
+  exports: [AuthService, JwtTokenService, KeycloakSsoService, MfaService, JwtAuthGuard, ActiveUserGuard, RolesGuard],
 })
 export class AuthModule {}

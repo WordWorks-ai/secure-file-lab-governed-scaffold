@@ -703,6 +703,7 @@ describe('shares and audit endpoints', () => {
     originalDlpAdminOverrideRequireTicket = process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET;
     originalDlpAdminOverrideTicketPattern = process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN;
     process.env.JWT_ACCESS_SECRET = jwtSecret;
+    process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key';
     process.env.DLP_ENGINE_ENABLED = 'false';
     process.env.DLP_ADMIN_OVERRIDE_ENABLED = 'false';
     process.env.DLP_ADMIN_OVERRIDE_REQUIRE_REASON = 'true';

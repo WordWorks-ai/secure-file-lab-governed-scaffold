@@ -1,20 +1,20 @@
 import {
   Controller,
-  ForbiddenException,
   Get,
   Header,
   Inject,
   Query,
-  Req,
-  UnauthorizedException,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
 import { AuditResult, UserRole } from '@prisma/client';
 
 import { createValidationException } from '../../common/validation/validation-exception.factory.js';
-import { JwtTokenService } from '../auth/jwt-token.service.js';
-import { AuthenticatedRequest, AuthenticatedUser } from '../auth/types/authenticated-request.js';
+import { Roles } from '../auth/decorators/roles.decorator.js';
+import { ActiveUserGuard } from '../auth/guards/active-user.guard.js';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { QueryAuditEventsDto } from './dto/query-audit-events.dto.js';
 import { QueryAuditKpisDto } from './dto/query-audit-kpis.dto.js';
 import { QueryAuditSummaryDto } from './dto/query-audit-summary.dto.js';
@@ -22,10 +22,11 @@ import { QueryAuditTimeseriesDto } from './dto/query-audit-timeseries.dto.js';
 import { AuditService } from './audit.service.js';
 
 @Controller('audit')
+@UseGuards(JwtAuthGuard, ActiveUserGuard, RolesGuard)
+@Roles(UserRole.admin)
 export class AuditController {
   constructor(
     @Inject(AuditService) private readonly auditService: AuditService,
-    @Inject(JwtTokenService) private readonly jwtTokenService: JwtTokenService,
   ) {}
 
   @Get('events')
@@ -40,7 +41,6 @@ export class AuditController {
   )
   async listEvents(
     @Query() query: QueryAuditEventsDto,
-    @Req() request: AuthenticatedRequest,
   ): Promise<{
     count: number;
     events: Array<{
@@ -61,7 +61,6 @@ export class AuditController {
       createdAt: string;
     }>;
   }> {
-    this.requireAdminUser(request);
     const events = await this.auditService.queryEvents({
       orgId: query.orgId,
       actorType: query.actorType,
@@ -109,9 +108,7 @@ export class AuditController {
   )
   async exportEvents(
     @Query() query: QueryAuditEventsDto,
-    @Req() request: AuthenticatedRequest,
   ): Promise<string> {
-    this.requireAdminUser(request);
     const events = await this.auditService.queryEvents({
       orgId: query.orgId,
       actorType: query.actorType,
@@ -159,7 +156,6 @@ export class AuditController {
   )
   async summarizeEvents(
     @Query() query: QueryAuditSummaryDto,
-    @Req() request: AuthenticatedRequest,
   ): Promise<{
     sampledCount: number;
     sampleLimit: number;
@@ -169,7 +165,6 @@ export class AuditController {
     byResourceType: Array<{ resourceType: string; count: number }>;
     byActorType: Array<{ actorType: string; count: number }>;
   }> {
-    this.requireAdminUser(request);
     const summary = await this.auditService.querySummary({
       orgId: query.orgId,
       actorType: query.actorType,
@@ -209,7 +204,6 @@ export class AuditController {
   )
   async timeseriesEvents(
     @Query() query: QueryAuditTimeseriesDto,
-    @Req() request: AuthenticatedRequest,
   ): Promise<{
     sampledCount: number;
     sampleLimit: number;
@@ -222,7 +216,6 @@ export class AuditController {
       deniedCount: number;
     }>;
   }> {
-    this.requireAdminUser(request);
     return this.auditService.queryTimeseries({
       orgId: query.orgId,
       actorType: query.actorType,
@@ -249,7 +242,6 @@ export class AuditController {
   )
   async kpisEvents(
     @Query() query: QueryAuditKpisDto,
-    @Req() request: AuthenticatedRequest,
   ): Promise<{
     sampleLimit: number;
     windowHours: number;
@@ -280,7 +272,6 @@ export class AuditController {
       deniedRate: number;
     };
   }> {
-    this.requireAdminUser(request);
     return this.auditService.queryKpis({
       orgId: query.orgId,
       actorType: query.actorType,
@@ -291,31 +282,5 @@ export class AuditController {
       limit: query.limit,
       windowHours: query.windowHours,
     });
-  }
-
-  private requireAdminUser(request: AuthenticatedRequest): AuthenticatedUser {
-    const authorization = request.headers?.authorization;
-    const value = Array.isArray(authorization) ? authorization[0] : authorization;
-    if (!value) {
-      throw new UnauthorizedException('Missing authorization header');
-    }
-
-    const [scheme, token] = value.split(' ');
-    if (scheme !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Invalid authorization header format');
-    }
-
-    let user: AuthenticatedUser;
-    try {
-      user = this.jwtTokenService.verifyAccessToken(token.trim());
-    } catch {
-      throw new UnauthorizedException('Invalid access token');
-    }
-
-    if (user.role !== UserRole.admin) {
-      throw new ForbiddenException('Admin role required');
-    }
-
-    return user;
   }
 }

@@ -440,6 +440,13 @@ export class FilesService {
     };
   }
 
+  /**
+   * Finds a file and verifies the user has org membership.
+   *
+   * NOTE: This intentionally allows same-org members to access file metadata
+   * (org-wide visibility). The policy engine and lifecycle rules enforce
+   * per-file download and share restrictions via owner-only checks.
+   */
   private async findFileForUser(
     fileId: string,
     user: AuthenticatedUser,

@@ -38,6 +38,9 @@ describe('health endpoints', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
+    process.env.JWT_ACCESS_SECRET = 'test-health-secret';
+    process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key';
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
