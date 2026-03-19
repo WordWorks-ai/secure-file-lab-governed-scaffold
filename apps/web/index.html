@@ -1,64 +1,1099 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Secure File Lab Web</title>
-    <style>
-      :root {
-        color-scheme: light;
-        --bg: #f8fafc;
-        --card: #ffffff;
-        --text: #0f172a;
-        --muted: #334155;
-        --accent: #0f766e;
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SFL Test Harness</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --dim: #8b949e;
+  --accent: #58a6ff;
+  --green: #3fb950;
+  --red: #f85149;
+  --yellow: #d29922;
+  --orange: #d18616;
+  --mono: 'SF Mono','Cascadia Code','Fira Code',Consolas,monospace;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; background:var(--bg); color:var(--text); font-family:var(--mono); font-size:13px; }
+body { display:flex; flex-direction:column; }
+
+/* Header */
+#header { display:flex; align-items:center; gap:12px; padding:8px 16px; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; min-height:44px; }
+#header .title { font-size:14px; font-weight:700; color:var(--accent); white-space:nowrap; }
+#header .auth-status { display:flex; align-items:center; gap:8px; margin-left:auto; font-size:12px; }
+.dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+.dot-green { background:var(--green); }
+.dot-red { background:var(--red); }
+.role-badge { font-size:10px; padding:2px 6px; border-radius:3px; background:var(--border); color:var(--yellow); text-transform:uppercase; }
+
+/* Buttons */
+.btn { font-family:var(--mono); font-size:12px; padding:4px 12px; border:1px solid var(--border); border-radius:4px; cursor:pointer; background:var(--surface); color:var(--text); }
+.btn:hover { border-color:var(--accent); }
+.btn-send { background:var(--accent); color:#000; border-color:var(--accent); font-weight:700; }
+.btn-send:hover { opacity:0.85; }
+.btn-danger { background:var(--red); color:#fff; border-color:var(--red); }
+.btn-danger:hover { opacity:0.85; }
+.btn-copy { font-size:10px; padding:2px 8px; }
+.btn-sm { font-size:11px; padding:2px 8px; }
+
+/* Tabs */
+#tabs { display:flex; gap:0; border-bottom:1px solid var(--border); background:var(--surface); flex-shrink:0; overflow-x:auto; }
+#tabs button { font-family:var(--mono); font-size:12px; padding:8px 16px; border:none; background:none; color:var(--dim); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; }
+#tabs button:hover { color:var(--text); }
+#tabs button.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+/* Main + Log split */
+#main-split { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+#content { flex:1; overflow-y:auto; padding:16px; }
+#log-panel { height:35vh; min-height:120px; border-top:2px solid var(--border); display:flex; flex-direction:column; background:var(--surface); }
+#log-header { display:flex; align-items:center; justify-content:space-between; padding:6px 16px; border-bottom:1px solid var(--border); flex-shrink:0; }
+#log-header span { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:0.5px; }
+#log-body { flex:1; overflow-y:auto; padding:8px 16px; }
+
+/* Tab panels */
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+
+/* Sections */
+.section { margin-bottom:20px; padding:12px; border:1px solid var(--border); border-radius:6px; background:var(--surface); }
+.section-title { font-size:12px; font-weight:700; color:var(--accent); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+.section-group { font-size:11px; font-weight:700; color:var(--dim); text-transform:uppercase; letter-spacing:1px; margin:16px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--border); }
+.admin-badge { font-size:9px; padding:1px 5px; border-radius:3px; background:var(--orange); color:#000; text-transform:uppercase; font-weight:700; }
+.noauth-badge { font-size:9px; padding:1px 5px; border-radius:3px; background:var(--green); color:#000; text-transform:uppercase; font-weight:700; }
+
+/* Forms */
+.form-row { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:6px; }
+.form-field { display:flex; flex-direction:column; gap:2px; }
+.form-field label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--dim); }
+.form-field label .opt { color:var(--yellow); font-weight:400; }
+.form-field input, .form-field textarea, .form-field select {
+  font-family:var(--mono); font-size:12px; padding:4px 8px;
+  background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:3px;
+  min-width:160px;
+}
+.form-field textarea { min-height:48px; resize:vertical; }
+.form-field input:focus, .form-field textarea:focus, .form-field select:focus { outline:none; border-color:var(--accent); }
+.form-actions { display:flex; gap:6px; align-items:flex-end; margin-top:4px; }
+
+/* Inline result */
+.result-box { margin-top:8px; padding:8px; background:var(--bg); border:1px solid var(--border); border-radius:4px; overflow-x:auto; max-height:300px; overflow-y:auto; position:relative; }
+.result-box pre { white-space:pre-wrap; word-break:break-all; font-size:12px; }
+.result-box .btn-copy { position:absolute; top:4px; right:4px; }
+
+/* Log entries */
+.log-entry { margin-bottom:4px; }
+.log-entry summary { cursor:pointer; font-size:12px; padding:3px 0; list-style:none; display:flex; gap:8px; align-items:center; }
+.log-entry summary::-webkit-details-marker { display:none; }
+.log-entry summary::before { content:'▸'; color:var(--dim); font-size:10px; }
+.log-entry[open] summary::before { content:'▾'; }
+.log-time { color:var(--dim); font-size:11px; }
+.log-method { color:var(--accent); font-weight:700; min-width:48px; }
+.log-url { color:var(--text); }
+.status-2xx { color:var(--green); font-weight:700; }
+.status-3xx { color:var(--accent); font-weight:700; }
+.status-4xx { color:var(--yellow); font-weight:700; }
+.status-5xx { color:var(--red); font-weight:700; }
+.log-detail { padding:8px 0 8px 16px; }
+.log-section { margin-bottom:6px; }
+.log-section-label { font-size:10px; text-transform:uppercase; color:var(--dim); letter-spacing:0.5px; }
+.log-section pre { font-size:11px; white-space:pre-wrap; word-break:break-all; color:var(--text); margin-top:2px; padding:4px; background:var(--bg); border-radius:3px; }
+
+/* File picker */
+.file-picker-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; padding:8px; background:var(--bg); border:1px dashed var(--border); border-radius:4px; }
+.file-picker-row label { font-size:11px; color:var(--dim); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="header">
+  <span class="title">SFL Test Harness</span>
+  <div class="auth-status" id="auth-status">
+    <span class="dot dot-red"></span>
+    <span id="auth-label">Unauthenticated</span>
+  </div>
+  <button class="btn btn-copy btn-sm" id="btn-copy-token" style="display:none" title="Copy access token">Copy Token</button>
+  <button class="btn btn-sm" id="btn-header-logout" style="display:none">Logout</button>
+</div>
+
+<!-- Tabs -->
+<div id="tabs">
+  <button class="active" data-tab="system">System</button>
+  <button data-tab="auth">Auth</button>
+  <button data-tab="files">Files</button>
+  <button data-tab="shares">Shares</button>
+  <button data-tab="search">Search</button>
+  <button data-tab="audit">Audit</button>
+</div>
+
+<div id="main-split">
+<div id="content">
+
+<!-- ======== SYSTEM TAB ======== -->
+<div class="tab-panel active" data-tab="system">
+
+  <div class="section">
+    <div class="section-title">GET /v1/health/live</div>
+    <form data-action="healthLive"><button type="submit" class="btn btn-send">Send</button></form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">GET /v1/health/ready</div>
+    <form data-action="healthReady"><button type="submit" class="btn btn-send">Send</button></form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">GET /v1/system/info</div>
+    <form data-action="systemInfo"><button type="submit" class="btn btn-send">Send</button></form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">POST /v1/system/echo</div>
+    <form data-action="systemEcho">
+      <div class="form-row">
+        <div class="form-field"><label>message</label><input type="text" name="message" placeholder="Hello, SFL"></div>
+        <button type="submit" class="btn btn-send">Send</button>
+      </div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">GET /v1/metrics</div>
+    <form data-action="metrics"><button type="submit" class="btn btn-send">Send</button></form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+</div>
+
+<!-- ======== AUTH TAB ======== -->
+<div class="tab-panel" data-tab="auth">
+
+  <div class="section-group">Session</div>
+
+  <div class="section">
+    <div class="section-title">POST /v1/auth/login</div>
+    <form data-action="login">
+      <div class="form-row">
+        <div class="form-field"><label>email</label><input type="text" name="email" placeholder="admin@local.test"></div>
+        <div class="form-field"><label>password</label><input type="password" name="password"></div>
+        <div class="form-field"><label>totpCode <span class="opt">[opt]</span></label><input type="text" name="totpCode" maxlength="6" placeholder="000000"></div>
+      </div>
+      <details style="margin-top:6px">
+        <summary style="font-size:11px;color:var(--dim);cursor:pointer">WebAuthn fields (advanced)</summary>
+        <div class="form-row" style="margin-top:6px">
+          <div class="form-field"><label>webauthnChallengeToken <span class="opt">[opt]</span></label><input type="text" name="webauthnChallengeToken"></div>
+          <div class="form-field"><label>webauthnCredentialId <span class="opt">[opt]</span></label><input type="text" name="webauthnCredentialId"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="flex:1"><label>webauthnClientDataJson <span class="opt">[opt]</span></label><textarea name="webauthnClientDataJson" rows="2"></textarea></div>
+        </div>
+      </details>
+      <div class="form-actions"><button type="submit" class="btn btn-send">Login</button></div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">POST /v1/auth/refresh</div>
+    <form data-action="refresh">
+      <div class="form-row">
+        <div class="form-field" style="flex:1"><label>refreshToken</label><textarea name="refreshToken" rows="2" id="refresh-token-input"></textarea></div>
+        <button type="submit" class="btn btn-send">Refresh</button>
+      </div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">POST /v1/auth/logout</div>
+    <form data-action="logout">
+      <div class="form-row">
+        <div class="form-field" style="flex:1"><label>refreshToken</label><textarea name="refreshToken" rows="2" id="logout-token-input"></textarea></div>
+        <button type="submit" class="btn btn-send">Logout</button>
+      </div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">POST /v1/auth/sso/exchange</div>
+    <form data-action="ssoExchange">
+      <div class="form-row">
+        <div class="form-field" style="flex:1"><label>accessToken</label><input type="text" name="accessToken"></div>
+        <button type="submit" class="btn btn-send">Exchange</button>
+      </div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section-group">Identity</div>
+
+  <div class="section">
+    <div class="section-title">GET /v1/auth/me</div>
+    <form data-action="me"><button type="submit" class="btn btn-send">Send</button></form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">GET /v1/auth/admin-check <span class="admin-badge">admin</span></div>
+    <form data-action="adminCheck"><button type="submit" class="btn btn-send">Send</button></form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section-group">MFA &mdash; TOTP</div>
+
+  <div class="section">
+    <div class="section-title">GET /v1/auth/mfa/status</div>
+    <form data-action="mfaStatus"><button type="submit" class="btn btn-send">Send</button></form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">POST /v1/auth/mfa/totp/enroll</div>
+    <form data-action="totpEnroll"><button type="submit" class="btn btn-send">Enroll</button></form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">POST /v1/auth/mfa/totp/verify</div>
+    <form data-action="totpVerify">
+      <div class="form-row">
+        <div class="form-field"><label>code</label><input type="text" name="code" maxlength="6" placeholder="000000"></div>
+        <button type="submit" class="btn btn-send">Verify</button>
+      </div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">DELETE /v1/auth/mfa/totp</div>
+    <form data-action="totpDisable"><button type="submit" class="btn btn-danger">Disable TOTP</button></form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section-group">MFA &mdash; WebAuthn</div>
+
+  <div class="section">
+    <div class="section-title">POST /v1/auth/mfa/webauthn/register/options</div>
+    <form data-action="webauthnRegOptions"><button type="submit" class="btn btn-send">Get Options</button></form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">POST /v1/auth/mfa/webauthn/register/verify</div>
+    <form data-action="webauthnRegVerify">
+      <div class="form-row">
+        <div class="form-field"><label>challengeToken</label><input type="text" name="challengeToken"></div>
+        <div class="form-field"><label>credentialId</label><input type="text" name="credentialId"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field" style="flex:1"><label>clientDataJson</label><textarea name="clientDataJson" rows="2"></textarea></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>label <span class="opt">[opt]</span></label><input type="text" name="label"></div>
+        <div class="form-field"><label>publicKey <span class="opt">[opt]</span></label><input type="text" name="publicKey"></div>
+        <button type="submit" class="btn btn-send">Verify</button>
+      </div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+</div>
+
+<!-- ======== FILES TAB ======== -->
+<div class="tab-panel" data-tab="files">
+
+  <div class="section">
+    <div class="section-title">POST /v1/files/upload</div>
+    <div class="file-picker-row">
+      <label>Pick a file to auto-fill:</label>
+      <input type="file" id="file-picker">
+    </div>
+    <form data-action="fileUpload">
+      <div class="form-row">
+        <div class="form-field"><label>filename</label><input type="text" name="filename" id="upload-filename"></div>
+        <div class="form-field"><label>contentType</label><input type="text" name="contentType" id="upload-contentType"></div>
+        <div class="form-field"><label>expiresAt <span class="opt">[opt]</span></label><input type="datetime-local" name="expiresAt" id="upload-expiresAt"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field" style="flex:1"><label>contentBase64</label><textarea name="contentBase64" rows="3" id="upload-contentBase64" placeholder="base64-encoded file content"></textarea></div>
+      </div>
+      <details style="margin-top:6px">
+        <summary style="font-size:11px;color:var(--dim);cursor:pointer">DLP Override (admin)</summary>
+        <div class="form-row" style="margin-top:6px">
+          <div class="form-field"><label>dlpOverrideReason <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideReason" placeholder="min 12 chars"></div>
+          <div class="form-field"><label>dlpOverrideTicket <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideTicket" placeholder="INC-0001"></div>
+        </div>
+      </details>
+      <div class="form-actions"><button type="submit" class="btn btn-send">Upload</button></div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">POST /v1/files/:fileId/activate <span class="admin-badge">admin</span></div>
+    <form data-action="fileActivate">
+      <div class="form-row">
+        <div class="form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
+        <button type="submit" class="btn btn-send">Activate</button>
+      </div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">GET /v1/files/:fileId</div>
+    <form data-action="fileMetadata">
+      <div class="form-row">
+        <div class="form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
+        <button type="submit" class="btn btn-send">Get Metadata</button>
+      </div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">GET /v1/files/:fileId/artifacts</div>
+    <form data-action="fileArtifacts">
+      <div class="form-row">
+        <div class="form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
+        <button type="submit" class="btn btn-send">Get Artifacts</button>
+      </div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">GET /v1/files/:fileId/download</div>
+    <form data-action="fileDownload">
+      <div class="form-row">
+        <div class="form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
+        <button type="submit" class="btn btn-send">Download</button>
+      </div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+</div>
+
+<!-- ======== SHARES TAB ======== -->
+<div class="tab-panel" data-tab="shares">
+
+  <div class="section">
+    <div class="section-title">POST /v1/shares</div>
+    <form data-action="shareCreate">
+      <div class="form-row">
+        <div class="form-field"><label>fileId</label><input type="text" name="fileId" placeholder="uuid" id="share-fileId"></div>
+        <div class="form-field"><label>expiresAt</label><input type="datetime-local" name="expiresAt" id="share-expiresAt"></div>
+        <div class="form-field"><label>maxDownloads <span class="opt">[opt]</span></label><input type="number" name="maxDownloads" min="1" placeholder="10"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>password <span class="opt">[opt]</span></label><input type="text" name="password" placeholder="min 8 chars"></div>
+      </div>
+      <details style="margin-top:6px">
+        <summary style="font-size:11px;color:var(--dim);cursor:pointer">DLP Override (admin)</summary>
+        <div class="form-row" style="margin-top:6px">
+          <div class="form-field"><label>dlpOverrideReason <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideReason" placeholder="min 12 chars"></div>
+          <div class="form-field"><label>dlpOverrideTicket <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideTicket" placeholder="INC-0001"></div>
+        </div>
+      </details>
+      <div class="form-actions"><button type="submit" class="btn btn-send">Create Share</button></div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">POST /v1/shares/:shareId/revoke</div>
+    <form data-action="shareRevoke">
+      <div class="form-row">
+        <div class="form-field"><label>shareId</label><input type="text" name="shareId" id="share-revokeId" placeholder="uuid"></div>
+        <button type="submit" class="btn btn-send">Revoke</button>
+      </div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">POST /v1/shares/access <span class="noauth-badge">no auth</span></div>
+    <form data-action="shareAccess">
+      <div class="form-row">
+        <div class="form-field" style="flex:1"><label>shareToken</label><input type="text" name="shareToken" id="share-accessToken"></div>
+        <div class="form-field"><label>password <span class="opt">[opt]</span></label><input type="text" name="password"></div>
+        <button type="submit" class="btn btn-send">Access</button>
+      </div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+</div>
+
+<!-- ======== SEARCH TAB ======== -->
+<div class="tab-panel" data-tab="search">
+
+  <div class="section">
+    <div class="section-title">GET /v1/search/files</div>
+    <form data-action="searchFiles">
+      <div class="form-row">
+        <div class="form-field"><label>q</label><input type="text" name="q" placeholder="search query"></div>
+        <div class="form-field"><label>limit <span class="opt">[opt]</span></label><input type="number" name="limit" placeholder="20" min="1"></div>
+        <button type="submit" class="btn btn-send">Search</button>
+      </div>
+    </form>
+    <div class="result-box" style="display:none"></div>
+  </div>
+
+</div>
+
+<!-- ======== AUDIT TAB ======== -->
+<div class="tab-panel" data-tab="audit">
+
+  <div class="section">
+    <div class="section-title">Audit Queries <span class="admin-badge">admin</span></div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:8px">Shared filters applied to all queries below</div>
+
+    <div class="form-row">
+      <div class="form-field"><label>orgId <span class="opt">[opt]</span></label><input type="text" name="orgId" form="audit-form" placeholder="uuid"></div>
+      <div class="form-field"><label>actorType <span class="opt">[opt]</span></label>
+        <select name="actorType" form="audit-form"><option value="">--</option><option>user</option><option>system</option><option>share_link</option></select>
+      </div>
+      <div class="form-field"><label>action <span class="opt">[opt]</span></label><input type="text" name="action" form="audit-form" placeholder="auth.login"></div>
+      <div class="form-field"><label>resourceType <span class="opt">[opt]</span></label><input type="text" name="resourceType" form="audit-form" placeholder="auth_session"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>resourceId <span class="opt">[opt]</span></label><input type="text" name="resourceId" form="audit-form" placeholder="uuid"></div>
+      <div class="form-field"><label>result <span class="opt">[opt]</span></label>
+        <select name="result" form="audit-form"><option value="">--</option><option>success</option><option>failure</option><option>denied</option></select>
+      </div>
+      <div class="form-field"><label>from <span class="opt">[opt]</span></label><input type="datetime-local" name="from" form="audit-form"></div>
+      <div class="form-field"><label>to <span class="opt">[opt]</span></label><input type="datetime-local" name="to" form="audit-form"></div>
+      <div class="form-field"><label>limit <span class="opt">[opt]</span></label><input type="number" name="limit" form="audit-form" placeholder="50" min="1"></div>
+    </div>
+
+    <form id="audit-form" style="display:none"></form>
+
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <button class="btn btn-send" data-audit="events">List Events</button>
+      <button class="btn btn-send" data-audit="export">Export NDJSON</button>
+      <span style="display:flex;align-items:flex-end;gap:4px">
+        <span class="form-field"><label>top <span class="opt">[opt]</span></label><input type="number" id="audit-top" placeholder="5" min="1" style="width:60px"></span>
+        <button class="btn btn-send" data-audit="summary">Summary</button>
+      </span>
+      <span style="display:flex;align-items:flex-end;gap:4px">
+        <span class="form-field"><label>bucket</label><select id="audit-bucket"><option value="hour">hour</option><option value="day">day</option></select></span>
+        <button class="btn btn-send" data-audit="timeseries">Timeseries</button>
+      </span>
+      <span style="display:flex;align-items:flex-end;gap:4px">
+        <span class="form-field"><label>windowHours <span class="opt">[opt]</span></label><input type="number" id="audit-windowHours" placeholder="24" min="1" style="width:80px"></span>
+        <button class="btn btn-send" data-audit="kpis">KPIs</button>
+      </span>
+    </div>
+
+    <div class="result-box" id="audit-result" style="display:none"></div>
+  </div>
+
+</div>
+
+</div><!-- #content -->
+
+<!-- Response Log -->
+<div id="log-panel">
+  <div id="log-header">
+    <span>Request Log</span>
+    <button class="btn btn-sm" id="btn-clear-log">Clear</button>
+  </div>
+  <div id="log-body"></div>
+</div>
+
+</div><!-- #main-split -->
+
+<script>
+(function() {
+  'use strict';
+
+  // ── State ──────────────────────────────────────────────────
+  const State = {
+    accessToken: null,
+    refreshToken: null,
+    user: null,
+    history: [],
+    activeTab: 'system',
+
+    setAuth(res) {
+      this.accessToken = res.accessToken;
+      this.refreshToken = res.refreshToken;
+      this.user = res.user || null;
+      this._syncRefreshFields();
+    },
+
+    clearAuth() {
+      this.accessToken = null;
+      this.refreshToken = null;
+      this.user = null;
+      this._syncRefreshFields();
+    },
+
+    _syncRefreshFields() {
+      const rt = this.refreshToken || '';
+      const el1 = document.getElementById('refresh-token-input');
+      const el2 = document.getElementById('logout-token-input');
+      if (el1) el1.value = rt;
+      if (el2) el2.value = rt;
+    },
+
+    addHistory(entry) {
+      this.history.unshift(entry);
+      if (this.history.length > 200) this.history.length = 200;
+      UI.renderHistory();
+    }
+  };
+
+  // ── API Client ─────────────────────────────────────────────
+  const API = {
+    async request(method, path, opts) {
+      opts = opts || {};
+      const url = '/v1/' + path.replace(/^\//, '');
+      var fullUrl = url;
+      const headers = {};
+
+      if (State.accessToken && !opts.noAuth) {
+        headers['Authorization'] = 'Bearer ' + State.accessToken;
       }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
-        color: var(--text);
-        background: radial-gradient(circle at top right, #ccfbf1 0%, var(--bg) 40%);
+
+      const fetchOpts = { method: method, headers: headers };
+
+      if (opts.body !== undefined) {
+        headers['Content-Type'] = 'application/json';
+        fetchOpts.body = JSON.stringify(opts.body);
       }
-      .card {
-        width: min(720px, 92vw);
-        background: var(--card);
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 28px;
-        box-shadow: 0 10px 30px rgb(15 23 42 / 0.08);
+
+      if (opts.query) {
+        const params = new URLSearchParams();
+        for (const k of Object.keys(opts.query)) {
+          const v = opts.query[k];
+          if (v !== '' && v !== undefined && v !== null) params.set(k, String(v));
+        }
+        const qs = params.toString();
+        if (qs) fullUrl += '?' + qs;
       }
-      h1 {
-        margin: 0 0 8px;
+
+      var status, data, ok, rawBody;
+      const t0 = Date.now();
+      try {
+        const resp = await fetch(fullUrl, fetchOpts);
+        status = resp.status;
+        ok = resp.ok;
+        const ct = resp.headers.get('content-type') || '';
+        if (ct.indexOf('json') !== -1) {
+          data = await resp.json();
+          rawBody = JSON.stringify(data, null, 2);
+        } else {
+          rawBody = await resp.text();
+          data = rawBody;
+        }
+      } catch (err) {
+        status = 0;
+        ok = false;
+        rawBody = 'Network error: ' + err.message;
+        data = rawBody;
       }
-      p {
-        margin: 0 0 10px;
-        color: var(--muted);
+
+      State.addHistory({
+        id: Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        time: new Date(),
+        ms: Date.now() - t0,
+        method: method,
+        url: fullUrl,
+        reqHeaders: Object.assign({}, headers),
+        reqBody: opts.body ? JSON.stringify(opts.body, null, 2) : null,
+        status: status,
+        resBody: rawBody
+      });
+
+      return { status: status, data: data, ok: ok, rawBody: rawBody };
+    },
+
+    get: function(path, query) { return this.request('GET', path, { query: query }); },
+    post: function(path, body, opts) { return this.request('POST', path, Object.assign({ body: body }, opts || {})); },
+    del: function(path, opts) { return this.request('DELETE', path, opts); }
+  };
+
+  // ── Helpers ────────────────────────────────────────────────
+  function esc(s) {
+    if (typeof s !== 'string') s = String(s);
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function statusClass(code) {
+    if (!code) return 'status-5xx';
+    if (code < 300) return 'status-2xx';
+    if (code < 400) return 'status-3xx';
+    if (code < 500) return 'status-4xx';
+    return 'status-5xx';
+  }
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  // ── UI ─────────────────────────────────────────────────────
+  const UI = {
+    init: function() {
+      // Tab switching
+      document.querySelectorAll('#tabs button').forEach(function(btn) {
+        btn.addEventListener('click', function() { UI.switchTab(btn.dataset.tab); });
+      });
+
+      // Form submissions
+      document.querySelectorAll('form[data-action]').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          var action = form.dataset.action;
+          if (Actions[action]) Actions[action](form);
+        });
+      });
+
+      // Audit buttons
+      document.querySelectorAll('[data-audit]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var type = btn.dataset.audit;
+          if (Actions['audit_' + type]) Actions['audit_' + type]();
+        });
+      });
+
+      // Ctrl+Enter / Cmd+Enter submit
+      document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          var form = e.target.closest('form');
+          if (form) { e.preventDefault(); form.requestSubmit(); }
+        }
+      });
+
+      // File picker
+      var picker = document.getElementById('file-picker');
+      if (picker) picker.addEventListener('change', UI.handleFilePick);
+
+      // Header buttons
+      document.getElementById('btn-copy-token').addEventListener('click', function() {
+        if (State.accessToken) UI.copyToClipboard(State.accessToken, document.getElementById('btn-copy-token'));
+      });
+      document.getElementById('btn-header-logout').addEventListener('click', function() { Actions.logout(); });
+      document.getElementById('btn-clear-log').addEventListener('click', function() {
+        State.history = [];
+        UI.renderHistory();
+      });
+
+      // Defaults
+      UI.setDefaultExpiry();
+      UI.renderAuthStatus();
+    },
+
+    switchTab: function(key) {
+      State.activeTab = key;
+      document.querySelectorAll('#tabs button').forEach(function(b) { b.classList.toggle('active', b.dataset.tab === key); });
+      document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.toggle('active', p.dataset.tab === key); });
+    },
+
+    renderAuthStatus: function() {
+      var dot = document.querySelector('#auth-status .dot');
+      var label = document.getElementById('auth-label');
+      var copyBtn = document.getElementById('btn-copy-token');
+      var logoutBtn = document.getElementById('btn-header-logout');
+
+      if (State.user) {
+        dot.className = 'dot dot-green';
+        label.innerHTML = esc(State.user.email) + ' <span class="role-badge">' + esc(State.user.role) + '</span>';
+        copyBtn.style.display = '';
+        logoutBtn.style.display = '';
+      } else {
+        dot.className = 'dot dot-red';
+        label.textContent = 'Unauthenticated';
+        copyBtn.style.display = 'none';
+        logoutBtn.style.display = 'none';
       }
-      .badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 999px;
-        color: #ffffff;
-        background: var(--accent);
-        font-size: 12px;
-        font-weight: 700;
+    },
+
+    renderHistory: function() {
+      var container = document.getElementById('log-body');
+      var html = '';
+      for (var i = 0; i < State.history.length; i++) {
+        var e = State.history[i];
+        var t = e.time;
+        var ts = pad2(t.getHours()) + ':' + pad2(t.getMinutes()) + ':' + pad2(t.getSeconds());
+        var sc = statusClass(e.status);
+        html += '<details class="log-entry">' +
+          '<summary><span class="log-time">' + ts + '</span>' +
+          '<span class="' + sc + '">' + (e.status || 'ERR') + '</span>' +
+          '<span class="log-method">' + e.method + '</span>' +
+          '<span class="log-url">' + esc(e.url) + '</span>' +
+          '<span class="log-time">' + e.ms + 'ms</span></summary>' +
+          '<div class="log-detail">' +
+          '<div class="log-section"><span class="log-section-label">Request Headers</span>' +
+          '<pre>' + esc(JSON.stringify(e.reqHeaders, null, 2)) + '</pre></div>';
+        if (e.reqBody) {
+          html += '<div class="log-section"><span class="log-section-label">Request Body</span>' +
+            '<pre>' + esc(e.reqBody) + '</pre></div>';
+        }
+        html += '<div class="log-section"><span class="log-section-label">Response Body</span>' +
+          '<pre>' + esc(e.resBody) + '</pre>' +
+          '<button class="btn btn-copy" data-logcopy="' + i + '">Copy</button></div>' +
+          '</div></details>';
       }
-      code {
-        font-family: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+      container.innerHTML = html;
+
+      // Bind copy buttons
+      container.querySelectorAll('[data-logcopy]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var idx = parseInt(btn.dataset.logcopy, 10);
+          if (State.history[idx]) UI.copyToClipboard(State.history[idx].resBody, btn);
+        });
+      });
+    },
+
+    showResult: function(formOrEl, data, isText) {
+      var section = formOrEl.closest('.section');
+      var box = section ? section.querySelector('.result-box') : document.getElementById('audit-result');
+      if (!box) return;
+      box.style.display = 'block';
+      var str = isText ? String(data) : (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+      box.innerHTML = '<pre>' + esc(str) + '</pre>' +
+        '<button class="btn btn-copy" id="_result_copy">Copy</button>';
+      box.querySelector('#_result_copy').addEventListener('click', function() {
+        UI.copyToClipboard(str, box.querySelector('#_result_copy'));
+      });
+    },
+
+    getFormData: function(form) {
+      var data = {};
+      form.querySelectorAll('input[name], textarea[name], select[name]').forEach(function(el) {
+        var v = el.value.trim();
+        if (v !== '') data[el.name] = v;
+      });
+      // Also get fields that reference this form via the form attribute
+      if (form.id) {
+        document.querySelectorAll('[form="' + form.id + '"]').forEach(function(el) {
+          var v = el.value.trim();
+          if (v !== '') data[el.name] = v;
+        });
       }
-    </style>
-  </head>
-  <body>
-    <main class="card">
-      <span class="badge">Stage 9 Baseline</span>
-      <h1>Web UI Service Is Online</h1>
-      <p>This is the user-facing frontend shell for the secure file platform expansion.</p>
-      <p>API route: <code>/v1/*</code></p>
-      <p>Admin route: <code>/admin/*</code></p>
-      <p>Realtime route: <code>/realtime/*</code></p>
-    </main>
-  </body>
+      return data;
+    },
+
+    handleFilePick: function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      document.getElementById('upload-filename').value = file.name;
+      document.getElementById('upload-contentType').value = file.type || 'application/octet-stream';
+      var reader = new FileReader();
+      reader.onload = function() {
+        var b64 = reader.result.split(',')[1] || '';
+        document.getElementById('upload-contentBase64').value = b64;
+      };
+      reader.readAsDataURL(file);
+    },
+
+    setDefaultExpiry: function() {
+      var dt = new Date(Date.now() + 3600000);
+      var iso = dt.toISOString().slice(0, 16);
+      var el1 = document.getElementById('upload-expiresAt');
+      var el2 = document.getElementById('share-expiresAt');
+      if (el1) el1.value = iso;
+      if (el2) el2.value = iso;
+    },
+
+    copyToClipboard: function(text, btn) {
+      navigator.clipboard.writeText(text).then(function() {
+        var orig = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(function() { btn.textContent = orig; }, 1500);
+      });
+    },
+
+    autoFillFileId: function(fileId) {
+      document.querySelectorAll('.file-id-input').forEach(function(el) { el.value = fileId; });
+      var shareFileId = document.getElementById('share-fileId');
+      if (shareFileId) shareFileId.value = fileId;
+    }
+  };
+
+  // ── Actions ────────────────────────────────────────────────
+  var Actions = {
+
+    // System
+    healthLive: async function(form) {
+      var r = await API.get('health/live');
+      UI.showResult(form, r.data);
+    },
+    healthReady: async function(form) {
+      var r = await API.get('health/ready');
+      UI.showResult(form, r.data);
+    },
+    systemInfo: async function(form) {
+      var r = await API.get('system/info');
+      UI.showResult(form, r.data);
+    },
+    systemEcho: async function(form) {
+      var d = UI.getFormData(form);
+      var r = await API.post('system/echo', { message: d.message || '' });
+      UI.showResult(form, r.data);
+    },
+    metrics: async function(form) {
+      var r = await API.get('metrics');
+      UI.showResult(form, r.data, true);
+    },
+
+    // Auth - Session
+    login: async function(form) {
+      var d = UI.getFormData(form);
+      var body = { email: d.email, password: d.password };
+      if (d.totpCode) body.totpCode = d.totpCode;
+      if (d.webauthnChallengeToken) body.webauthnChallengeToken = d.webauthnChallengeToken;
+      if (d.webauthnCredentialId) body.webauthnCredentialId = d.webauthnCredentialId;
+      if (d.webauthnClientDataJson) body.webauthnClientDataJson = d.webauthnClientDataJson;
+      var r = await API.post('auth/login', body, { noAuth: true });
+      if (r.ok) State.setAuth(r.data);
+      UI.renderAuthStatus();
+      UI.showResult(form, r.data);
+    },
+
+    refresh: async function(form) {
+      var d = UI.getFormData(form);
+      var r = await API.post('auth/refresh', { refreshToken: d.refreshToken }, { noAuth: true });
+      if (r.ok) State.setAuth(r.data);
+      UI.renderAuthStatus();
+      UI.showResult(form, r.data);
+    },
+
+    logout: async function(form) {
+      var rt = State.refreshToken;
+      if (form) {
+        var d = UI.getFormData(form);
+        var r = await API.post('auth/logout', { refreshToken: d.refreshToken || rt });
+        UI.showResult(form, r.data);
+      } else {
+        await API.post('auth/logout', { refreshToken: rt });
+      }
+      State.clearAuth();
+      UI.renderAuthStatus();
+    },
+
+    ssoExchange: async function(form) {
+      var d = UI.getFormData(form);
+      var r = await API.post('auth/sso/exchange', { accessToken: d.accessToken }, { noAuth: true });
+      if (r.ok) State.setAuth(r.data);
+      UI.renderAuthStatus();
+      UI.showResult(form, r.data);
+    },
+
+    // Auth - Identity
+    me: async function(form) {
+      var r = await API.get('auth/me');
+      UI.showResult(form, r.data);
+    },
+
+    adminCheck: async function(form) {
+      var r = await API.get('auth/admin-check');
+      UI.showResult(form, r.data);
+    },
+
+    // Auth - MFA TOTP
+    mfaStatus: async function(form) {
+      var r = await API.get('auth/mfa/status');
+      UI.showResult(form, r.data);
+    },
+
+    totpEnroll: async function(form) {
+      var r = await API.post('auth/mfa/totp/enroll', undefined);
+      UI.showResult(form, r.data);
+    },
+
+    totpVerify: async function(form) {
+      var d = UI.getFormData(form);
+      var r = await API.post('auth/mfa/totp/verify', { code: d.code });
+      UI.showResult(form, r.data);
+    },
+
+    totpDisable: async function(form) {
+      var r = await API.del('auth/mfa/totp');
+      UI.showResult(form, r.data);
+    },
+
+    // Auth - MFA WebAuthn
+    webauthnRegOptions: async function(form) {
+      var r = await API.post('auth/mfa/webauthn/register/options', undefined);
+      UI.showResult(form, r.data);
+    },
+
+    webauthnRegVerify: async function(form) {
+      var d = UI.getFormData(form);
+      var body = { challengeToken: d.challengeToken, credentialId: d.credentialId, clientDataJson: d.clientDataJson };
+      if (d.label) body.label = d.label;
+      if (d.publicKey) body.publicKey = d.publicKey;
+      var r = await API.post('auth/mfa/webauthn/register/verify', body);
+      UI.showResult(form, r.data);
+    },
+
+    // Files
+    fileUpload: async function(form) {
+      var d = UI.getFormData(form);
+      var body = { filename: d.filename, contentType: d.contentType, contentBase64: d.contentBase64 };
+      if (d.expiresAt) body.expiresAt = new Date(d.expiresAt).toISOString();
+      if (d.dlpOverrideReason) body.dlpOverrideReason = d.dlpOverrideReason;
+      if (d.dlpOverrideTicket) body.dlpOverrideTicket = d.dlpOverrideTicket;
+      var r = await API.post('files/upload', body);
+      UI.showResult(form, r.data);
+      if (r.ok && r.data && r.data.fileId) UI.autoFillFileId(r.data.fileId);
+    },
+
+    fileActivate: async function(form) {
+      var d = UI.getFormData(form);
+      var r = await API.post('files/' + d.fileId + '/activate', undefined);
+      UI.showResult(form, r.data);
+    },
+
+    fileMetadata: async function(form) {
+      var d = UI.getFormData(form);
+      var r = await API.get('files/' + d.fileId);
+      UI.showResult(form, r.data);
+    },
+
+    fileArtifacts: async function(form) {
+      var d = UI.getFormData(form);
+      var r = await API.get('files/' + d.fileId + '/artifacts');
+      UI.showResult(form, r.data);
+    },
+
+    fileDownload: async function(form) {
+      var d = UI.getFormData(form);
+      var r = await API.get('files/' + d.fileId + '/download');
+      UI.showResult(form, r.data);
+      if (r.ok && r.data && r.data.contentBase64) {
+        var box = form.closest('.section').querySelector('.result-box');
+        var link = document.createElement('a');
+        link.href = 'data:' + (r.data.contentType || 'application/octet-stream') + ';base64,' + r.data.contentBase64;
+        link.download = r.data.filename || 'download';
+        link.textContent = 'Save File: ' + (r.data.filename || 'download');
+        link.style.cssText = 'display:block;margin-top:6px;color:var(--accent);font-size:12px;';
+        box.appendChild(link);
+      }
+    },
+
+    // Shares
+    shareCreate: async function(form) {
+      var d = UI.getFormData(form);
+      var body = { fileId: d.fileId };
+      if (d.expiresAt) body.expiresAt = new Date(d.expiresAt).toISOString();
+      if (d.maxDownloads) body.maxDownloads = parseInt(d.maxDownloads, 10);
+      if (d.password) body.password = d.password;
+      if (d.dlpOverrideReason) body.dlpOverrideReason = d.dlpOverrideReason;
+      if (d.dlpOverrideTicket) body.dlpOverrideTicket = d.dlpOverrideTicket;
+      var r = await API.post('shares', body);
+      UI.showResult(form, r.data);
+      if (r.ok && r.data) {
+        if (r.data.shareId) document.getElementById('share-revokeId').value = r.data.shareId;
+        if (r.data.shareToken) document.getElementById('share-accessToken').value = r.data.shareToken;
+      }
+    },
+
+    shareRevoke: async function(form) {
+      var d = UI.getFormData(form);
+      var r = await API.post('shares/' + d.shareId + '/revoke', undefined);
+      UI.showResult(form, r.data);
+    },
+
+    shareAccess: async function(form) {
+      var d = UI.getFormData(form);
+      var body = { shareToken: d.shareToken };
+      if (d.password) body.password = d.password;
+      var r = await API.post('shares/access', body, { noAuth: true });
+      UI.showResult(form, r.data);
+      if (r.ok && r.data && r.data.contentBase64) {
+        var box = form.closest('.section').querySelector('.result-box');
+        var link = document.createElement('a');
+        link.href = 'data:' + (r.data.contentType || 'application/octet-stream') + ';base64,' + r.data.contentBase64;
+        link.download = r.data.filename || 'download';
+        link.textContent = 'Save File: ' + (r.data.filename || 'download');
+        link.style.cssText = 'display:block;margin-top:6px;color:var(--accent);font-size:12px;';
+        box.appendChild(link);
+      }
+    },
+
+    // Search
+    searchFiles: async function(form) {
+      var d = UI.getFormData(form);
+      var r = await API.get('search/files', { q: d.q, limit: d.limit });
+      UI.showResult(form, r.data);
+    },
+
+    // Audit helpers
+    _auditFilters: function() {
+      var form = document.getElementById('audit-form');
+      return UI.getFormData(form);
+    },
+
+    _showAuditResult: function(r) {
+      var box = document.getElementById('audit-result');
+      box.style.display = 'block';
+      var str = typeof r.data === 'string' ? r.data : JSON.stringify(r.data, null, 2);
+      box.innerHTML = '<pre>' + esc(str) + '</pre>' +
+        '<button class="btn btn-copy" id="_audit_copy">Copy</button>';
+      box.querySelector('#_audit_copy').addEventListener('click', function() {
+        UI.copyToClipboard(str, box.querySelector('#_audit_copy'));
+      });
+    },
+
+    audit_events: async function() {
+      var q = Actions._auditFilters();
+      var r = await API.get('audit/events', q);
+      Actions._showAuditResult(r);
+    },
+
+    audit_export: async function() {
+      var q = Actions._auditFilters();
+      var r = await API.get('audit/events/export', q);
+      Actions._showAuditResult(r);
+    },
+
+    audit_summary: async function() {
+      var q = Actions._auditFilters();
+      var top = document.getElementById('audit-top').value.trim();
+      if (top) q.top = top;
+      var r = await API.get('audit/events/summary', q);
+      Actions._showAuditResult(r);
+    },
+
+    audit_timeseries: async function() {
+      var q = Actions._auditFilters();
+      q.bucket = document.getElementById('audit-bucket').value;
+      var r = await API.get('audit/events/timeseries', q);
+      Actions._showAuditResult(r);
+    },
+
+    audit_kpis: async function() {
+      var q = Actions._auditFilters();
+      delete q.from;
+      delete q.to;
+      var wh = document.getElementById('audit-windowHours').value.trim();
+      if (wh) q.windowHours = wh;
+      var r = await API.get('audit/events/kpis', q);
+      Actions._showAuditResult(r);
+    }
+  };
+
+  // ── Boot ───────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function() { UI.init(); });
+})();
+</script>
+</body>
 </html>
