@@ -16,7 +16,7 @@ import { Throttle } from '@nestjs/throttler';
 
 import { getRequestContext, requireAuthenticatedUser } from '../../common/request-context.js';
 import { createValidationException } from '../../common/validation/validation-exception.factory.js';
-import { AuthenticatedRequest, AuthenticatedUser } from '../auth/types/authenticated-request.js';
+import { AuthenticatedRequest } from '../auth/types/authenticated-request.js';
 import { ActiveUserGuard } from '../auth/guards/active-user.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AccessShareDto } from './dto/access-share.dto.js';
