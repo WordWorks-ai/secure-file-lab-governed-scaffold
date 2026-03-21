@@ -1,5 +1,6 @@
 import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 
+import { GlobalExceptionFilter } from '../common/filters/global-exception.filter.js';
 import { RequestLoggingInterceptor } from '../common/logging/request-logging.interceptor.js';
 import { createValidationException } from '../common/validation/validation-exception.factory.js';
 
@@ -7,6 +8,12 @@ export function configureApiApplication(app: INestApplication): void {
   validateRequiredSecrets();
 
   app.setGlobalPrefix('v1');
+
+  // OWASP A05 – Global exception filter prevents stack traces and internal
+  // details from leaking to HTTP clients. Must be registered before pipes
+  // so it catches everything including unhandled throws in guards/pipes.
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
   app.useGlobalInterceptors(new RequestLoggingInterceptor());
   app.useGlobalPipes(
     new ValidationPipe({

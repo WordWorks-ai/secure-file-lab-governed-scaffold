@@ -1,8 +1,9 @@
 import { verify } from '@node-rs/argon2';
 import { AuditActorType, AuditResult, RefreshToken, User, UserRole } from '@prisma/client';
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 
+import { AccountLockoutService } from './account-lockout.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { PrismaService } from '../persistence/prisma.service.js';
 import { AuthenticatedUser } from './types/authenticated-request.js';
@@ -37,12 +38,18 @@ export type AuthTokenResponse = {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
+  /** OWASP A07 – Maximum concurrent refresh tokens per user (prevents token hoarding). */
+  private readonly maxRefreshTokensPerUser = Number(process.env.AUTH_MAX_REFRESH_TOKENS ?? 10);
+
   constructor(
     @Inject(PrismaService) private readonly prismaService: PrismaService,
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(JwtTokenService) private readonly jwtTokenService: JwtTokenService,
     @Inject(KeycloakSsoService) private readonly keycloakSsoService: KeycloakSsoService,
     @Inject(MfaService) private readonly mfaService: MfaService,
+    @Inject(AccountLockoutService) private readonly lockoutService: AccountLockoutService,
   ) {}
 
   async login(
@@ -52,6 +59,28 @@ export class AuthService {
     context: AuthRequestContext,
   ): Promise<AuthTokenResponse> {
     const normalizedEmail = email.trim().toLowerCase();
+
+    // ── OWASP A07 – Account Lockout ───────────────────────────────────
+    // Check lockout BEFORE doing any work to short-circuit brute-force.
+    if (this.lockoutService.isLockedOut(normalizedEmail)) {
+      const remaining = this.lockoutService.getRemainingLockoutSeconds(normalizedEmail);
+      await this.auditService.recordEvent({
+        action: 'auth.login',
+        resourceType: 'auth_session',
+        result: AuditResult.denied,
+        actorType: AuditActorType.system,
+        actorUserId: null,
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        metadata: {
+          email: normalizedEmail,
+          reason: 'account_locked',
+          remainingSeconds: remaining,
+        },
+      });
+      throw new UnauthorizedException('Account temporarily locked. Try again later.');
+    }
+
     const user = await this.prismaService.user.findUnique({
       where: { email: normalizedEmail },
     });
@@ -63,6 +92,9 @@ export class AuthService {
     const activeUser = Boolean(user?.isActive);
 
     if (!user || !passwordValid || !activeUser) {
+      // Record failure for lockout tracking
+      this.lockoutService.recordFailure(normalizedEmail);
+
       await this.auditService.recordEvent({
         action: 'auth.login',
         resourceType: 'auth_session',
@@ -155,6 +187,12 @@ export class AuthService {
     }
 
     const { response } = await this.issueTokenPair(user);
+
+    // OWASP A07 – Reset lockout counter on successful authentication.
+    this.lockoutService.recordSuccess(normalizedEmail);
+
+    // OWASP A07 – Prune stale refresh tokens to prevent token hoarding.
+    await this.pruneStaleRefreshTokens(user.id);
 
     await this.auditService.recordEvent({
       action: 'auth.login',
@@ -582,5 +620,53 @@ export class AuthService {
     }
 
     return token.expiresAt.getTime() > Date.now();
+  }
+
+  /**
+   * OWASP A07 – Prune expired or excess refresh tokens for a user.
+   *
+   * Revokes all expired tokens and, if the user still exceeds the maximum
+   * allowed concurrent refresh tokens, revokes the oldest surplus.
+   */
+  private async pruneStaleRefreshTokens(userId: string): Promise<void> {
+    try {
+      // 1. Revoke all expired tokens
+      await this.prismaService.refreshToken.updateMany({
+        where: {
+          userId,
+          revokedAt: null,
+          expiresAt: { lte: new Date() },
+        },
+        data: { revokedAt: new Date() },
+      });
+
+      // 2. Count remaining active tokens
+      const activeTokens = await this.prismaService.refreshToken.findMany({
+        where: {
+          userId,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        orderBy: { issuedAt: 'desc' },
+        select: { id: true },
+      });
+
+      if (activeTokens.length > this.maxRefreshTokensPerUser) {
+        const surplus = activeTokens.slice(this.maxRefreshTokensPerUser);
+        await this.prismaService.refreshToken.updateMany({
+          where: {
+            id: { in: surplus.map((t) => t.id) },
+          },
+          data: { revokedAt: new Date() },
+        });
+
+        this.logger.log(`Pruned ${surplus.length} excess refresh tokens for user ${userId}`);
+      }
+    } catch (error) {
+      // Non-critical – log and continue. Login should not fail because of cleanup.
+      this.logger.warn(
+        `Refresh token cleanup failed for user ${userId}: ${error instanceof Error ? error.message : 'unknown'}`,
+      );
+    }
   }
 }
