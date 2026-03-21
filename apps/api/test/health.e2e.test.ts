@@ -38,12 +38,16 @@ describe('health endpoints', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
+    process.env.THROTTLE_LIMIT = '10000';
+    process.env.THROTTLE_AUTH_LIMIT = '10000';
+    process.env.THROTTLE_SHARE_LIMIT = '10000';
     process.env.JWT_ACCESS_SECRET = 'test-health-secret-that-is-at-least-32-chars';
     process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key-at-least-32-chars';
 
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .compile();
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     configureApiApplication(app);

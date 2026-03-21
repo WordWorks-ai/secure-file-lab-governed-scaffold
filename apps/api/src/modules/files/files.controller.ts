@@ -20,7 +20,7 @@ import { Roles } from '../auth/decorators/roles.decorator.js';
 import { ActiveUserGuard } from '../auth/guards/active-user.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
-import { AuthenticatedRequest, AuthenticatedUser } from '../auth/types/authenticated-request.js';
+import { AuthenticatedRequest } from '../auth/types/authenticated-request.js';
 import { UploadFileDto } from './dto/upload-file.dto.js';
 import { FilesService } from './files.service.js';
 

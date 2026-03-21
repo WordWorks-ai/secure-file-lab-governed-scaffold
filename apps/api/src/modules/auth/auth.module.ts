@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 
 import { AuditModule } from '../audit/audit.module.js';
 import { PrismaModule } from '../persistence/prisma.module.js';
@@ -12,7 +12,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { RolesGuard } from './guards/roles.guard.js';
 
 @Module({
-  imports: [PrismaModule, AuditModule],
+  imports: [PrismaModule, forwardRef(() => AuditModule)],
   controllers: [AuthController],
   providers: [AuthService, JwtTokenService, KeycloakSsoService, MfaService, JwtAuthGuard, ActiveUserGuard, RolesGuard],
   exports: [AuthService, JwtTokenService, KeycloakSsoService, MfaService, JwtAuthGuard, ActiveUserGuard, RolesGuard],

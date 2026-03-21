@@ -36,7 +36,7 @@ export class AuthController {
   constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
   @Post('login')
-  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @Throttle({ default: { ttl: Number(process.env.THROTTLE_TTL ?? 60000), limit: Number(process.env.THROTTLE_AUTH_LIMIT ?? 10) } })
   @UsePipes(
     new ValidationPipe({
       transform: true,
@@ -64,7 +64,7 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @Throttle({ default: { ttl: Number(process.env.THROTTLE_TTL ?? 60000), limit: Number(process.env.THROTTLE_AUTH_LIMIT ?? 10) } })
   @UsePipes(
     new ValidationPipe({
       transform: true,
@@ -82,7 +82,7 @@ export class AuthController {
   }
 
   @Post('sso/exchange')
-  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @Throttle({ default: { ttl: Number(process.env.THROTTLE_TTL ?? 60000), limit: Number(process.env.THROTTLE_AUTH_LIMIT ?? 10) } })
   @UsePipes(
     new ValidationPipe({
       transform: true,

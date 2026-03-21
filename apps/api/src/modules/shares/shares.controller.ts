@@ -16,7 +16,7 @@ import { Throttle } from '@nestjs/throttler';
 
 import { getRequestContext, requireAuthenticatedUser } from '../../common/request-context.js';
 import { createValidationException } from '../../common/validation/validation-exception.factory.js';
-import { AuthenticatedRequest, AuthenticatedUser } from '../auth/types/authenticated-request.js';
+import { AuthenticatedRequest } from '../auth/types/authenticated-request.js';
 import { ActiveUserGuard } from '../auth/guards/active-user.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AccessShareDto } from './dto/access-share.dto.js';
@@ -64,7 +64,7 @@ export class SharesController {
 
   @Post('access')
   @HttpCode(200)
-  @Throttle({ default: { ttl: 60000, limit: 20 } })
+  @Throttle({ default: { ttl: Number(process.env.THROTTLE_TTL ?? 60000), limit: Number(process.env.THROTTLE_SHARE_LIMIT ?? 20) } })
   @UsePipes(
     new ValidationPipe({
       transform: true,
