@@ -9,6 +9,7 @@ import { createHmac, randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppModule } from '../src/app.module.js';
 import { configureApiApplication } from '../src/bootstrap/configure-api-application.js';
 import { KeycloakSsoService } from '../src/modules/auth/keycloak-sso.service.js';
@@ -593,6 +594,8 @@ describe('auth endpoints', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     })
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
       .overrideProvider(PrismaService)
       .useValue(prisma)
       .compile();

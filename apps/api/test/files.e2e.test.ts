@@ -8,6 +8,7 @@ import { createHmac, randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppModule } from '../src/app.module.js';
 import { configureApiApplication } from '../src/bootstrap/configure-api-application.js';
 import { ContentQueueService } from '../src/modules/files/content-queue.service.js';
@@ -625,6 +626,8 @@ describe('files endpoints', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     })
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
       .overrideProvider(PrismaService)
       .useValue(prisma)
       .overrideProvider(MinioObjectStorageService)

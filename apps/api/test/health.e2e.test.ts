@@ -6,6 +6,7 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { configureApiApplication } from '../src/bootstrap/configure-api-application.js';
 import { AppModule } from '../src/app.module.js';
 
@@ -43,7 +44,10 @@ describe('health endpoints', () => {
 
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     configureApiApplication(app);

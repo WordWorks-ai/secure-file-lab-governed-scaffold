@@ -8,6 +8,7 @@ import { createCipheriv, createHmac, randomBytes, randomUUID } from 'node:crypto
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppModule } from '../src/app.module.js';
 import { configureApiApplication } from '../src/bootstrap/configure-api-application.js';
 import { FileQueueService } from '../src/modules/files/file-queue.service.js';
@@ -718,6 +719,8 @@ describe('shares and audit endpoints', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     })
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
       .overrideProvider(PrismaService)
       .useValue(prisma)
       .overrideProvider(MinioObjectStorageService)
