@@ -20,7 +20,10 @@ import { UsersOrgsModule } from './modules/users-orgs/users-orgs.module.js';
       cache: true,
       ignoreEnvFile: false,
     }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    ThrottlerModule.forRoot([{
+      ttl: Number(process.env.THROTTLE_TTL ?? 60000),
+      limit: Number(process.env.THROTTLE_LIMIT ?? 100),
+    }]),
     HealthModule,
     MetricsModule,
     SystemModule,

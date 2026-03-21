@@ -64,7 +64,7 @@ export class SharesController {
 
   @Post('access')
   @HttpCode(200)
-  @Throttle({ default: { ttl: 60000, limit: 20 } })
+  @Throttle({ default: { ttl: Number(process.env.THROTTLE_TTL ?? 60000), limit: Number(process.env.THROTTLE_SHARE_LIMIT ?? 20) } })
   @UsePipes(
     new ValidationPipe({
       transform: true,

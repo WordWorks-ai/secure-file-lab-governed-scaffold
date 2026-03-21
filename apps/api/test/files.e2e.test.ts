@@ -8,7 +8,6 @@ import { createHmac, randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppModule } from '../src/app.module.js';
 import { configureApiApplication } from '../src/bootstrap/configure-api-application.js';
 import { ContentQueueService } from '../src/modules/files/content-queue.service.js';
@@ -606,6 +605,9 @@ describe('files endpoints', () => {
     originalDlpAdminOverrideMinReasonLength = process.env.DLP_ADMIN_OVERRIDE_MIN_REASON_LENGTH;
     originalDlpAdminOverrideRequireTicket = process.env.DLP_ADMIN_OVERRIDE_REQUIRE_TICKET;
     originalDlpAdminOverrideTicketPattern = process.env.DLP_ADMIN_OVERRIDE_TICKET_PATTERN;
+    process.env.THROTTLE_LIMIT = '10000';
+    process.env.THROTTLE_AUTH_LIMIT = '10000';
+    process.env.THROTTLE_SHARE_LIMIT = '10000';
     process.env.JWT_ACCESS_SECRET = jwtSecret;
     process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key-at-least-32-chars';
     process.env.FILE_UPLOAD_MAX_BYTES = '1024';
@@ -626,8 +628,6 @@ describe('files endpoints', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     })
-      .overrideGuard(ThrottlerGuard)
-      .useValue({ canActivate: () => true })
       .overrideProvider(PrismaService)
       .useValue(prisma)
       .overrideProvider(MinioObjectStorageService)

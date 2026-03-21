@@ -9,7 +9,6 @@ import { createHmac, randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppModule } from '../src/app.module.js';
 import { configureApiApplication } from '../src/bootstrap/configure-api-application.js';
 import { KeycloakSsoService } from '../src/modules/auth/keycloak-sso.service.js';
@@ -584,6 +583,9 @@ describe('auth endpoints', () => {
   let prisma: InMemoryPrismaService;
 
   beforeAll(async () => {
+    process.env.THROTTLE_LIMIT = '10000';
+    process.env.THROTTLE_AUTH_LIMIT = '10000';
+    process.env.THROTTLE_SHARE_LIMIT = '10000';
     process.env.JWT_ACCESS_SECRET = 'test-access-secret-that-is-at-least-32-chars';
     process.env.MFA_TOTP_SECRET_KEY = 'test-mfa-totp-secret-key-at-least-32-chars';
     process.env.JWT_REFRESH_TTL = '1209600';
@@ -594,8 +596,6 @@ describe('auth endpoints', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     })
-      .overrideGuard(ThrottlerGuard)
-      .useValue({ canActivate: () => true })
       .overrideProvider(PrismaService)
       .useValue(prisma)
       .compile();
