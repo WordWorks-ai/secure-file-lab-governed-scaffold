@@ -5,124 +5,237 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="no-referrer">
-<title>SFL Test Harness</title>
+<title>Secure File Lab</title>
 <style>
 :root {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --border: #30363d;
-  --text: #c9d1d9;
-  --dim: #8b949e;
-  --accent: #58a6ff;
-  --green: #3fb950;
-  --red: #f85149;
-  --yellow: #d29922;
-  --orange: #d18616;
-  --mono: 'SF Mono','Cascadia Code','Fira Code',Consolas,monospace;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --dim: #64748b;
+  --accent: #1e3a5f;
+  --accent-light: #2d5a8e;
+  --green: #16a34a;
+  --red: #dc2626;
+  --yellow: #d97706;
+  --orange: #d97706;
+  --mono: 'IBM Plex Mono','SFMono-Regular',Menlo,monospace;
+  --sans: 'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-html, body { height:100%; background:var(--bg); color:var(--text); font-family:var(--mono); font-size:13px; }
-body { display:flex; flex-direction:column; }
+html, body { height:100%; background:var(--bg); color:var(--text); font-family:var(--sans); font-size:14px; }
 
-/* Header */
-#header { display:flex; align-items:center; gap:12px; padding:8px 16px; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; min-height:44px; }
-#header .title { font-size:14px; font-weight:700; color:var(--accent); white-space:nowrap; }
-#header .shortcuts-hint { font-size:10px; color:var(--dim); white-space:nowrap; }
-#header .auth-status { display:flex; align-items:center; gap:8px; margin-left:auto; font-size:12px; }
-.dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
-.dot-green { background:var(--green); }
-.dot-red { background:var(--red); }
-.role-badge { font-size:10px; padding:2px 6px; border-radius:3px; background:var(--border); color:var(--yellow); text-transform:uppercase; }
+/* ── Auth Gate ──────────────────────────── */
+#auth-gate { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px;
+  background:radial-gradient(circle at 20% 30%,#dbeafe 0%,transparent 40%),radial-gradient(circle at 80% 70%,#e0e7ff 0%,transparent 35%),var(--bg); }
+.signin-card { width:min(420px,100%); background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:32px; box-shadow:0 4px 24px rgb(0 0 0/0.06); }
+.signin-brand { font-size:20px; font-weight:700; color:var(--accent); margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+.signin-brand .lock { font-size:18px; }
+.signin-sub { font-size:13px; color:var(--dim); margin-bottom:24px; }
+.signin-card label { display:block; font-size:12px; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+.signin-card input { width:100%; font-family:var(--sans); font-size:14px; padding:8px 12px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text); margin-bottom:16px; }
+.signin-card input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(30,58,95,0.12); }
+.signin-actions { display:flex; gap:8px; margin-top:8px; }
+.signin-error { font-size:13px; color:var(--red); margin-bottom:12px; padding:8px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; display:none; }
+.mfa-step { display:none; }
+.mfa-step.visible { display:block; }
+.sso-divider { text-align:center; color:var(--dim); font-size:12px; margin:16px 0; position:relative; }
+.sso-divider::before,.sso-divider::after { content:''; position:absolute; top:50%; width:calc(50% - 20px); height:1px; background:var(--border); }
+.sso-divider::before { left:0; } .sso-divider::after { right:0; }
+
+/* ── App Shell ──────────────────────────── */
+#app-shell { display:none; height:100vh; }
+#app-shell.active { display:flex; flex-direction:column; }
+
+/* Top bar */
+#topbar { display:flex; align-items:center; gap:12px; padding:0 20px; height:52px; background:var(--accent); color:#fff; flex-shrink:0; }
+#topbar .brand { font-size:16px; font-weight:700; letter-spacing:-0.3px; }
+#topbar .spacer { flex:1; }
+#topbar .user-info { font-size:13px; display:flex; align-items:center; gap:8px; }
+.role-pill { font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(255,255,255,0.2); text-transform:uppercase; font-weight:600; letter-spacing:0.3px; }
+
+/* Layout */
+#app-body { display:flex; flex:1; overflow:hidden; }
+
+/* Sidebar */
+#sidebar { width:200px; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; overflow-y:auto; }
+#sidebar .nav-section { padding:12px 0; }
+#sidebar .nav-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--dim); padding:8px 16px 4px; }
+#sidebar .nav-item { display:flex; align-items:center; gap:10px; padding:8px 16px; font-size:13px; color:var(--dim); cursor:pointer; border-left:3px solid transparent; transition:all 0.15s; }
+#sidebar .nav-item:hover { background:var(--bg); color:var(--text); }
+#sidebar .nav-item.active { color:var(--accent); border-left-color:var(--accent); background:rgba(30,58,95,0.04); font-weight:600; }
+#sidebar .nav-icon { width:18px; text-align:center; font-size:15px; }
+#sidebar .nav-divider { height:1px; background:var(--border); margin:4px 16px; }
+.admin-link { margin-top:auto; padding:12px 16px; border-top:1px solid var(--border); }
+.admin-link a { font-size:12px; color:var(--dim); text-decoration:none; display:flex; align-items:center; gap:6px; }
+.admin-link a:hover { color:var(--accent); }
+
+/* Main content */
+#main { flex:1; overflow-y:auto; padding:24px 32px; }
+.view { display:none; }
+.view.active { display:block; }
+.view-title { font-size:20px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.view-subtitle { font-size:13px; color:var(--dim); margin-bottom:20px; }
+
+/* ── Shared Components ──────────────────── */
 
 /* Buttons */
-.btn { font-family:var(--mono); font-size:12px; padding:4px 12px; border:1px solid var(--border); border-radius:4px; cursor:pointer; background:var(--surface); color:var(--text); transition:opacity 0.15s; }
+.btn { font-family:var(--sans); font-size:13px; padding:7px 16px; border:1px solid var(--border); border-radius:6px; cursor:pointer; background:var(--surface); color:var(--text); transition:all 0.15s; font-weight:500; }
 .btn:hover { border-color:var(--accent); }
 .btn:disabled { opacity:0.5; cursor:not-allowed; }
-.btn-send { background:var(--accent); color:#000; border-color:var(--accent); font-weight:700; }
-.btn-send:hover:not(:disabled) { opacity:0.85; }
+.btn-primary { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+.btn-primary:hover:not(:disabled) { background:var(--accent-light); }
 .btn-danger { background:var(--red); color:#fff; border-color:var(--red); }
 .btn-danger:hover:not(:disabled) { opacity:0.85; }
-.btn-copy { font-size:10px; padding:2px 8px; }
-.btn-sm { font-size:11px; padding:2px 8px; }
+.btn-sm { font-size:12px; padding:4px 10px; }
+.btn-copy { font-size:11px; padding:3px 8px; }
+.btn-ghost { background:none; border:none; color:var(--dim); padding:4px 8px; }
+.btn-ghost:hover { color:var(--accent); }
 
-/* Tabs */
-#tabs { display:flex; gap:0; border-bottom:1px solid var(--border); background:var(--surface); flex-shrink:0; overflow-x:auto; }
-#tabs button { font-family:var(--mono); font-size:12px; padding:8px 16px; border:none; background:none; color:var(--dim); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; transition:color 0.15s; }
-#tabs button:hover { color:var(--text); }
-#tabs button.active { color:var(--accent); border-bottom-color:var(--accent); }
-#tabs .tab-key { font-size:9px; color:var(--dim); margin-left:4px; opacity:0.5; vertical-align:super; }
-
-/* Main + Log split */
-#main-split { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-#content { flex:1; overflow-y:auto; padding:16px; }
-#log-panel { height:35vh; min-height:0; border-top:2px solid var(--border); display:flex; flex-direction:column; background:var(--surface); transition:height 0.2s ease; }
-#log-panel.collapsed { height:32px; min-height:32px; }
-#log-panel.collapsed #log-body { display:none; }
-#log-header { display:flex; align-items:center; justify-content:space-between; padding:6px 16px; border-bottom:1px solid var(--border); flex-shrink:0; cursor:pointer; user-select:none; }
-#log-header span { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:0.5px; }
-#log-header .log-toggle { font-size:10px; color:var(--dim); transition:transform 0.2s; }
-#log-panel.collapsed #log-header .log-toggle { transform:rotate(180deg); }
-#log-header .log-count { font-size:10px; color:var(--accent); margin-left:6px; }
-#log-body { flex:1; overflow-y:auto; padding:8px 16px; }
-
-/* Tab panels */
-.tab-panel { display:none; }
-.tab-panel.active { display:block; }
-
-/* Sections */
-.section { margin-bottom:20px; padding:12px; border:1px solid var(--border); border-radius:6px; background:var(--surface); transition:border-color 0.3s ease; }
-.section.flash-ok { border-color:var(--green); }
-.section.flash-err { border-color:var(--red); }
-.section-title { font-size:12px; font-weight:700; color:var(--accent); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
-.section-label { font-size:11px; color:var(--dim); font-weight:400; }
-.section-group { font-size:11px; font-weight:700; color:var(--dim); text-transform:uppercase; letter-spacing:1px; margin:16px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--border); }
-.admin-badge { font-size:9px; padding:1px 5px; border-radius:3px; background:var(--orange); color:#000; text-transform:uppercase; font-weight:700; }
-.noauth-badge { font-size:9px; padding:1px 5px; border-radius:3px; background:var(--green); color:#000; text-transform:uppercase; font-weight:700; }
+/* Cards */
+.card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:16px; transition:border-color 0.3s; }
+.card.flash-ok { border-color:var(--green); }
+.card.flash-err { border-color:var(--red); }
+.card-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.card-title .badge { font-size:10px; padding:2px 8px; border-radius:10px; font-weight:600; text-transform:uppercase; }
+.badge-admin { background:#fef3c7; color:#92400e; }
+.badge-noauth { background:#dcfce7; color:#166534; }
+.badge-status { font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600; }
+.badge-active { background:#dcfce7; color:#166534; }
+.badge-pending { background:#fef3c7; color:#92400e; }
+.badge-blocked { background:#fef2f2; color:#991b1b; }
+.badge-expired { background:#f1f5f9; color:#64748b; }
 
 /* Forms */
-.form-row { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:6px; }
-.form-field { display:flex; flex-direction:column; gap:2px; }
-.form-field label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--dim); }
-.form-field label .opt { color:var(--yellow); font-weight:400; }
-.form-field input, .form-field textarea, .form-field select {
-  font-family:var(--mono); font-size:12px; padding:4px 8px;
-  background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:3px;
-  min-width:160px;
+.form-group { margin-bottom:16px; }
+.form-group label { display:block; font-size:12px; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+.form-group label .opt { color:var(--yellow); font-weight:400; font-size:10px; }
+.form-group input, .form-group textarea, .form-group select {
+  width:100%; font-family:var(--sans); font-size:13px; padding:7px 10px;
+  background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px;
 }
-.form-field textarea { min-height:48px; resize:vertical; }
-.form-field input:focus, .form-field textarea:focus, .form-field select:focus { outline:none; border-color:var(--accent); }
-.form-actions { display:flex; gap:6px; align-items:flex-end; margin-top:4px; }
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(30,58,95,0.08); }
+.form-group textarea { min-height:48px; resize:vertical; font-family:var(--mono); font-size:12px; }
+.form-row { display:flex; gap:12px; flex-wrap:wrap; }
+.form-row .form-group { flex:1; min-width:140px; }
 
-/* Inline result */
-.result-box { margin-top:8px; padding:8px; background:var(--bg); border:1px solid var(--border); border-radius:4px; overflow-x:auto; max-height:300px; overflow-y:auto; position:relative; }
-.result-box pre { white-space:pre-wrap; word-break:break-all; font-size:12px; }
-.result-box .result-actions { position:absolute; top:4px; right:4px; display:flex; gap:4px; }
-.result-status { font-size:10px; padding:1px 6px; border-radius:3px; font-weight:700; display:inline-block; margin-bottom:4px; }
-.result-status.s-ok { background:var(--green); color:#000; }
-.result-status.s-err { background:var(--red); color:#fff; }
-.result-status.s-warn { background:var(--yellow); color:#000; }
+/* Result box */
+.result-box { margin-top:12px; padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; overflow-x:auto; max-height:320px; overflow-y:auto; position:relative; display:none; }
+.result-box pre { white-space:pre-wrap; word-break:break-all; font-family:var(--mono); font-size:12px; color:var(--text); }
+.result-box .result-actions { position:absolute; top:8px; right:8px; display:flex; gap:4px; }
+.result-status { font-size:11px; padding:2px 8px; border-radius:4px; font-weight:600; display:inline-block; margin-bottom:6px; }
+.result-status.s-ok { background:#dcfce7; color:#166534; }
+.result-status.s-err { background:#fef2f2; color:#991b1b; }
+.result-status.s-warn { background:#fef3c7; color:#92400e; }
 
-/* Log entries */
+/* Tables */
+.data-table { width:100%; border-collapse:collapse; font-size:13px; }
+.data-table th { text-align:left; padding:8px 12px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--dim); border-bottom:2px solid var(--border); }
+.data-table td { padding:8px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+.data-table tr:hover { background:var(--bg); }
+.data-table .actions { display:flex; gap:4px; }
+
+/* Drawers / Panels */
+.drawer { position:fixed; top:52px; right:0; width:min(520px,90vw); height:calc(100vh - 52px); background:var(--surface); border-left:1px solid var(--border); box-shadow:-4px 0 24px rgb(0 0 0/0.08); z-index:100; overflow-y:auto; padding:24px; transform:translateX(100%); transition:transform 0.25s ease; }
+.drawer.open { transform:translateX(0); }
+.drawer-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.drawer-title { font-size:16px; font-weight:600; }
+.drawer-close { font-size:20px; cursor:pointer; color:var(--dim); background:none; border:none; padding:4px 8px; }
+.drawer-close:hover { color:var(--text); }
+.drawer-section { margin-bottom:16px; }
+.drawer-section-title { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--dim); margin-bottom:6px; }
+
+/* Upload zone */
+.upload-zone { border:2px dashed var(--border); border-radius:8px; padding:32px; text-align:center; cursor:pointer; transition:all 0.2s; margin-bottom:16px; }
+.upload-zone:hover, .upload-zone.dragover { border-color:var(--accent); background:rgba(30,58,95,0.03); }
+.upload-zone .uz-icon { font-size:32px; margin-bottom:8px; }
+.upload-zone .uz-text { font-size:13px; color:var(--dim); }
+.upload-zone .uz-text strong { color:var(--accent); }
+
+/* Share token display */
+.token-display { background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:16px; margin-top:12px; }
+.token-display .token-label { font-size:11px; font-weight:600; text-transform:uppercase; color:var(--accent); margin-bottom:6px; }
+.token-display .token-value { font-family:var(--mono); font-size:12px; word-break:break-all; padding:8px; background:var(--surface); border:1px solid var(--border); border-radius:4px; margin-bottom:8px; }
+.token-display .token-actions { display:flex; gap:6px; }
+
+/* Tabs within views */
+.sub-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:16px; }
+.sub-tab { font-family:var(--sans); font-size:13px; padding:8px 16px; border:none; background:none; color:var(--dim); cursor:pointer; border-bottom:2px solid transparent; font-weight:500; }
+.sub-tab:hover { color:var(--text); }
+.sub-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.sub-panel { display:none; }
+.sub-panel.active { display:block; }
+
+/* Empty states */
+.empty-state { text-align:center; padding:40px 20px; color:var(--dim); }
+.empty-state .es-icon { font-size:36px; margin-bottom:8px; opacity:0.5; }
+.empty-state p { font-size:13px; }
+
+/* Toast */
+.toast { position:fixed; bottom:20px; right:20px; background:var(--accent); color:#fff; padding:10px 20px; border-radius:8px; font-size:13px; z-index:200; transform:translateY(100px); opacity:0; transition:all 0.3s; }
+.toast.visible { transform:translateY(0); opacity:1; }
+
+/* Security view */
+.security-card { display:flex; align-items:center; gap:16px; padding:16px; background:var(--bg); border:1px solid var(--border); border-radius:8px; margin-bottom:12px; }
+.security-icon { font-size:24px; width:40px; text-align:center; }
+.security-info { flex:1; }
+.security-info .si-title { font-size:14px; font-weight:600; }
+.security-info .si-desc { font-size:12px; color:var(--dim); margin-top:2px; }
+
+/* Developer panel */
+#dev-panel { display:none; }
+#dev-panel.active { display:block; }
+.dev-section { margin-bottom:16px; padding:12px; border:1px solid var(--border); border-radius:6px; background:var(--surface); transition:border-color 0.3s; }
+.dev-section.flash-ok { border-color:var(--green); }
+.dev-section.flash-err { border-color:var(--red); }
+.dev-title { font-family:var(--mono); font-size:12px; font-weight:700; color:var(--accent); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+.dev-label { font-size:11px; color:var(--dim); font-weight:400; }
+.dev-group { font-size:11px; font-weight:700; color:var(--dim); text-transform:uppercase; letter-spacing:1px; margin:16px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--border); }
+.dev-badge-admin { font-size:9px; padding:1px 5px; border-radius:3px; background:var(--orange); color:#fff; text-transform:uppercase; font-weight:700; }
+.dev-badge-noauth { font-size:9px; padding:1px 5px; border-radius:3px; background:var(--green); color:#fff; text-transform:uppercase; font-weight:700; }
+
+/* Dev forms */
+.dev-form-row { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:6px; }
+.dev-form-field { display:flex; flex-direction:column; gap:2px; }
+.dev-form-field label { font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--dim); }
+.dev-form-field label .opt { color:var(--yellow); font-weight:400; }
+.dev-form-field input, .dev-form-field textarea, .dev-form-field select {
+  font-family:var(--mono); font-size:12px; padding:4px 8px;
+  background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:4px; min-width:160px;
+}
+.dev-form-field textarea { min-height:48px; resize:vertical; }
+.dev-form-field input:focus, .dev-form-field textarea:focus, .dev-form-field select:focus { outline:none; border-color:var(--accent); }
+.dev-form-actions { display:flex; gap:6px; align-items:flex-end; margin-top:4px; }
+.btn-send { font-family:var(--mono); background:var(--accent); color:#fff; border-color:var(--accent); font-weight:700; font-size:12px; padding:4px 12px; }
+.btn-send:hover:not(:disabled) { opacity:0.85; }
+
+/* Dev file picker */
+.dev-file-picker { display:flex; align-items:center; gap:8px; margin-bottom:8px; padding:8px; background:var(--bg); border:1px dashed var(--border); border-radius:4px; }
+.dev-file-picker label { font-family:var(--mono); font-size:11px; color:var(--dim); }
+
+/* Dev log panel */
+#dev-log { border-top:1px solid var(--border); margin-top:16px; }
+#dev-log-header { display:flex; align-items:center; justify-content:space-between; padding:8px 0; cursor:pointer; user-select:none; }
+#dev-log-header span { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:0.5px; font-weight:600; }
+.dev-log-count { font-size:10px; color:var(--accent); margin-left:6px; }
+#dev-log-body { max-height:300px; overflow-y:auto; }
+#dev-log.collapsed #dev-log-body { display:none; }
 .log-entry { margin-bottom:4px; }
-.log-entry summary { cursor:pointer; font-size:12px; padding:3px 0; list-style:none; display:flex; gap:8px; align-items:center; }
+.log-entry summary { cursor:pointer; font-family:var(--mono); font-size:12px; padding:3px 0; list-style:none; display:flex; gap:8px; align-items:center; }
 .log-entry summary::-webkit-details-marker { display:none; }
 .log-entry summary::before { content:'▸'; color:var(--dim); font-size:10px; }
 .log-entry[open] summary::before { content:'▾'; }
-.log-time { color:var(--dim); font-size:11px; }
-.log-method { color:var(--accent); font-weight:700; min-width:48px; }
-.log-url { color:var(--text); }
+.log-time { color:var(--dim); font-size:11px; font-family:var(--mono); }
+.log-method { color:var(--accent); font-weight:700; min-width:48px; font-family:var(--mono); }
+.log-url { color:var(--text); font-family:var(--mono); font-size:12px; }
 .status-2xx { color:var(--green); font-weight:700; }
 .status-3xx { color:var(--accent); font-weight:700; }
 .status-4xx { color:var(--yellow); font-weight:700; }
 .status-5xx { color:var(--red); font-weight:700; }
 .log-detail { padding:8px 0 8px 16px; }
 .log-section { margin-bottom:6px; }
-.log-section-label { font-size:10px; text-transform:uppercase; color:var(--dim); letter-spacing:0.5px; }
-.log-section pre { font-size:11px; white-space:pre-wrap; word-break:break-all; color:var(--text); margin-top:2px; padding:4px; background:var(--bg); border-radius:3px; }
-
-/* File picker */
-.file-picker-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; padding:8px; background:var(--bg); border:1px dashed var(--border); border-radius:4px; }
-.file-picker-row label { font-size:11px; color:var(--dim); }
+.log-section-label { font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--dim); letter-spacing:0.5px; }
+.log-section pre { font-family:var(--mono); font-size:11px; white-space:pre-wrap; word-break:break-all; color:var(--text); margin-top:2px; padding:6px; background:var(--bg); border-radius:4px; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width:6px; height:6px; }
@@ -132,468 +245,726 @@ body { display:flex; flex-direction:column; }
 </head>
 <body>
 
-<!-- Header -->
-<div id="header">
-  <span class="title">SFL Test Harness</span>
-  <span class="shortcuts-hint" title="Keyboard shortcuts: 1-6 switch tabs, Ctrl+Enter submits forms">1-6 tabs &middot; Ctrl+Enter send</span>
-  <div class="auth-status" id="auth-status">
-    <span class="dot dot-red"></span>
-    <span id="auth-label">Unauthenticated</span>
+<!-- ════════════════════════════════════════ AUTH GATE ════════════════════════════════════════ -->
+<div id="auth-gate">
+  <div class="signin-card">
+    <div class="signin-brand"><span class="lock">&#x1F512;</span> Secure File Lab</div>
+    <div class="signin-sub">Sign in to your workspace</div>
+
+    <div class="signin-error" id="signin-error"></div>
+
+    <!-- Step 1: Credentials -->
+    <div id="signin-step1">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="signin-email" placeholder="user@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="signin-password" autocomplete="off" name="password">
+      </div>
+      <div class="signin-actions">
+        <button class="btn btn-primary" id="signin-btn" style="flex:1">Sign in</button>
+      </div>
+      <div class="sso-divider">or</div>
+      <button class="btn" id="sso-btn" style="width:100%">Sign in with SSO</button>
+    </div>
+
+    <!-- Step 2: MFA -->
+    <div class="mfa-step" id="signin-mfa">
+      <div class="form-group">
+        <label>Authenticator Code</label>
+        <input type="text" id="mfa-totp-code" maxlength="6" placeholder="000000" autocomplete="off">
+      </div>
+      <div class="signin-actions">
+        <button class="btn btn-primary" id="mfa-verify-btn" style="flex:1">Verify</button>
+        <button class="btn" id="mfa-back-btn">Back</button>
+      </div>
+    </div>
   </div>
-  <button class="btn btn-copy btn-sm" id="btn-copy-token" style="display:none" title="Copy access token">Copy Token</button>
-  <button class="btn btn-sm" id="btn-header-logout" style="display:none">Logout</button>
 </div>
 
-<!-- Tabs -->
-<div id="tabs">
-  <button class="active" data-tab="system">System<span class="tab-key">1</span></button>
-  <button data-tab="auth">Auth<span class="tab-key">2</span></button>
-  <button data-tab="files">Files<span class="tab-key">3</span></button>
-  <button data-tab="shares">Shares<span class="tab-key">4</span></button>
-  <button data-tab="search">Search<span class="tab-key">5</span></button>
-  <button data-tab="audit">Audit<span class="tab-key">6</span></button>
+<!-- ════════════════════════════════════════ APP SHELL ════════════════════════════════════════ -->
+<div id="app-shell">
+
+<!-- Top Bar -->
+<div id="topbar">
+  <span class="brand">&#x1F512; Secure File Lab</span>
+  <span class="spacer"></span>
+  <div class="user-info">
+    <span id="topbar-user"></span>
+    <span class="role-pill" id="topbar-role"></span>
+    <button class="btn btn-sm" id="btn-copy-token" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.25);font-size:11px" title="Copy access token">Copy Token</button>
+    <button class="btn btn-sm" id="btn-signout" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.25);font-size:11px">Sign out</button>
+  </div>
 </div>
 
-<div id="main-split">
-<div id="content">
+<div id="app-body">
 
-<!-- ======== SYSTEM TAB ======== -->
-<div class="tab-panel active" data-tab="system">
+<!-- Sidebar -->
+<nav id="sidebar">
+  <div class="nav-section">
+    <div class="nav-label">Workspace</div>
+    <div class="nav-item active" data-view="files"><span class="nav-icon">&#128196;</span> Files</div>
+    <div class="nav-item" data-view="upload"><span class="nav-icon">&#128228;</span> Upload</div>
+    <div class="nav-item" data-view="shares"><span class="nav-icon">&#128279;</span> Shares</div>
+    <div class="nav-item" data-view="search"><span class="nav-icon">&#128269;</span> Search</div>
+  </div>
+  <div class="nav-divider"></div>
+  <div class="nav-section">
+    <div class="nav-label">Account</div>
+    <div class="nav-item" data-view="security"><span class="nav-icon">&#128737;</span> Security</div>
+  </div>
+  <div class="nav-divider"></div>
+  <div class="nav-section">
+    <div class="nav-item" data-view="developer" id="nav-developer"><span class="nav-icon">&#128295;</span> Developer</div>
+  </div>
+  <div class="admin-link" id="admin-link" style="display:none">
+    <a id="admin-link-href" target="_blank">&#9881; Admin Console</a>
+  </div>
+</nav>
 
-  <div class="section">
-    <div class="section-title">GET /v1/health/live <span class="section-label">Liveness probe</span></div>
+<!-- Main Content -->
+<div id="main">
+
+<!-- ═══════ FILES VIEW ═══════ -->
+<div class="view active" data-view="files">
+  <div class="view-title">Files</div>
+  <div class="view-subtitle">View and manage your uploaded files</div>
+  <div id="file-list-container">
+    <div class="empty-state" id="files-empty">
+      <div class="es-icon">&#128196;</div>
+      <p>No files yet. Upload a file to get started.</p>
+    </div>
+    <table class="data-table" id="file-table" style="display:none">
+      <thead><tr><th>Filename</th><th>Type</th><th>Status</th><th>Uploaded</th><th>Actions</th></tr></thead>
+      <tbody id="file-table-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════ UPLOAD VIEW ═══════ -->
+<div class="view" data-view="upload">
+  <div class="view-title">Upload</div>
+  <div class="view-subtitle">Upload a file for encryption, scanning, and governed storage</div>
+  <div class="card">
+    <div class="upload-zone" id="upload-zone">
+      <div class="uz-icon">&#128228;</div>
+      <div class="uz-text">Drag a file here or <strong>click to browse</strong></div>
+      <input type="file" id="file-picker" style="display:none">
+    </div>
+    <div id="upload-file-info" style="display:none; margin-bottom:16px; padding:10px; background:var(--bg); border-radius:6px; font-size:13px;"></div>
+    <form id="upload-form" data-action="fileUpload">
+      <div class="form-row">
+        <div class="form-group"><label>Filename</label><input type="text" name="filename" id="upload-filename"></div>
+        <div class="form-group"><label>Content Type</label><input type="text" name="contentType" id="upload-contentType"></div>
+        <div class="form-group"><label>Expires At <span class="opt">[opt]</span></label><input type="datetime-local" name="expiresAt" id="upload-expiresAt"></div>
+      </div>
+      <div class="form-group" style="display:none">
+        <label>Content (Base64)</label>
+        <textarea name="contentBase64" id="upload-contentBase64"></textarea>
+      </div>
+      <div id="upload-dlp-override" style="display:none">
+        <div class="form-row">
+          <div class="form-group"><label>DLP Override Reason <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideReason" placeholder="min 12 chars"></div>
+          <div class="form-group"><label>DLP Override Ticket <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideTicket" placeholder="INC-0001"></div>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Upload File</button>
+    </form>
+    <div class="result-box"></div>
+  </div>
+  <div id="upload-status" style="display:none" class="card">
+    <div class="card-title">Upload Complete</div>
+    <div id="upload-status-body"></div>
+  </div>
+</div>
+
+<!-- ═══════ SHARES VIEW ═══════ -->
+<div class="view" data-view="shares">
+  <div class="view-title">Shares</div>
+  <div class="view-subtitle">Create and manage file share links</div>
+
+  <div class="sub-tabs">
+    <button class="sub-tab active" data-subtab="share-create">Create Share</button>
+    <button class="sub-tab" data-subtab="share-manage">Manage Shares</button>
+  </div>
+
+  <div class="sub-panel active" data-subtab="share-create">
+    <div class="card">
+      <form data-action="shareCreate">
+        <div class="form-row">
+          <div class="form-group"><label>File ID</label><input type="text" name="fileId" placeholder="uuid" id="share-fileId"></div>
+          <div class="form-group"><label>Expires At</label><input type="datetime-local" name="expiresAt" id="share-expiresAt"></div>
+          <div class="form-group"><label>Max Downloads <span class="opt">[opt]</span></label><input type="number" name="maxDownloads" min="1" placeholder="10"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Password <span class="opt">[opt]</span></label><input type="text" name="password" placeholder="min 8 chars" autocomplete="off"></div>
+        </div>
+        <div id="share-dlp-override" style="display:none">
+          <div class="form-row">
+            <div class="form-group"><label>DLP Override Reason <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideReason" placeholder="min 12 chars"></div>
+            <div class="form-group"><label>DLP Override Ticket <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideTicket" placeholder="INC-0001"></div>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Share</button>
+      </form>
+      <div class="result-box"></div>
+      <div id="share-token-display" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="sub-panel" data-subtab="share-manage">
+    <div class="empty-state" id="shares-empty">
+      <div class="es-icon">&#128279;</div>
+      <p>No shares created this session.</p>
+    </div>
+    <table class="data-table" id="share-table" style="display:none">
+      <thead><tr><th>Share ID</th><th>File</th><th>Created</th><th>Expires</th><th>Protected</th><th>Actions</th></tr></thead>
+      <tbody id="share-table-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════ SEARCH VIEW ═══════ -->
+<div class="view" data-view="search">
+  <div class="view-title">Search</div>
+  <div class="view-subtitle">Search files by content and metadata</div>
+  <div class="card">
+    <form data-action="searchFiles">
+      <div class="form-row">
+        <div class="form-group" style="flex:3"><label>Query</label><input type="text" name="q" placeholder="Search files..." id="search-input"></div>
+        <div class="form-group" style="flex:1"><label>Limit <span class="opt">[opt]</span></label><input type="number" name="limit" placeholder="20" min="1"></div>
+        <div class="form-group" style="align-self:flex-end"><button type="submit" class="btn btn-primary">Search</button></div>
+      </div>
+    </form>
+    <div class="result-box"></div>
+  </div>
+</div>
+
+<!-- ═══════ SECURITY VIEW ═══════ -->
+<div class="view" data-view="security">
+  <div class="view-title">Security Settings</div>
+  <div class="view-subtitle">Manage your profile, session, and multi-factor authentication</div>
+
+  <div class="card">
+    <div class="card-title">Profile</div>
+    <div id="security-profile">
+      <button class="btn btn-sm" id="btn-load-profile">Load Profile</button>
+      <div class="result-box"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">MFA Status</div>
+    <div id="security-mfa-status">
+      <button class="btn btn-sm" id="btn-mfa-status">Check Status</button>
+      <div class="result-box"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">TOTP Authenticator</div>
+    <div id="security-totp">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <form data-action="totpEnroll" style="display:inline"><button type="submit" class="btn btn-sm btn-primary">Enroll TOTP</button></form>
+        <form data-action="totpDisable" style="display:inline"><button type="submit" class="btn btn-sm btn-danger">Disable TOTP</button></form>
+      </div>
+      <div style="margin-top:12px">
+        <form data-action="totpVerify">
+          <div class="form-row">
+            <div class="form-group"><label>Verification Code</label><input type="text" name="code" maxlength="6" placeholder="000000"></div>
+            <div class="form-group" style="align-self:flex-end"><button type="submit" class="btn btn-primary btn-sm">Verify</button></div>
+          </div>
+        </form>
+      </div>
+      <div class="result-box"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">WebAuthn / Security Keys</div>
+    <div id="security-webauthn">
+      <form data-action="webauthnRegOptions" style="display:inline"><button type="submit" class="btn btn-sm btn-primary">Get Registration Options</button></form>
+      <div style="margin-top:12px">
+        <form data-action="webauthnRegVerify">
+          <div class="form-row">
+            <div class="form-group"><label>Challenge Token</label><input type="text" name="challengeToken"></div>
+            <div class="form-group"><label>Credential ID</label><input type="text" name="credentialId"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>Client Data JSON</label><textarea name="clientDataJson" rows="2"></textarea></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Label <span class="opt">[opt]</span></label><input type="text" name="label"></div>
+            <div class="form-group"><label>Public Key <span class="opt">[opt]</span></label><input type="text" name="publicKey"></div>
+            <div class="form-group" style="align-self:flex-end"><button type="submit" class="btn btn-primary btn-sm">Verify</button></div>
+          </div>
+        </form>
+      </div>
+      <div class="result-box"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ DEVELOPER VIEW ═══════ -->
+<div class="view" data-view="developer" id="dev-panel">
+  <div class="view-title">Developer Console</div>
+  <div class="view-subtitle">Raw API access for testing and debugging</div>
+
+  <!-- System -->
+  <div class="dev-group">System</div>
+
+  <div class="dev-section section">
+    <div class="dev-title">GET /v1/health/live <span class="dev-label">Liveness probe</span></div>
     <form data-action="healthLive"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">GET /v1/health/ready <span class="section-label">Readiness check (DB, deps)</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">GET /v1/health/ready <span class="dev-label">Readiness check (DB, deps)</span></div>
     <form data-action="healthReady"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">GET /v1/system/info <span class="section-label">Version and runtime info</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">GET /v1/system/info <span class="dev-label">Version and runtime info</span></div>
     <form data-action="systemInfo"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">POST /v1/system/echo <span class="section-label">Echo test</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/system/echo <span class="dev-label">Echo test</span></div>
     <form data-action="systemEcho">
-      <div class="form-row">
-        <div class="form-field"><label>message</label><input type="text" name="message" placeholder="Hello, SFL"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>message</label><input type="text" name="message" placeholder="Hello, SFL"></div>
         <button type="submit" class="btn btn-send">Send</button>
       </div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">GET /v1/metrics <span class="section-label">Prometheus metrics</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">GET /v1/metrics <span class="dev-label">Prometheus metrics</span></div>
     <form data-action="metrics"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-</div>
+  <!-- Auth -->
+  <div class="dev-group">Auth &mdash; Session</div>
 
-<!-- ======== AUTH TAB ======== -->
-<div class="tab-panel" data-tab="auth">
-
-  <div class="section-group">Session</div>
-
-  <div class="section">
-    <div class="section-title">POST /v1/auth/login <span class="section-label">Sign in with credentials</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/auth/login <span class="dev-label">Sign in with credentials</span></div>
     <form data-action="login">
-      <div class="form-row">
-        <div class="form-field"><label>email</label><input type="text" name="email" placeholder="admin@local.test"></div>
-        <div class="form-field"><label>password</label><input type="password" name="password" autocomplete="off"></div>
-        <div class="form-field"><label>totpCode <span class="opt">[opt]</span></label><input type="text" name="totpCode" maxlength="6" placeholder="000000"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>email</label><input type="text" name="email" placeholder="admin@local.test"></div>
+        <div class="dev-form-field"><label>password</label><input type="password" name="password" autocomplete="off"></div>
+        <div class="dev-form-field"><label>totpCode <span class="opt">[opt]</span></label><input type="text" name="totpCode" maxlength="6" placeholder="000000"></div>
       </div>
       <details style="margin-top:6px">
         <summary style="font-size:11px;color:var(--dim);cursor:pointer">WebAuthn fields (advanced)</summary>
-        <div class="form-row" style="margin-top:6px">
-          <div class="form-field"><label>webauthnChallengeToken <span class="opt">[opt]</span></label><input type="text" name="webauthnChallengeToken"></div>
-          <div class="form-field"><label>webauthnCredentialId <span class="opt">[opt]</span></label><input type="text" name="webauthnCredentialId"></div>
+        <div class="dev-form-row" style="margin-top:6px">
+          <div class="dev-form-field"><label>webauthnChallengeToken <span class="opt">[opt]</span></label><input type="text" name="webauthnChallengeToken"></div>
+          <div class="dev-form-field"><label>webauthnCredentialId <span class="opt">[opt]</span></label><input type="text" name="webauthnCredentialId"></div>
         </div>
-        <div class="form-row">
-          <div class="form-field" style="flex:1"><label>webauthnClientDataJson <span class="opt">[opt]</span></label><textarea name="webauthnClientDataJson" rows="2"></textarea></div>
+        <div class="dev-form-row">
+          <div class="dev-form-field" style="flex:1"><label>webauthnClientDataJson <span class="opt">[opt]</span></label><textarea name="webauthnClientDataJson" rows="2"></textarea></div>
         </div>
       </details>
-      <div class="form-actions"><button type="submit" class="btn btn-send">Login</button></div>
+      <div class="dev-form-actions"><button type="submit" class="btn btn-send">Login</button></div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">POST /v1/auth/refresh <span class="section-label">Rotate access token</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/auth/refresh <span class="dev-label">Rotate access token</span></div>
     <form data-action="refresh">
-      <div class="form-row">
-        <div class="form-field" style="flex:1"><label>refreshToken</label><textarea name="refreshToken" rows="2" id="refresh-token-input" autocomplete="off"></textarea></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field" style="flex:1"><label>refreshToken</label><textarea name="refreshToken" rows="2" id="refresh-token-input" autocomplete="off"></textarea></div>
         <button type="submit" class="btn btn-send">Refresh</button>
       </div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">POST /v1/auth/logout <span class="section-label">End session</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/auth/logout <span class="dev-label">End session</span></div>
     <form data-action="logout">
-      <div class="form-row">
-        <div class="form-field" style="flex:1"><label>refreshToken</label><textarea name="refreshToken" rows="2" id="logout-token-input" autocomplete="off"></textarea></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field" style="flex:1"><label>refreshToken</label><textarea name="refreshToken" rows="2" id="logout-token-input" autocomplete="off"></textarea></div>
         <button type="submit" class="btn btn-send">Logout</button>
       </div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">POST /v1/auth/sso/exchange <span class="section-label">Swap SSO token for session</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/auth/sso/exchange <span class="dev-label">Swap SSO token for session</span></div>
     <form data-action="ssoExchange">
-      <div class="form-row">
-        <div class="form-field" style="flex:1"><label>accessToken</label><input type="text" name="accessToken" autocomplete="off"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field" style="flex:1"><label>accessToken</label><input type="text" name="accessToken" autocomplete="off"></div>
         <button type="submit" class="btn btn-send">Exchange</button>
       </div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section-group">Identity</div>
+  <!-- Auth Identity -->
+  <div class="dev-group">Auth &mdash; Identity</div>
 
-  <div class="section">
-    <div class="section-title">GET /v1/auth/me <span class="section-label">Current user profile</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">GET /v1/auth/me <span class="dev-label">Current user profile</span></div>
     <form data-action="me"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">GET /v1/auth/admin-check <span class="section-label">Verify admin role</span> <span class="admin-badge">admin</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">GET /v1/auth/admin-check <span class="dev-label">Verify admin role</span> <span class="dev-badge-admin">admin</span></div>
     <form data-action="adminCheck"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section-group">MFA &mdash; TOTP</div>
+  <!-- MFA TOTP -->
+  <div class="dev-group">MFA &mdash; TOTP</div>
 
-  <div class="section">
-    <div class="section-title">GET /v1/auth/mfa/status <span class="section-label">Check MFA enrollment</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">GET /v1/auth/mfa/status <span class="dev-label">Check MFA enrollment</span></div>
     <form data-action="mfaStatus"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">POST /v1/auth/mfa/totp/enroll <span class="section-label">Start TOTP setup</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/auth/mfa/totp/enroll <span class="dev-label">Start TOTP setup</span></div>
     <form data-action="totpEnroll"><button type="submit" class="btn btn-send">Enroll</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">POST /v1/auth/mfa/totp/verify <span class="section-label">Confirm TOTP code</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/auth/mfa/totp/verify <span class="dev-label">Confirm TOTP code</span></div>
     <form data-action="totpVerify">
-      <div class="form-row">
-        <div class="form-field"><label>code</label><input type="text" name="code" maxlength="6" placeholder="000000"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>code</label><input type="text" name="code" maxlength="6" placeholder="000000"></div>
         <button type="submit" class="btn btn-send">Verify</button>
       </div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">DELETE /v1/auth/mfa/totp <span class="section-label">Remove TOTP factor</span></div>
-    <form data-action="totpDisable"><button type="submit" class="btn btn-danger">Disable TOTP</button></form>
+  <div class="dev-section section">
+    <div class="dev-title">DELETE /v1/auth/mfa/totp <span class="dev-label">Remove TOTP factor</span></div>
+    <form data-action="totpDisable"><button type="submit" class="btn btn-danger" style="font-family:var(--mono);font-size:12px;padding:4px 12px;">Disable TOTP</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section-group">MFA &mdash; WebAuthn</div>
+  <!-- MFA WebAuthn -->
+  <div class="dev-group">MFA &mdash; WebAuthn</div>
 
-  <div class="section">
-    <div class="section-title">POST /v1/auth/mfa/webauthn/register/options <span class="section-label">Get WebAuthn challenge</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/auth/mfa/webauthn/register/options <span class="dev-label">Get WebAuthn challenge</span></div>
     <form data-action="webauthnRegOptions"><button type="submit" class="btn btn-send">Get Options</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">POST /v1/auth/mfa/webauthn/register/verify <span class="section-label">Complete WebAuthn registration</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/auth/mfa/webauthn/register/verify <span class="dev-label">Complete WebAuthn registration</span></div>
     <form data-action="webauthnRegVerify">
-      <div class="form-row">
-        <div class="form-field"><label>challengeToken</label><input type="text" name="challengeToken"></div>
-        <div class="form-field"><label>credentialId</label><input type="text" name="credentialId"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>challengeToken</label><input type="text" name="challengeToken"></div>
+        <div class="dev-form-field"><label>credentialId</label><input type="text" name="credentialId"></div>
       </div>
-      <div class="form-row">
-        <div class="form-field" style="flex:1"><label>clientDataJson</label><textarea name="clientDataJson" rows="2"></textarea></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field" style="flex:1"><label>clientDataJson</label><textarea name="clientDataJson" rows="2"></textarea></div>
       </div>
-      <div class="form-row">
-        <div class="form-field"><label>label <span class="opt">[opt]</span></label><input type="text" name="label"></div>
-        <div class="form-field"><label>publicKey <span class="opt">[opt]</span></label><input type="text" name="publicKey"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>label <span class="opt">[opt]</span></label><input type="text" name="label"></div>
+        <div class="dev-form-field"><label>publicKey <span class="opt">[opt]</span></label><input type="text" name="publicKey"></div>
         <button type="submit" class="btn btn-send">Verify</button>
       </div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-</div>
+  <!-- Files -->
+  <div class="dev-group">Files</div>
 
-<!-- ======== FILES TAB ======== -->
-<div class="tab-panel" data-tab="files">
-
-  <div class="section">
-    <div class="section-title">POST /v1/files/upload <span class="section-label">Upload a file</span></div>
-    <div class="file-picker-row">
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/files/upload <span class="dev-label">Upload a file</span></div>
+    <div class="dev-file-picker">
       <label>Pick a file to auto-fill:</label>
-      <input type="file" id="file-picker">
+      <input type="file" id="dev-file-picker">
     </div>
     <form data-action="fileUpload">
-      <div class="form-row">
-        <div class="form-field"><label>filename</label><input type="text" name="filename" id="upload-filename"></div>
-        <div class="form-field"><label>contentType</label><input type="text" name="contentType" id="upload-contentType"></div>
-        <div class="form-field"><label>expiresAt <span class="opt">[opt]</span></label><input type="datetime-local" name="expiresAt" id="upload-expiresAt"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>filename</label><input type="text" name="filename" id="dev-upload-filename"></div>
+        <div class="dev-form-field"><label>contentType</label><input type="text" name="contentType" id="dev-upload-contentType"></div>
+        <div class="dev-form-field"><label>expiresAt <span class="opt">[opt]</span></label><input type="datetime-local" name="expiresAt" id="dev-upload-expiresAt"></div>
       </div>
-      <div class="form-row">
-        <div class="form-field" style="flex:1"><label>contentBase64</label><textarea name="contentBase64" rows="3" id="upload-contentBase64" placeholder="base64-encoded file content"></textarea></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field" style="flex:1"><label>contentBase64</label><textarea name="contentBase64" rows="3" id="dev-upload-contentBase64" placeholder="base64-encoded file content"></textarea></div>
       </div>
       <details style="margin-top:6px">
         <summary style="font-size:11px;color:var(--dim);cursor:pointer">DLP Override (admin)</summary>
-        <div class="form-row" style="margin-top:6px">
-          <div class="form-field"><label>dlpOverrideReason <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideReason" placeholder="min 12 chars"></div>
-          <div class="form-field"><label>dlpOverrideTicket <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideTicket" placeholder="INC-0001"></div>
+        <div class="dev-form-row" style="margin-top:6px">
+          <div class="dev-form-field"><label>dlpOverrideReason <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideReason" placeholder="min 12 chars"></div>
+          <div class="dev-form-field"><label>dlpOverrideTicket <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideTicket" placeholder="INC-0001"></div>
         </div>
       </details>
-      <div class="form-actions"><button type="submit" class="btn btn-send">Upload</button></div>
+      <div class="dev-form-actions"><button type="submit" class="btn btn-send">Upload</button></div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">POST /v1/files/:fileId/activate <span class="section-label">Approve file for use</span> <span class="admin-badge">admin</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/files/:fileId/activate <span class="dev-label">Approve file for use</span> <span class="dev-badge-admin">admin</span></div>
     <form data-action="fileActivate">
-      <div class="form-row">
-        <div class="form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
         <button type="submit" class="btn btn-send">Activate</button>
       </div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">GET /v1/files/:fileId <span class="section-label">File metadata</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">GET /v1/files/:fileId <span class="dev-label">File metadata</span></div>
     <form data-action="fileMetadata">
-      <div class="form-row">
-        <div class="form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
         <button type="submit" class="btn btn-send">Get Metadata</button>
       </div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">GET /v1/files/:fileId/artifacts <span class="section-label">Extracted artifacts (OCR, DLP, etc.)</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">GET /v1/files/:fileId/artifacts <span class="dev-label">Extracted artifacts (OCR, DLP, etc.)</span></div>
     <form data-action="fileArtifacts">
-      <div class="form-row">
-        <div class="form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
         <button type="submit" class="btn btn-send">Get Artifacts</button>
       </div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">GET /v1/files/:fileId/download <span class="section-label">Download file content</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">GET /v1/files/:fileId/download <span class="dev-label">Download file content</span></div>
     <form data-action="fileDownload">
-      <div class="form-row">
-        <div class="form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
         <button type="submit" class="btn btn-send">Download</button>
       </div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-</div>
+  <!-- Shares -->
+  <div class="dev-group">Shares</div>
 
-<!-- ======== SHARES TAB ======== -->
-<div class="tab-panel" data-tab="shares">
-
-  <div class="section">
-    <div class="section-title">POST /v1/shares <span class="section-label">Create a share link</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/shares <span class="dev-label">Create a share link</span></div>
     <form data-action="shareCreate">
-      <div class="form-row">
-        <div class="form-field"><label>fileId</label><input type="text" name="fileId" placeholder="uuid" id="share-fileId"></div>
-        <div class="form-field"><label>expiresAt</label><input type="datetime-local" name="expiresAt" id="share-expiresAt"></div>
-        <div class="form-field"><label>maxDownloads <span class="opt">[opt]</span></label><input type="number" name="maxDownloads" min="1" placeholder="10"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>fileId</label><input type="text" name="fileId" placeholder="uuid" id="dev-share-fileId"></div>
+        <div class="dev-form-field"><label>expiresAt</label><input type="datetime-local" name="expiresAt" id="dev-share-expiresAt"></div>
+        <div class="dev-form-field"><label>maxDownloads <span class="opt">[opt]</span></label><input type="number" name="maxDownloads" min="1" placeholder="10"></div>
       </div>
-      <div class="form-row">
-        <div class="form-field"><label>password <span class="opt">[opt]</span></label><input type="text" name="password" placeholder="min 8 chars" autocomplete="off"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>password <span class="opt">[opt]</span></label><input type="text" name="password" placeholder="min 8 chars" autocomplete="off"></div>
       </div>
       <details style="margin-top:6px">
         <summary style="font-size:11px;color:var(--dim);cursor:pointer">DLP Override (admin)</summary>
-        <div class="form-row" style="margin-top:6px">
-          <div class="form-field"><label>dlpOverrideReason <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideReason" placeholder="min 12 chars"></div>
-          <div class="form-field"><label>dlpOverrideTicket <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideTicket" placeholder="INC-0001"></div>
+        <div class="dev-form-row" style="margin-top:6px">
+          <div class="dev-form-field"><label>dlpOverrideReason <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideReason" placeholder="min 12 chars"></div>
+          <div class="dev-form-field"><label>dlpOverrideTicket <span class="opt">[opt]</span></label><input type="text" name="dlpOverrideTicket" placeholder="INC-0001"></div>
         </div>
       </details>
-      <div class="form-actions"><button type="submit" class="btn btn-send">Create Share</button></div>
+      <div class="dev-form-actions"><button type="submit" class="btn btn-send">Create Share</button></div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">POST /v1/shares/:shareId/revoke <span class="section-label">Revoke a share link</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/shares/:shareId/revoke <span class="dev-label">Revoke a share link</span></div>
     <form data-action="shareRevoke">
-      <div class="form-row">
-        <div class="form-field"><label>shareId</label><input type="text" name="shareId" id="share-revokeId" placeholder="uuid"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>shareId</label><input type="text" name="shareId" id="share-revokeId" placeholder="uuid"></div>
         <button type="submit" class="btn btn-send">Revoke</button>
       </div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">POST /v1/shares/access <span class="section-label">Access shared file</span> <span class="noauth-badge">no auth</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">POST /v1/shares/access <span class="dev-label">Access shared file</span> <span class="dev-badge-noauth">no auth</span></div>
     <form data-action="shareAccess">
-      <div class="form-row">
-        <div class="form-field" style="flex:1"><label>shareToken</label><input type="text" name="shareToken" id="share-accessToken"></div>
-        <div class="form-field"><label>password <span class="opt">[opt]</span></label><input type="text" name="password" autocomplete="off"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field" style="flex:1"><label>shareToken</label><input type="text" name="shareToken" id="share-accessToken"></div>
+        <div class="dev-form-field"><label>password <span class="opt">[opt]</span></label><input type="text" name="password" autocomplete="off"></div>
         <button type="submit" class="btn btn-send">Access</button>
       </div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-</div>
+  <!-- Search -->
+  <div class="dev-group">Search</div>
 
-<!-- ======== SEARCH TAB ======== -->
-<div class="tab-panel" data-tab="search">
-
-  <div class="section">
-    <div class="section-title">GET /v1/search/files <span class="section-label">Full-text file search</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">GET /v1/search/files <span class="dev-label">Full-text file search</span></div>
     <form data-action="searchFiles">
-      <div class="form-row">
-        <div class="form-field"><label>q</label><input type="text" name="q" placeholder="search query"></div>
-        <div class="form-field"><label>limit <span class="opt">[opt]</span></label><input type="number" name="limit" placeholder="20" min="1"></div>
+      <div class="dev-form-row">
+        <div class="dev-form-field"><label>q</label><input type="text" name="q" placeholder="search query"></div>
+        <div class="dev-form-field"><label>limit <span class="opt">[opt]</span></label><input type="number" name="limit" placeholder="20" min="1"></div>
         <button type="submit" class="btn btn-send">Search</button>
       </div>
     </form>
     <div class="result-box" style="display:none"></div>
   </div>
 
-</div>
+  <!-- Audit -->
+  <div class="dev-group">Audit <span class="dev-badge-admin">admin</span></div>
 
-<!-- ======== AUDIT TAB ======== -->
-<div class="tab-panel" data-tab="audit">
-
-  <div class="section">
-    <div class="section-title">Audit Queries <span class="admin-badge">admin</span></div>
+  <div class="dev-section section">
+    <div class="dev-title">Audit Queries</div>
     <div style="font-size:11px;color:var(--dim);margin-bottom:8px">Shared filters applied to all queries below</div>
-
-    <div class="form-row">
-      <div class="form-field"><label>orgId <span class="opt">[opt]</span></label><input type="text" name="orgId" form="audit-form" placeholder="uuid"></div>
-      <div class="form-field"><label>actorType <span class="opt">[opt]</span></label>
+    <div class="dev-form-row">
+      <div class="dev-form-field"><label>orgId <span class="opt">[opt]</span></label><input type="text" name="orgId" form="audit-form" placeholder="uuid"></div>
+      <div class="dev-form-field"><label>actorType <span class="opt">[opt]</span></label>
         <select name="actorType" form="audit-form"><option value="">--</option><option>user</option><option>system</option><option>share_link</option></select>
       </div>
-      <div class="form-field"><label>action <span class="opt">[opt]</span></label><input type="text" name="action" form="audit-form" placeholder="auth.login"></div>
-      <div class="form-field"><label>resourceType <span class="opt">[opt]</span></label><input type="text" name="resourceType" form="audit-form" placeholder="auth_session"></div>
+      <div class="dev-form-field"><label>action <span class="opt">[opt]</span></label><input type="text" name="action" form="audit-form" placeholder="auth.login"></div>
+      <div class="dev-form-field"><label>resourceType <span class="opt">[opt]</span></label><input type="text" name="resourceType" form="audit-form" placeholder="auth_session"></div>
     </div>
-    <div class="form-row">
-      <div class="form-field"><label>resourceId <span class="opt">[opt]</span></label><input type="text" name="resourceId" form="audit-form" placeholder="uuid"></div>
-      <div class="form-field"><label>result <span class="opt">[opt]</span></label>
+    <div class="dev-form-row">
+      <div class="dev-form-field"><label>resourceId <span class="opt">[opt]</span></label><input type="text" name="resourceId" form="audit-form" placeholder="uuid"></div>
+      <div class="dev-form-field"><label>result <span class="opt">[opt]</span></label>
         <select name="result" form="audit-form"><option value="">--</option><option>success</option><option>failure</option><option>denied</option></select>
       </div>
-      <div class="form-field"><label>from <span class="opt">[opt]</span></label><input type="datetime-local" name="from" form="audit-form"></div>
-      <div class="form-field"><label>to <span class="opt">[opt]</span></label><input type="datetime-local" name="to" form="audit-form"></div>
-      <div class="form-field"><label>limit <span class="opt">[opt]</span></label><input type="number" name="limit" form="audit-form" placeholder="50" min="1"></div>
+      <div class="dev-form-field"><label>from <span class="opt">[opt]</span></label><input type="datetime-local" name="from" form="audit-form"></div>
+      <div class="dev-form-field"><label>to <span class="opt">[opt]</span></label><input type="datetime-local" name="to" form="audit-form"></div>
+      <div class="dev-form-field"><label>limit <span class="opt">[opt]</span></label><input type="number" name="limit" form="audit-form" placeholder="50" min="1"></div>
     </div>
-
     <form id="audit-form" style="display:none"></form>
-
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
       <button class="btn btn-send" data-audit="events">List Events</button>
       <button class="btn btn-send" data-audit="export">Export NDJSON</button>
       <span style="display:flex;align-items:flex-end;gap:4px">
-        <span class="form-field"><label>top <span class="opt">[opt]</span></label><input type="number" id="audit-top" placeholder="5" min="1" style="width:60px"></span>
+        <span class="dev-form-field"><label>top <span class="opt">[opt]</span></label><input type="number" id="audit-top" placeholder="5" min="1" style="width:60px"></span>
         <button class="btn btn-send" data-audit="summary">Summary</button>
       </span>
       <span style="display:flex;align-items:flex-end;gap:4px">
-        <span class="form-field"><label>bucket</label><select id="audit-bucket"><option value="hour">hour</option><option value="day">day</option></select></span>
+        <span class="dev-form-field"><label>bucket</label><select id="audit-bucket"><option value="hour">hour</option><option value="day">day</option></select></span>
         <button class="btn btn-send" data-audit="timeseries">Timeseries</button>
       </span>
       <span style="display:flex;align-items:flex-end;gap:4px">
-        <span class="form-field"><label>windowHours <span class="opt">[opt]</span></label><input type="number" id="audit-windowHours" placeholder="24" min="1" style="width:80px"></span>
+        <span class="dev-form-field"><label>windowHours <span class="opt">[opt]</span></label><input type="number" id="audit-windowHours" placeholder="24" min="1" style="width:80px"></span>
         <button class="btn btn-send" data-audit="kpis">KPIs</button>
       </span>
     </div>
-
     <div class="result-box" id="audit-result" style="display:none"></div>
   </div>
 
-</div>
-
-</div><!-- #content -->
-
-<!-- Response Log -->
-<div id="log-panel">
-  <div id="log-header">
-    <span>Request Log<span class="log-count" id="log-count"></span> <span class="log-toggle" id="log-toggle">&#9662;</span></span>
-    <button class="btn btn-sm" id="btn-clear-log">Clear</button>
+  <!-- Dev Request Log -->
+  <div id="dev-log">
+    <div id="dev-log-header">
+      <span>Request Log<span class="dev-log-count" id="log-count"></span></span>
+      <button class="btn btn-sm" id="btn-clear-log">Clear</button>
+    </div>
+    <div id="dev-log-body"></div>
   </div>
-  <div id="log-body"></div>
+
+</div><!-- /developer view -->
+
+</div><!-- /main -->
+</div><!-- /app-body -->
+</div><!-- /app-shell -->
+
+<!-- File detail drawer -->
+<div class="drawer" id="file-drawer">
+  <div class="drawer-header">
+    <span class="drawer-title" id="drawer-filename">File Details</span>
+    <button class="drawer-close" id="drawer-close">&times;</button>
+  </div>
+  <div id="drawer-content"></div>
 </div>
 
-</div><!-- #main-split -->
+<!-- Toast -->
+<div class="toast" id="toast"></div>
 
 <script>
 (function() {
   'use strict';
 
   // ── State ──────────────────────────────────────────────────
-  const State = {
+  var State = {
     accessToken: null,
     refreshToken: null,
     user: null,
     history: [],
-    activeTab: 'system',
+    activeView: 'files',
+    files: [],
+    shares: [],
+    _pendingMfaEmail: null,
+    _pendingMfaPassword: null,
 
-    setAuth(res) {
+    setAuth: function(res) {
       this.accessToken = res.accessToken;
       this.refreshToken = res.refreshToken;
       this.user = res.user || null;
       this._syncRefreshFields();
     },
 
-    clearAuth() {
+    clearAuth: function() {
       this.accessToken = null;
       this.refreshToken = null;
       this.user = null;
+      this.files = [];
+      this.shares = [];
       this._syncRefreshFields();
     },
 
-    _syncRefreshFields() {
-      const rt = this.refreshToken || '';
-      const el1 = document.getElementById('refresh-token-input');
-      const el2 = document.getElementById('logout-token-input');
+    _syncRefreshFields: function() {
+      var rt = this.refreshToken || '';
+      var el1 = document.getElementById('refresh-token-input');
+      var el2 = document.getElementById('logout-token-input');
       if (el1) el1.value = rt;
       if (el2) el2.value = rt;
     },
 
-    addHistory(entry) {
+    addHistory: function(entry) {
       this.history.unshift(entry);
       if (this.history.length > 200) this.history.length = 200;
       UI.renderHistory();
+    },
+
+    addFile: function(fileData) {
+      var exists = this.files.some(function(f) { return f.fileId === fileData.fileId; });
+      if (!exists) this.files.unshift(fileData);
+      UI.renderFileList();
+    },
+
+    addShare: function(shareData) {
+      this.shares.unshift(shareData);
+      UI.renderShareList();
     }
   };
 
   // ── API Client ─────────────────────────────────────────────
-  const API = {
+  var API = {
     _activeBtn: null,
 
-    async request(method, path, opts) {
+    request: async function(method, path, opts) {
       opts = opts || {};
-      const url = '/v1/' + path.replace(/^\//, '');
+      var url = '/v1/' + path.replace(/^\//, '');
       var fullUrl = url;
-      const headers = {};
+      var headers = {};
 
       if (State.accessToken && !opts.noAuth) {
         headers['Authorization'] = 'Bearer ' + State.accessToken;
       }
 
-      const fetchOpts = { method: method, headers: headers };
+      var fetchOpts = { method: method, headers: headers };
 
       if (opts.body !== undefined) {
         headers['Content-Type'] = 'application/json';
@@ -601,22 +972,22 @@ body { display:flex; flex-direction:column; }
       }
 
       if (opts.query) {
-        const params = new URLSearchParams();
-        for (const k of Object.keys(opts.query)) {
-          const v = opts.query[k];
+        var params = new URLSearchParams();
+        for (var k of Object.keys(opts.query)) {
+          var v = opts.query[k];
           if (v !== '' && v !== undefined && v !== null) params.set(k, String(v));
         }
-        const qs = params.toString();
+        var qs = params.toString();
         if (qs) fullUrl += '?' + qs;
       }
 
       var status, data, ok, rawBody;
-      const t0 = Date.now();
+      var t0 = Date.now();
       try {
-        const resp = await fetch(fullUrl, fetchOpts);
+        var resp = await fetch(fullUrl, fetchOpts);
         status = resp.status;
         ok = resp.ok;
-        const ct = resp.headers.get('content-type') || '';
+        var ct = resp.headers.get('content-type') || '';
         if (ct.indexOf('json') !== -1) {
           data = await resp.json();
           rawBody = JSON.stringify(data, null, 2);
@@ -686,18 +1057,76 @@ body { display:flex; flex-direction:column; }
 
   function pad2(n) { return String(n).padStart(2, '0'); }
 
-  // ── Tab key map ────────────────────────────────────────────
-  var TAB_KEYS = ['system', 'auth', 'files', 'shares', 'search', 'audit'];
+  function statusBadge(status) {
+    var cls = 'badge-expired';
+    var label = status || 'unknown';
+    if (status === 'active') cls = 'badge-active';
+    else if (status === 'scan_pending' || status === 'pending_review' || status === 'quarantined') cls = 'badge-pending';
+    else if (status === 'blocked') cls = 'badge-blocked';
+    return '<span class="badge-status ' + cls + '">' + esc(label) + '</span>';
+  }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('visible');
+    setTimeout(function() { t.classList.remove('visible'); }, 3000);
+  }
 
   // ── UI ─────────────────────────────────────────────────────
-  const UI = {
+  var UI = {
     init: function() {
-      // Tab switching
-      document.querySelectorAll('#tabs button').forEach(function(btn) {
-        btn.addEventListener('click', function() { UI.switchTab(btn.dataset.tab); });
+      // Sign-in
+      document.getElementById('signin-btn').addEventListener('click', UI.handleSignIn);
+      document.getElementById('signin-password').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') UI.handleSignIn();
+      });
+      document.getElementById('sso-btn').addEventListener('click', function() {
+        var token = prompt('Paste your SSO access token:');
+        if (token) UI.handleSSOExchange(token);
+      });
+      document.getElementById('mfa-verify-btn').addEventListener('click', UI.handleMfaVerify);
+      document.getElementById('mfa-totp-code').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') UI.handleMfaVerify();
+      });
+      document.getElementById('mfa-back-btn').addEventListener('click', function() {
+        document.getElementById('signin-step1').style.display = '';
+        document.getElementById('signin-mfa').classList.remove('visible');
       });
 
-      // Form submissions with loading state
+      // Sidebar nav
+      document.querySelectorAll('#sidebar .nav-item[data-view]').forEach(function(item) {
+        item.addEventListener('click', function() { UI.switchView(item.dataset.view); });
+      });
+
+      // Sub-tabs
+      document.querySelectorAll('.sub-tab').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          var container = tab.closest('.view');
+          container.querySelectorAll('.sub-tab').forEach(function(t) { t.classList.toggle('active', t === tab); });
+          container.querySelectorAll('.sub-panel').forEach(function(p) { p.classList.toggle('active', p.dataset.subtab === tab.dataset.subtab); });
+        });
+      });
+
+      // Top bar
+      document.getElementById('btn-signout').addEventListener('click', function() { Actions.logout(); UI.showAuthGate(); });
+      document.getElementById('btn-copy-token').addEventListener('click', function() {
+        if (State.accessToken) UI.copyToClipboard(State.accessToken, document.getElementById('btn-copy-token'));
+      });
+
+      // Profile/MFA buttons
+      document.getElementById('btn-load-profile').addEventListener('click', async function() {
+        var r = await API.get('auth/me');
+        var box = document.querySelector('#security-profile .result-box');
+        UI.showResultInBox(box, r);
+      });
+      document.getElementById('btn-mfa-status').addEventListener('click', async function() {
+        var r = await API.get('auth/mfa/status');
+        var box = document.querySelector('#security-mfa-status .result-box');
+        UI.showResultInBox(box, r);
+      });
+
+      // Form submissions
       document.querySelectorAll('form[data-action]').forEach(function(form) {
         form.addEventListener('submit', function(e) {
           e.preventDefault();
@@ -709,7 +1138,7 @@ body { display:flex; flex-direction:column; }
         });
       });
 
-      // Audit buttons with loading state
+      // Audit buttons
       document.querySelectorAll('[data-audit]').forEach(function(btn) {
         btn.addEventListener('click', function() {
           var type = btn.dataset.audit;
@@ -719,43 +1148,149 @@ body { display:flex; flex-direction:column; }
         });
       });
 
-      // Ctrl+Enter / Cmd+Enter submit, number keys for tabs
-      document.addEventListener('keydown', function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-          var form = e.target.closest('form');
-          if (form) { e.preventDefault(); form.requestSubmit(); }
-        }
-        // Number keys 1-6 for tab switching (only when not in an input)
-        var tag = e.target.tagName;
-        if (!e.ctrlKey && !e.metaKey && !e.altKey && tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
-          var n = parseInt(e.key, 10);
-          if (n >= 1 && n <= 6) { UI.switchTab(TAB_KEYS[n - 1]); }
+      // File picker (upload view)
+      var uploadZone = document.getElementById('upload-zone');
+      var filePicker = document.getElementById('file-picker');
+      uploadZone.addEventListener('click', function() { filePicker.click(); });
+      uploadZone.addEventListener('dragover', function(e) { e.preventDefault(); uploadZone.classList.add('dragover'); });
+      uploadZone.addEventListener('dragleave', function() { uploadZone.classList.remove('dragover'); });
+      uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+          filePicker.files = e.dataTransfer.files;
+          UI.handleFilePick({ target: filePicker });
         }
       });
+      filePicker.addEventListener('change', UI.handleFilePick);
 
-      // File picker
-      var picker = document.getElementById('file-picker');
-      if (picker) picker.addEventListener('change', UI.handleFilePick);
+      // Dev file picker
+      var devPicker = document.getElementById('dev-file-picker');
+      if (devPicker) devPicker.addEventListener('change', UI.handleDevFilePick);
 
-      // Header buttons
-      document.getElementById('btn-copy-token').addEventListener('click', function() {
-        if (State.accessToken) UI.copyToClipboard(State.accessToken, document.getElementById('btn-copy-token'));
+      // Dev log
+      document.getElementById('dev-log-header').addEventListener('click', function() {
+        document.getElementById('dev-log').classList.toggle('collapsed');
       });
-      document.getElementById('btn-header-logout').addEventListener('click', function() { Actions.logout(); });
       document.getElementById('btn-clear-log').addEventListener('click', function(e) {
         e.stopPropagation();
         State.history = [];
         UI.renderHistory();
       });
 
-      // Log panel toggle
-      document.getElementById('log-header').addEventListener('click', function() {
-        document.getElementById('log-panel').classList.toggle('collapsed');
+      // Keyboard shortcuts
+      document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          var form = e.target.closest('form');
+          if (form) { e.preventDefault(); form.requestSubmit(); }
+        }
+      });
+
+      // Drawer close
+      document.getElementById('drawer-close').addEventListener('click', function() {
+        document.getElementById('file-drawer').classList.remove('open');
       });
 
       // Defaults
       UI.setDefaultExpiry();
-      UI.renderAuthStatus();
+    },
+
+    handleSignIn: async function() {
+      var email = document.getElementById('signin-email').value.trim();
+      var password = document.getElementById('signin-password').value;
+      if (!email || !password) return;
+
+      var errEl = document.getElementById('signin-error');
+      errEl.style.display = 'none';
+      var btn = document.getElementById('signin-btn');
+      btn.disabled = true; btn.textContent = 'Signing in...';
+
+      var r = await API.post('auth/login', { email: email, password: password }, { noAuth: true });
+
+      btn.disabled = false; btn.textContent = 'Sign in';
+
+      if (r.ok) {
+        State.setAuth(r.data);
+        UI.showAppShell();
+      } else if (r.data && (r.data.mfaRequired || r.data.requiresMfa)) {
+        State._pendingMfaEmail = email;
+        State._pendingMfaPassword = password;
+        document.getElementById('signin-step1').style.display = 'none';
+        document.getElementById('signin-mfa').classList.add('visible');
+      } else {
+        errEl.textContent = (r.data && r.data.message) ? r.data.message : 'Invalid credentials';
+        errEl.style.display = 'block';
+      }
+    },
+
+    handleMfaVerify: async function() {
+      var code = document.getElementById('mfa-totp-code').value.trim();
+      if (!code) return;
+      var btn = document.getElementById('mfa-verify-btn');
+      btn.disabled = true; btn.textContent = 'Verifying...';
+
+      var r = await API.post('auth/login', {
+        email: State._pendingMfaEmail,
+        password: State._pendingMfaPassword,
+        totpCode: code
+      }, { noAuth: true });
+
+      btn.disabled = false; btn.textContent = 'Verify';
+
+      if (r.ok) {
+        State._pendingMfaEmail = null;
+        State._pendingMfaPassword = null;
+        State.setAuth(r.data);
+        UI.showAppShell();
+      } else {
+        var errEl = document.getElementById('signin-error');
+        errEl.textContent = (r.data && r.data.message) ? r.data.message : 'Invalid verification code';
+        errEl.style.display = 'block';
+      }
+    },
+
+    handleSSOExchange: async function(token) {
+      var r = await API.post('auth/sso/exchange', { accessToken: token }, { noAuth: true });
+      if (r.ok) {
+        State.setAuth(r.data);
+        UI.showAppShell();
+      } else {
+        var errEl = document.getElementById('signin-error');
+        errEl.textContent = 'SSO exchange failed';
+        errEl.style.display = 'block';
+      }
+    },
+
+    showAuthGate: function() {
+      document.getElementById('auth-gate').style.display = 'flex';
+      document.getElementById('app-shell').classList.remove('active');
+      document.getElementById('signin-email').value = '';
+      document.getElementById('signin-password').value = '';
+      document.getElementById('signin-error').style.display = 'none';
+      document.getElementById('signin-step1').style.display = '';
+      document.getElementById('signin-mfa').classList.remove('visible');
+    },
+
+    showAppShell: function() {
+      document.getElementById('auth-gate').style.display = 'none';
+      document.getElementById('app-shell').classList.add('active');
+      // Update topbar
+      if (State.user) {
+        document.getElementById('topbar-user').textContent = State.user.email || '';
+        document.getElementById('topbar-role').textContent = State.user.role || '';
+        // Show admin link for admins
+        if (State.user.role === 'admin') {
+          document.getElementById('admin-link').style.display = '';
+          document.getElementById('admin-link-href').href = '/admin/#token=' + State.accessToken;
+        }
+      }
+      UI.switchView('files');
+    },
+
+    switchView: function(key) {
+      State.activeView = key;
+      document.querySelectorAll('#sidebar .nav-item').forEach(function(n) { n.classList.toggle('active', n.dataset.view === key); });
+      document.querySelectorAll('.view').forEach(function(v) { v.classList.toggle('active', v.dataset.view === key); });
     },
 
     withLoading: function(btn, fn) {
@@ -773,42 +1308,51 @@ body { display:flex; flex-direction:column; }
     },
 
     flashSection: function(el, ok) {
-      var section = el ? el.closest('.section') : null;
+      var section = el ? el.closest('.card, .dev-section, .section') : null;
       if (!section) return;
       var cls = ok ? 'flash-ok' : 'flash-err';
       section.classList.add(cls);
       setTimeout(function() { section.classList.remove(cls); }, 1200);
     },
 
-    switchTab: function(key) {
-      State.activeTab = key;
-      document.querySelectorAll('#tabs button').forEach(function(b) { b.classList.toggle('active', b.dataset.tab === key); });
-      document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.toggle('active', p.dataset.tab === key); });
+    showResult: function(formOrEl, data, isText, statusCode) {
+      var section = formOrEl.closest('.card, .dev-section, .section');
+      var box = section ? section.querySelector('.result-box') : document.getElementById('audit-result');
+      if (!box) return;
+      UI.showResultInBox(box, { data: data, status: statusCode || (State.history.length ? State.history[0].status : 0) }, isText);
+      UI.flashSection(formOrEl, (statusCode || (State.history.length ? State.history[0].status : 0)) < 400);
     },
 
-    renderAuthStatus: function() {
-      var dot = document.querySelector('#auth-status .dot');
-      var label = document.getElementById('auth-label');
-      var copyBtn = document.getElementById('btn-copy-token');
-      var logoutBtn = document.getElementById('btn-header-logout');
-
-      if (State.user) {
-        dot.className = 'dot dot-green';
-        label.innerHTML = esc(State.user.email) + ' <span class="role-badge">' + esc(State.user.role) + '</span>';
-        copyBtn.style.display = '';
-        logoutBtn.style.display = '';
-      } else {
-        dot.className = 'dot dot-red';
-        label.textContent = 'Unauthenticated';
-        copyBtn.style.display = 'none';
-        logoutBtn.style.display = 'none';
+    showResultInBox: function(box, r, isText) {
+      if (!box) return;
+      box.style.display = 'block';
+      var str = isText ? String(r.data) : (typeof r.data === 'string' ? r.data : JSON.stringify(r.data, null, 2));
+      var sc = r.status || 0;
+      var statusHtml = '';
+      if (sc) {
+        var sCls = sc < 300 ? 's-ok' : (sc < 500 ? 's-warn' : 's-err');
+        statusHtml = '<span class="result-status ' + sCls + '">' + sc + '</span> ';
       }
+      box.innerHTML = statusHtml + '<pre>' + esc(str) + '</pre>' +
+        '<span class="result-actions">' +
+        '<button class="btn btn-copy" data-role="copy-result">Copy</button>' +
+        '<button class="btn btn-copy" data-role="clear-result">Clear</button>' +
+        '</span>';
+      box.querySelector('[data-role="copy-result"]').addEventListener('click', function() {
+        UI.copyToClipboard(str, box.querySelector('[data-role="copy-result"]'));
+      });
+      box.querySelector('[data-role="clear-result"]').addEventListener('click', function() {
+        box.style.display = 'none';
+        box.innerHTML = '';
+      });
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     },
 
     renderHistory: function() {
       var countEl = document.getElementById('log-count');
       if (countEl) countEl.textContent = State.history.length ? ' (' + State.history.length + ')' : '';
-      var container = document.getElementById('log-body');
+      var container = document.getElementById('dev-log-body');
+      if (!container) return;
       var html = '';
       for (var i = 0; i < State.history.length; i++) {
         var e = State.history[i];
@@ -834,8 +1378,6 @@ body { display:flex; flex-direction:column; }
           '</div></details>';
       }
       container.innerHTML = html;
-
-      // Bind copy buttons
       container.querySelectorAll('[data-logcopy]').forEach(function(btn) {
         btn.addEventListener('click', function() {
           var idx = parseInt(btn.dataset.logcopy, 10);
@@ -844,40 +1386,211 @@ body { display:flex; flex-direction:column; }
       });
     },
 
-    showResult: function(formOrEl, data, isText, statusCode) {
-      var section = formOrEl.closest('.section');
-      var box = section ? section.querySelector('.result-box') : document.getElementById('audit-result');
-      if (!box) return;
-      box.style.display = 'block';
-      var str = isText ? String(data) : (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
-
-      // Build status badge from most recent history entry if not provided
-      var sc = statusCode || (State.history.length ? State.history[0].status : 0);
-      var statusHtml = '';
-      if (sc) {
-        var sCls = sc < 300 ? 's-ok' : (sc < 500 ? 's-warn' : 's-err');
-        statusHtml = '<span class="result-status ' + sCls + '">' + sc + '</span> ';
+    renderFileList: function() {
+      var empty = document.getElementById('files-empty');
+      var table = document.getElementById('file-table');
+      var tbody = document.getElementById('file-table-body');
+      if (!State.files.length) {
+        if (empty) empty.style.display = '';
+        if (table) table.style.display = 'none';
+        return;
       }
+      if (empty) empty.style.display = 'none';
+      if (table) table.style.display = '';
+      var html = '';
+      for (var i = 0; i < State.files.length; i++) {
+        var f = State.files[i];
+        var isActive = f.status === 'active';
+        html += '<tr>' +
+          '<td><a href="#" class="file-link" data-fileid="' + esc(f.fileId) + '" style="color:var(--accent);text-decoration:none;font-weight:500">' + esc(f.filename || f.fileId) + '</a></td>' +
+          '<td style="font-size:12px;color:var(--dim)">' + esc(f.contentType || '-') + '</td>' +
+          '<td>' + statusBadge(f.status) + '</td>' +
+          '<td style="font-size:12px;color:var(--dim)">' + esc(f.uploadedAt || '-') + '</td>' +
+          '<td class="actions">';
+        if (isActive) {
+          html += '<button class="btn btn-sm file-dl-btn" data-fileid="' + esc(f.fileId) + '">Download</button> ';
+          html += '<button class="btn btn-sm file-share-btn" data-fileid="' + esc(f.fileId) + '">Share</button> ';
+        }
+        if (State.user && State.user.role === 'admin' && !isActive && f.status !== 'blocked') {
+          html += '<button class="btn btn-sm file-activate-btn" data-fileid="' + esc(f.fileId) + '" style="background:#fef3c7;color:#92400e;border-color:#fde68a">Activate</button>';
+        }
+        html += '</td></tr>';
+      }
+      tbody.innerHTML = html;
 
-      box.innerHTML = statusHtml + '<pre>' + esc(str) + '</pre>' +
-        '<span class="result-actions">' +
-        '<button class="btn btn-copy" data-role="copy-result">Copy</button>' +
-        '<button class="btn btn-copy" data-role="clear-result">Clear</button>' +
-        '</span>';
-      box.querySelector('[data-role="copy-result"]').addEventListener('click', function() {
-        UI.copyToClipboard(str, box.querySelector('[data-role="copy-result"]'));
+      // Bind file link clicks
+      tbody.querySelectorAll('.file-link').forEach(function(a) {
+        a.addEventListener('click', function(e) { e.preventDefault(); UI.openFileDrawer(a.dataset.fileid); });
       });
-      box.querySelector('[data-role="clear-result"]').addEventListener('click', function() {
-        box.style.display = 'none';
-        box.innerHTML = '';
+      tbody.querySelectorAll('.file-dl-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() { UI.downloadFile(btn.dataset.fileid); });
       });
+      tbody.querySelectorAll('.file-share-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          document.getElementById('share-fileId').value = btn.dataset.fileid;
+          UI.switchView('shares');
+        });
+      });
+      tbody.querySelectorAll('.file-activate-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          var fid = btn.dataset.fileid;
+          if (!isValidUUID(fid)) return;
+          btn.disabled = true; btn.textContent = 'Activating...';
+          var r = await API.post('files/' + fid + '/activate', undefined);
+          if (r.ok) {
+            showToast('File activated');
+            await UI.refreshFileStatus(fid);
+          }
+          btn.disabled = false; btn.textContent = 'Activate';
+        });
+      });
+    },
 
-      // Flash section border
-      var ok = sc && sc < 400;
-      UI.flashSection(formOrEl, ok);
+    renderShareList: function() {
+      var empty = document.getElementById('shares-empty');
+      var table = document.getElementById('share-table');
+      var tbody = document.getElementById('share-table-body');
+      if (!State.shares.length) {
+        if (empty) empty.style.display = '';
+        if (table) table.style.display = 'none';
+        return;
+      }
+      if (empty) empty.style.display = 'none';
+      if (table) table.style.display = '';
+      var html = '';
+      for (var i = 0; i < State.shares.length; i++) {
+        var s = State.shares[i];
+        html += '<tr>' +
+          '<td style="font-family:var(--mono);font-size:11px">' + esc(s.shareId || '-') + '</td>' +
+          '<td style="font-size:12px">' + esc(s.fileId || '-') + '</td>' +
+          '<td style="font-size:12px;color:var(--dim)">' + esc(s.createdAt || '-') + '</td>' +
+          '<td style="font-size:12px;color:var(--dim)">' + esc(s.expiresAt || '-') + '</td>' +
+          '<td>' + (s.hasPassword ? 'Yes' : 'No') + '</td>' +
+          '<td>';
+        if (!s.revoked) {
+          html += '<button class="btn btn-sm btn-danger share-revoke-btn" data-shareid="' + esc(s.shareId) + '">Revoke</button>';
+        } else {
+          html += '<span style="font-size:12px;color:var(--dim)">Revoked</span>';
+        }
+        html += '</td></tr>';
+      }
+      tbody.innerHTML = html;
+      tbody.querySelectorAll('.share-revoke-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          var sid = btn.dataset.shareid;
+          if (!isValidUUID(sid)) return;
+          btn.disabled = true;
+          var r = await API.post('shares/' + sid + '/revoke', undefined);
+          if (r.ok) {
+            var share = State.shares.find(function(s) { return s.shareId === sid; });
+            if (share) share.revoked = true;
+            UI.renderShareList();
+            showToast('Share revoked');
+          }
+          btn.disabled = false;
+        });
+      });
+    },
 
-      // Auto-scroll result into view
-      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    openFileDrawer: async function(fileId) {
+      if (!isValidUUID(fileId)) return;
+      var drawer = document.getElementById('file-drawer');
+      var content = document.getElementById('drawer-content');
+      document.getElementById('drawer-filename').textContent = 'Loading...';
+      content.innerHTML = '';
+      drawer.classList.add('open');
+
+      var r = await API.get('files/' + fileId);
+      if (!r.ok) {
+        document.getElementById('drawer-filename').textContent = 'Error';
+        content.innerHTML = '<p style="color:var(--red)">Failed to load file details</p>';
+        return;
+      }
+      var f = r.data;
+      document.getElementById('drawer-filename').textContent = f.filename || fileId;
+
+      var html = '<div class="drawer-section">' +
+        '<div class="drawer-section-title">Metadata</div>' +
+        '<table style="font-size:13px;width:100%">';
+      var fields = ['fileId','filename','contentType','status','orgId','ownerUserId','createdAt','updatedAt','expiresAt'];
+      for (var i = 0; i < fields.length; i++) {
+        var key = fields[i];
+        if (f[key] !== undefined) {
+          html += '<tr><td style="padding:4px 8px 4px 0;color:var(--dim);font-weight:500;white-space:nowrap">' + esc(key) + '</td>' +
+            '<td style="padding:4px 0">' + (key === 'status' ? statusBadge(f[key]) : esc(String(f[key]))) + '</td></tr>';
+        }
+      }
+      html += '</table></div>';
+
+      // Actions
+      html += '<div class="drawer-section"><div class="drawer-section-title">Actions</div><div style="display:flex;gap:8px;flex-wrap:wrap">';
+      if (f.status === 'active') {
+        html += '<button class="btn btn-sm btn-primary" id="drawer-dl-btn">Download</button>';
+        html += '<button class="btn btn-sm" id="drawer-share-btn">Create Share</button>';
+      }
+      if (State.user && State.user.role === 'admin' && f.status !== 'active' && f.status !== 'blocked') {
+        html += '<button class="btn btn-sm" id="drawer-activate-btn" style="background:#fef3c7;color:#92400e;border-color:#fde68a">Activate</button>';
+      }
+      html += '<button class="btn btn-sm" id="drawer-artifacts-btn">View Artifacts</button>';
+      html += '</div></div>';
+
+      // Artifacts placeholder
+      html += '<div class="drawer-section" id="drawer-artifacts" style="display:none"><div class="drawer-section-title">Artifacts</div><pre style="font-family:var(--mono);font-size:12px;background:var(--bg);padding:12px;border-radius:6px;max-height:200px;overflow:auto" id="drawer-artifacts-pre"></pre></div>';
+
+      content.innerHTML = html;
+
+      // Bind drawer actions
+      var dlBtn = document.getElementById('drawer-dl-btn');
+      if (dlBtn) dlBtn.addEventListener('click', function() { UI.downloadFile(fileId); });
+      var shareBtn = document.getElementById('drawer-share-btn');
+      if (shareBtn) shareBtn.addEventListener('click', function() {
+        document.getElementById('share-fileId').value = fileId;
+        drawer.classList.remove('open');
+        UI.switchView('shares');
+      });
+      var actBtn = document.getElementById('drawer-activate-btn');
+      if (actBtn) actBtn.addEventListener('click', async function() {
+        actBtn.disabled = true; actBtn.textContent = 'Activating...';
+        var ar = await API.post('files/' + fileId + '/activate', undefined);
+        if (ar.ok) { showToast('File activated'); UI.openFileDrawer(fileId); await UI.refreshFileStatus(fileId); }
+        actBtn.disabled = false; actBtn.textContent = 'Activate';
+      });
+      var artBtn = document.getElementById('drawer-artifacts-btn');
+      if (artBtn) artBtn.addEventListener('click', async function() {
+        var ar = await API.get('files/' + fileId + '/artifacts');
+        var sec = document.getElementById('drawer-artifacts');
+        var pre = document.getElementById('drawer-artifacts-pre');
+        sec.style.display = '';
+        pre.textContent = typeof ar.data === 'string' ? ar.data : JSON.stringify(ar.data, null, 2);
+      });
+    },
+
+    downloadFile: async function(fileId) {
+      if (!isValidUUID(fileId)) return;
+      var r = await API.get('files/' + fileId + '/download');
+      if (r.ok && r.data && r.data.contentBase64) {
+        var link = document.createElement('a');
+        link.href = 'data:' + safeMime(r.data.contentType) + ';base64,' + r.data.contentBase64;
+        link.download = r.data.filename || 'download';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('Download started: ' + (r.data.filename || 'file'));
+      }
+    },
+
+    refreshFileStatus: async function(fileId) {
+      var r = await API.get('files/' + fileId);
+      if (r.ok && r.data) {
+        var f = State.files.find(function(x) { return x.fileId === fileId; });
+        if (f) {
+          f.status = r.data.status;
+          f.filename = r.data.filename || f.filename;
+          f.contentType = r.data.contentType || f.contentType;
+        }
+        UI.renderFileList();
+      }
     },
 
     getFormData: function(form) {
@@ -886,7 +1599,6 @@ body { display:flex; flex-direction:column; }
         var v = el.value.trim();
         if (v !== '') data[el.name] = v;
       });
-      // Also get fields that reference this form via the form attribute
       if (form.id) {
         document.querySelectorAll('[form="' + form.id + '"]').forEach(function(el) {
           var v = el.value.trim();
@@ -901,6 +1613,9 @@ body { display:flex; flex-direction:column; }
       if (!file) return;
       document.getElementById('upload-filename').value = file.name;
       document.getElementById('upload-contentType').value = file.type || 'application/octet-stream';
+      var info = document.getElementById('upload-file-info');
+      info.style.display = '';
+      info.textContent = 'Selected: ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
       var reader = new FileReader();
       reader.onload = function() {
         var b64 = reader.result.split(',')[1] || '';
@@ -909,13 +1624,26 @@ body { display:flex; flex-direction:column; }
       reader.readAsDataURL(file);
     },
 
+    handleDevFilePick: function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var fn = document.getElementById('dev-upload-filename');
+      var ct = document.getElementById('dev-upload-contentType');
+      var b64 = document.getElementById('dev-upload-contentBase64');
+      if (fn) fn.value = file.name;
+      if (ct) ct.value = file.type || 'application/octet-stream';
+      var reader = new FileReader();
+      reader.onload = function() { if (b64) b64.value = (reader.result.split(',')[1] || ''); };
+      reader.readAsDataURL(file);
+    },
+
     setDefaultExpiry: function() {
       var dt = new Date(Date.now() + 3600000);
       var iso = dt.toISOString().slice(0, 16);
-      var el1 = document.getElementById('upload-expiresAt');
-      var el2 = document.getElementById('share-expiresAt');
-      if (el1) el1.value = iso;
-      if (el2) el2.value = iso;
+      ['upload-expiresAt','share-expiresAt','dev-upload-expiresAt','dev-share-expiresAt'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.value = iso;
+      });
     },
 
     copyToClipboard: function(text, btn) {
@@ -930,6 +1658,8 @@ body { display:flex; flex-direction:column; }
       document.querySelectorAll('.file-id-input').forEach(function(el) { el.value = fileId; });
       var shareFileId = document.getElementById('share-fileId');
       if (shareFileId) shareFileId.value = fileId;
+      var devShareFileId = document.getElementById('dev-share-fileId');
+      if (devShareFileId) devShareFileId.value = fileId;
     }
   };
 
@@ -968,8 +1698,7 @@ body { display:flex; flex-direction:column; }
       if (d.webauthnCredentialId) body.webauthnCredentialId = d.webauthnCredentialId;
       if (d.webauthnClientDataJson) body.webauthnClientDataJson = d.webauthnClientDataJson;
       var r = await API.post('auth/login', body, { noAuth: true });
-      if (r.ok) State.setAuth(r.data);
-      UI.renderAuthStatus();
+      if (r.ok) { State.setAuth(r.data); UI.showAppShell(); }
       UI.showResult(form, r.data);
     },
 
@@ -977,7 +1706,6 @@ body { display:flex; flex-direction:column; }
       var d = UI.getFormData(form);
       var r = await API.post('auth/refresh', { refreshToken: d.refreshToken }, { noAuth: true });
       if (r.ok) State.setAuth(r.data);
-      UI.renderAuthStatus();
       UI.showResult(form, r.data);
     },
 
@@ -991,14 +1719,13 @@ body { display:flex; flex-direction:column; }
         await API.post('auth/logout', { refreshToken: rt });
       }
       State.clearAuth();
-      UI.renderAuthStatus();
+      UI.showAuthGate();
     },
 
     ssoExchange: async function(form) {
       var d = UI.getFormData(form);
       var r = await API.post('auth/sso/exchange', { accessToken: d.accessToken }, { noAuth: true });
-      if (r.ok) State.setAuth(r.data);
-      UI.renderAuthStatus();
+      if (r.ok) { State.setAuth(r.data); UI.showAppShell(); }
       UI.showResult(form, r.data);
     },
 
@@ -1007,7 +1734,6 @@ body { display:flex; flex-direction:column; }
       var r = await API.get('auth/me');
       UI.showResult(form, r.data);
     },
-
     adminCheck: async function(form) {
       var r = await API.get('auth/admin-check');
       UI.showResult(form, r.data);
@@ -1018,18 +1744,15 @@ body { display:flex; flex-direction:column; }
       var r = await API.get('auth/mfa/status');
       UI.showResult(form, r.data);
     },
-
     totpEnroll: async function(form) {
       var r = await API.post('auth/mfa/totp/enroll', undefined);
       UI.showResult(form, r.data);
     },
-
     totpVerify: async function(form) {
       var d = UI.getFormData(form);
       var r = await API.post('auth/mfa/totp/verify', { code: d.code });
       UI.showResult(form, r.data);
     },
-
     totpDisable: async function(form) {
       var r = await API.del('auth/mfa/totp');
       UI.showResult(form, r.data);
@@ -1040,7 +1763,6 @@ body { display:flex; flex-direction:column; }
       var r = await API.post('auth/mfa/webauthn/register/options', undefined);
       UI.showResult(form, r.data);
     },
-
     webauthnRegVerify: async function(form) {
       var d = UI.getFormData(form);
       var body = { challengeToken: d.challengeToken, credentialId: d.credentialId, clientDataJson: d.clientDataJson };
@@ -1059,7 +1781,24 @@ body { display:flex; flex-direction:column; }
       if (d.dlpOverrideTicket) body.dlpOverrideTicket = d.dlpOverrideTicket;
       var r = await API.post('files/upload', body);
       UI.showResult(form, r.data);
-      if (r.ok && r.data && r.data.fileId) UI.autoFillFileId(r.data.fileId);
+      if (r.ok && r.data && r.data.fileId) {
+        UI.autoFillFileId(r.data.fileId);
+        State.addFile({
+          fileId: r.data.fileId,
+          filename: d.filename || r.data.fileId,
+          contentType: d.contentType || '',
+          status: r.data.status || 'scan_pending',
+          uploadedAt: new Date().toLocaleString()
+        });
+        // Show post-upload status
+        var statusEl = document.getElementById('upload-status');
+        var statusBody = document.getElementById('upload-status-body');
+        statusEl.style.display = '';
+        statusBody.innerHTML = '<div class="security-card"><div class="security-icon">&#128274;</div>' +
+          '<div class="security-info"><div class="si-title">Encrypted and queued for scanning</div>' +
+          '<div class="si-desc">File ID: ' + esc(r.data.fileId) + '</div></div></div>';
+        showToast('File uploaded successfully');
+      }
     },
 
     fileActivate: async function(form) {
@@ -1089,7 +1828,7 @@ body { display:flex; flex-direction:column; }
       var r = await API.get('files/' + d.fileId + '/download');
       UI.showResult(form, r.data);
       if (r.ok && r.data && r.data.contentBase64) {
-        var box = form.closest('.section').querySelector('.result-box');
+        var box = form.closest('.card, .dev-section, .section').querySelector('.result-box');
         var link = document.createElement('a');
         link.href = 'data:' + safeMime(r.data.contentType) + ';base64,' + r.data.contentBase64;
         link.download = r.data.filename || 'download';
@@ -1112,8 +1851,42 @@ body { display:flex; flex-direction:column; }
       var r = await API.post('shares', body);
       UI.showResult(form, r.data);
       if (r.ok && r.data) {
-        if (r.data.shareId) document.getElementById('share-revokeId').value = r.data.shareId;
-        if (r.data.shareToken) document.getElementById('share-accessToken').value = r.data.shareToken;
+        // Auto-fill dev fields
+        var revokeId = document.getElementById('share-revokeId');
+        var accessToken = document.getElementById('share-accessToken');
+        if (r.data.shareId && revokeId) revokeId.value = r.data.shareId;
+        if (r.data.shareToken && accessToken) accessToken.value = r.data.shareToken;
+        // Track share
+        State.addShare({
+          shareId: r.data.shareId,
+          fileId: d.fileId,
+          createdAt: new Date().toLocaleString(),
+          expiresAt: d.expiresAt || '-',
+          hasPassword: !!d.password,
+          revoked: false
+        });
+        // Show token display
+        if (r.data.shareToken) {
+          var display = document.getElementById('share-token-display');
+          if (display) {
+            display.style.display = '';
+            display.innerHTML = '<div class="token-display">' +
+              '<div class="token-label">Share Token (shown once)</div>' +
+              '<div class="token-value">' + esc(r.data.shareToken) + '</div>' +
+              '<div class="token-actions">' +
+              '<button class="btn btn-sm btn-primary" id="copy-share-token">Copy Token</button>' +
+              '<button class="btn btn-sm" id="copy-share-link">Copy Link</button>' +
+              '</div></div>';
+            document.getElementById('copy-share-token').addEventListener('click', function() {
+              UI.copyToClipboard(r.data.shareToken, document.getElementById('copy-share-token'));
+            });
+            document.getElementById('copy-share-link').addEventListener('click', function() {
+              var link = location.origin + '/share.html?token=' + encodeURIComponent(r.data.shareToken);
+              UI.copyToClipboard(link, document.getElementById('copy-share-link'));
+            });
+          }
+        }
+        showToast('Share created');
       }
     },
 
@@ -1131,7 +1904,7 @@ body { display:flex; flex-direction:column; }
       var r = await API.post('shares/access', body, { noAuth: true });
       UI.showResult(form, r.data);
       if (r.ok && r.data && r.data.contentBase64) {
-        var box = form.closest('.section').querySelector('.result-box');
+        var box = form.closest('.card, .dev-section, .section').querySelector('.result-box');
         var link = document.createElement('a');
         link.href = 'data:' + safeMime(r.data.contentType) + ';base64,' + r.data.contentBase64;
         link.download = r.data.filename || 'download';
@@ -1182,13 +1955,11 @@ body { display:flex; flex-direction:column; }
       var r = await API.get('audit/events', q);
       Actions._showAuditResult(r);
     },
-
     audit_export: async function() {
       var q = Actions._auditFilters();
       var r = await API.get('audit/events/export', q);
       Actions._showAuditResult(r);
     },
-
     audit_summary: async function() {
       var q = Actions._auditFilters();
       var top = document.getElementById('audit-top').value.trim();
@@ -1196,14 +1967,12 @@ body { display:flex; flex-direction:column; }
       var r = await API.get('audit/events/summary', q);
       Actions._showAuditResult(r);
     },
-
     audit_timeseries: async function() {
       var q = Actions._auditFilters();
       q.bucket = document.getElementById('audit-bucket').value;
       var r = await API.get('audit/events/timeseries', q);
       Actions._showAuditResult(r);
     },
-
     audit_kpis: async function() {
       var q = Actions._auditFilters();
       delete q.from;
