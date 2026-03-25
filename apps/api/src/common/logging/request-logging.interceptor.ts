@@ -15,15 +15,22 @@ export class RequestLoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const startedAt = Date.now();
     const httpContext = context.switchToHttp();
-    const request = httpContext.getRequest<{ method?: string; url?: string }>();
+    const request = httpContext.getRequest<{
+      method?: string;
+      url?: string;
+      headers?: Record<string, string | string[] | undefined>;
+    }>();
     const response = httpContext.getResponse<{ statusCode?: number }>();
 
     const method = request?.method ?? 'UNKNOWN';
     const path = request?.url ?? 'UNKNOWN';
+    // OWASP A09 – Include request ID for log correlation.
+    const requestId = this.extractHeader(request?.headers, 'x-request-id');
 
     return next.handle().pipe(
       tap(() => {
         this.logRequest({
+          requestId,
           method,
           path,
           statusCode: response?.statusCode ?? 200,
@@ -32,6 +39,7 @@ export class RequestLoggingInterceptor implements NestInterceptor {
       }),
       catchError((error: unknown) => {
         this.logRequest({
+          requestId,
           method,
           path,
           statusCode: error instanceof HttpException ? error.getStatus() : 500,
@@ -44,7 +52,16 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     );
   }
 
+  private extractHeader(
+    headers: Record<string, string | string[] | undefined> | undefined,
+    name: string,
+  ): string | undefined {
+    const value = headers?.[name];
+    return Array.isArray(value) ? value[0] : value;
+  }
+
   private logRequest(payload: {
+    requestId?: string;
     method: string;
     path: string;
     statusCode: number;

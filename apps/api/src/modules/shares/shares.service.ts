@@ -466,6 +466,14 @@ export class SharesService {
     throw new ForbiddenException('Not authorized to manage this share');
   }
 
+  /**
+   * OWASP A01 – Broken Access Control
+   *
+   * Cap the maximum share lifetime to prevent indefinitely-valid share links.
+   * Default maximum: 90 days (configurable via SHARE_MAX_EXPIRY_DAYS).
+   */
+  private readonly maxShareExpiryDays = Number(process.env.SHARE_MAX_EXPIRY_DAYS ?? 90);
+
   private parseShareExpiry(raw: string): Date {
     const parsed = new Date(raw);
     if (Number.isNaN(parsed.getTime())) {
@@ -474,6 +482,13 @@ export class SharesService {
 
     if (parsed.getTime() <= Date.now()) {
       throw new UnprocessableEntityException('expiresAt must be in the future');
+    }
+
+    const maxExpiry = Date.now() + this.maxShareExpiryDays * 24 * 60 * 60 * 1000;
+    if (parsed.getTime() > maxExpiry) {
+      throw new UnprocessableEntityException(
+        `expiresAt must not exceed ${this.maxShareExpiryDays} days from now`,
+      );
     }
 
     return parsed;

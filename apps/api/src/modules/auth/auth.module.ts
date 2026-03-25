@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 
 import { AuditModule } from '../audit/audit.module.js';
 import { PrismaModule } from '../persistence/prisma.module.js';
+import { AccountLockoutService } from './account-lockout.service.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtTokenService } from './jwt-token.service.js';
@@ -14,7 +15,7 @@ import { RolesGuard } from './guards/roles.guard.js';
 @Module({
   imports: [PrismaModule, forwardRef(() => AuditModule)],
   controllers: [AuthController],
-  providers: [AuthService, JwtTokenService, KeycloakSsoService, MfaService, JwtAuthGuard, ActiveUserGuard, RolesGuard],
-  exports: [AuthService, JwtTokenService, KeycloakSsoService, MfaService, JwtAuthGuard, ActiveUserGuard, RolesGuard],
+  providers: [AccountLockoutService, AuthService, JwtTokenService, KeycloakSsoService, MfaService, JwtAuthGuard, ActiveUserGuard, RolesGuard],
+  exports: [AccountLockoutService, AuthService, JwtTokenService, KeycloakSsoService, MfaService, JwtAuthGuard, ActiveUserGuard, RolesGuard],
 })
 export class AuthModule {}

@@ -1,7 +1,16 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 
+/**
+ * OWASP A05 – Security Misconfiguration
+ *
+ * Vault transit errors are logged for operators but never exposed to HTTP
+ * clients. The client-facing message is a generic "Encryption service
+ * unavailable" to prevent leaking internal service topology.
+ */
 @Injectable()
 export class VaultTransitService {
+  private readonly logger = new Logger(VaultTransitService.name);
+
   async wrapDek(plainDek: Buffer): Promise<string> {
     const keyName = this.getTransitKeyName();
     const response = await this.callVaultJson(`/v1/transit/encrypt/${encodeURIComponent(keyName)}`, {
@@ -10,7 +19,8 @@ export class VaultTransitService {
 
     const ciphertext = response?.data?.ciphertext;
     if (typeof ciphertext !== 'string' || ciphertext.length === 0) {
-      throw new ServiceUnavailableException('Vault transit encryption did not return ciphertext');
+      this.logger.error('Vault transit encryption returned empty ciphertext');
+      throw new ServiceUnavailableException('Encryption service unavailable');
     }
 
     return ciphertext;
@@ -24,7 +34,8 @@ export class VaultTransitService {
 
     const plaintext = response?.data?.plaintext;
     if (typeof plaintext !== 'string' || plaintext.length === 0) {
-      throw new ServiceUnavailableException('Vault transit decryption did not return plaintext');
+      this.logger.error('Vault transit decryption returned empty plaintext');
+      throw new ServiceUnavailableException('Encryption service unavailable');
     }
 
     return Buffer.from(plaintext, 'base64');
@@ -42,8 +53,10 @@ export class VaultTransitService {
     });
 
     if (!response.ok) {
+      // Log the real error for operators; never expose Vault details to clients.
       const text = await response.text();
-      throw new ServiceUnavailableException(`Vault transit request failed (${response.status}): ${text}`);
+      this.logger.error(`Vault transit request failed (HTTP ${response.status}): ${text}`);
+      throw new ServiceUnavailableException('Encryption service unavailable');
     }
 
     return (await response.json()) as Record<string, any>;
@@ -56,7 +69,8 @@ export class VaultTransitService {
   private getVaultToken(): string {
     const token = process.env.VAULT_DEV_ROOT_TOKEN;
     if (!token) {
-      throw new ServiceUnavailableException('VAULT_DEV_ROOT_TOKEN is required for transit operations');
+      this.logger.error('VAULT_DEV_ROOT_TOKEN not configured');
+      throw new ServiceUnavailableException('Encryption service unavailable');
     }
 
     return token;
