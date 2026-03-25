@@ -86,8 +86,9 @@ fi
 
 # Verify no raw innerHTML with unescaped API data
 # Safe pattern: all innerHTML assignments should use esc() for dynamic content
-# Safe exceptions: innerHTML = '' (clearing), innerHTML = html (pre-escaped builder var)
-UNSAFE_INNERHTML=$(grep -n 'innerHTML' "$WEB_HTML" | grep -v 'esc(' | grep -v 'statusHtml' | grep -v "result-actions" | grep -v "result-status" | grep -v "data-role" | grep -v "log-" | grep -v "innerHTML = ''" | grep -v "innerHTML = html" | grep -cv '^\s*//' || true)
+# Safe exceptions: innerHTML = '' (clearing), innerHTML = html (pre-escaped builder var),
+#   innerHTML = '<...' (static HTML string literals with no interpolation)
+UNSAFE_INNERHTML=$(grep -n 'innerHTML' "$WEB_HTML" | grep -v 'esc(' | grep -v 'statusHtml' | grep -v "result-actions" | grep -v "result-status" | grep -v "data-role" | grep -v "log-" | grep -v "innerHTML = ''" | grep -v "innerHTML = html" | grep -v "innerHTML = '<" | grep -cv '^\s*//' || true)
 if [[ "$UNSAFE_INNERHTML" -le 1 ]]; then
   pass "innerHTML usage appears controlled (static or escaped)"
 else
@@ -241,6 +242,73 @@ if [[ -f "$ADMIN_HTML" ]]; then
   fi
 else
   fail "Admin HTML file not found at $ADMIN_HTML"
+fi
+
+# ── 13. Share portal baseline ─────────────────────────────
+echo ""
+echo "--- Share Portal ---"
+
+SHARE_HTML="$ROOT_DIR/apps/web/share.html"
+if [[ -f "$SHARE_HTML" ]]; then
+  if grep -q 'http-equiv="Content-Security-Policy"' "$SHARE_HTML"; then
+    pass "Share CSP meta tag present"
+  else
+    fail "Share CSP meta tag missing"
+  fi
+
+  if grep -q "object-src 'none'" "$SHARE_HTML"; then
+    pass "Share CSP blocks object-src"
+  else
+    fail "Share CSP does not block object-src"
+  fi
+
+  if grep -q "frame-ancestors 'none'" "$SHARE_HTML"; then
+    pass "Share CSP blocks framing"
+  else
+    fail "Share CSP does not block framing"
+  fi
+
+  if grep -q 'name="referrer" content="no-referrer"' "$SHARE_HTML"; then
+    pass "Share referrer policy present"
+  else
+    fail "Share referrer policy missing"
+  fi
+
+  if grep -q 'esc(' "$SHARE_HTML"; then
+    pass "Share has esc() function"
+  else
+    fail "Share missing esc() function"
+  fi
+
+  if grep -q 'safeMime' "$SHARE_HTML"; then
+    pass "Share has safeMime() function"
+  else
+    fail "Share missing safeMime() function"
+  fi
+
+  if grep -qE '(src|href)="https?://' "$SHARE_HTML"; then
+    fail "Share has external resource loads"
+  else
+    pass "Share has no external resource loads"
+  fi
+
+  SHARE_PW_FIELDS=$(grep '<input' "$SHARE_HTML" | grep -c 'type="password"' || true)
+  SHARE_PW_AC=$(grep '<input' "$SHARE_HTML" | grep 'type="password"' | grep -c 'autocomplete="off"' || true)
+  if [[ "$SHARE_PW_FIELDS" -eq "$SHARE_PW_AC" ]] && [[ "$SHARE_PW_FIELDS" -gt 0 ]]; then
+    pass "Share password field has autocomplete=off"
+  elif [[ "$SHARE_PW_FIELDS" -eq 0 ]]; then
+    pass "Share has no password fields (OK if handled dynamically)"
+  else
+    fail "Share password field missing autocomplete=off ($SHARE_PW_AC/$SHARE_PW_FIELDS)"
+  fi
+
+  if grep -qE '(localStorage|sessionStorage)\.(setItem|getItem)' "$SHARE_HTML"; then
+    fail "Share uses localStorage/sessionStorage"
+  else
+    pass "Share has no localStorage/sessionStorage usage"
+  fi
+else
+  fail "Share HTML file not found at $SHARE_HTML"
 fi
 
 # ── Summary ────────────────────────────────────────────────

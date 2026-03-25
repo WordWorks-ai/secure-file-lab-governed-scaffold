@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="no-referrer">
+<title>Secure File Lab - Share Portal</title>
+<style>
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --dim: #64748b;
+  --accent: #1e3a5f;
+  --green: #16a34a;
+  --red: #dc2626;
+  --yellow: #d97706;
+  --mono: 'SF Mono','Cascadia Code','Fira Code',Consolas,monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans','Segoe UI',system-ui,sans-serif; font-size: 15px; }
+body { display: flex; flex-direction: column; align-items: center; }
+
+.container { width: 100%; max-width: 500px; padding: 0 16px; flex: 1; display: flex; flex-direction: column; }
+
+/* Header */
+.header { text-align: center; padding: 48px 0 8px; }
+.header .lock { font-size: 32px; margin-bottom: 8px; }
+.header h1 { font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -0.3px; }
+.header .subtitle { font-size: 13px; color: var(--dim); margin-top: 4px; }
+
+/* Anti-phishing */
+.trust-bar { text-align: center; font-size: 11px; color: var(--dim); margin: 12px 0 24px; line-height: 1.6; }
+.trust-bar .domain { font-family: var(--mono); font-size: 12px; color: var(--accent); font-weight: 600; }
+
+/* Card */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+/* Form elements */
+label { display: block; font-size: 13px; font-weight: 600; color: var(--dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+input[type="text"], input[type="password"] {
+  width: 100%; padding: 10px 12px; font-size: 14px; font-family: var(--mono);
+  border: 1px solid var(--border); border-radius: 6px; background: var(--bg);
+  color: var(--text); outline: none; transition: border-color 0.15s;
+}
+input:focus { border-color: var(--accent); }
+input[readonly] { opacity: 0.7; cursor: default; }
+.field + .field { margin-top: 16px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 11px 16px; font-size: 14px; font-weight: 600;
+  border: none; border-radius: 6px; cursor: pointer; transition: opacity 0.15s;
+  font-family: inherit;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #fff; margin-top: 20px; }
+.btn-primary:hover:not(:disabled) { opacity: 0.9; }
+.btn-download { background: var(--green); color: #fff; margin-top: 16px; text-decoration: none; }
+.btn-download:hover { opacity: 0.9; }
+
+/* Error */
+.error-card { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; display: none; }
+.error-card .error-icon { color: var(--red); font-size: 18px; margin-right: 8px; }
+.error-card .error-text { font-size: 14px; color: var(--red); font-weight: 500; }
+.error-card .retry-link { display: block; margin-top: 10px; font-size: 13px; color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+/* Success / download card */
+.dl-card { display: none; }
+.dl-card .file-info { display: flex; flex-direction: column; gap: 8px; }
+.dl-card .file-row { display: flex; justify-content: space-between; font-size: 13px; }
+.dl-card .file-label { color: var(--dim); }
+.dl-card .file-value { font-family: var(--mono); font-size: 13px; color: var(--text); word-break: break-all; }
+
+.hidden { display: none !important; }
+
+/* Footer */
+.footer { text-align: center; padding: 24px 0 16px; font-size: 12px; color: var(--dim); }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="lock">&#x1F512;</div>
+    <h1>Secure File Lab</h1>
+    <p class="subtitle">Public Share Portal</p>
+  </div>
+
+  <div class="trust-bar">
+    <span class="domain" id="domainDisplay"></span><br>
+    Verify you are on the correct domain. Look for the padlock icon in your browser.
+  </div>
+
+  <!-- Error -->
+  <div class="error-card" id="errorCard">
+    <span class="error-icon">&#x26A0;</span><span class="error-text" id="errorText"></span>
+    <span class="retry-link" id="retryLink">Try again</span>
+  </div>
+
+  <!-- Token form -->
+  <div class="card" id="formCard">
+    <div class="field">
+      <label for="tokenInput">Share Token</label>
+      <input type="text" id="tokenInput" placeholder="Paste your share token">
+    </div>
+    <div class="field hidden" id="passwordField">
+      <label for="passwordInput">Password</label>
+      <input type="password" id="passwordInput" autocomplete="off" placeholder="Enter file password">
+    </div>
+    <button class="btn btn-primary" id="accessBtn" type="button">Access File</button>
+  </div>
+
+  <!-- Download card -->
+  <div class="card dl-card" id="dlCard">
+    <div class="file-info">
+      <div class="file-row">
+        <span class="file-label">Filename</span>
+        <span class="file-value" id="dlName"></span>
+      </div>
+      <div class="file-row">
+        <span class="file-label">Type</span>
+        <span class="file-value" id="dlType"></span>
+      </div>
+      <div class="file-row">
+        <span class="file-label">Size</span>
+        <span class="file-value" id="dlSize"></span>
+      </div>
+    </div>
+    <a class="btn btn-download" id="dlBtn" rel="noopener noreferrer" download>Download</a>
+  </div>
+
+  <div class="footer">Secure File Lab</div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  /* --- Security helpers --- */
+  function esc(s) {
+    var d = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(s).replace(/[&<>"']/g, function(c) { return d[c]; });
+  }
+
+  function safeMime(m) {
+    return /^[a-zA-Z0-9][a-zA-Z0-9!#$&\-^_.+]*\/[a-zA-Z0-9][a-zA-Z0-9!#$&\-^_.+]*$/.test(m)
+      ? m : 'application/octet-stream';
+  }
+
+  function formatSize(bytes) {
+    if (bytes == null) return 'Unknown';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+
+  /* --- DOM refs --- */
+  var tokenInput   = document.getElementById('tokenInput');
+  var passwordField = document.getElementById('passwordField');
+  var passwordInput = document.getElementById('passwordInput');
+  var accessBtn    = document.getElementById('accessBtn');
+  var formCard     = document.getElementById('formCard');
+  var dlCard       = document.getElementById('dlCard');
+  var dlName       = document.getElementById('dlName');
+  var dlType       = document.getElementById('dlType');
+  var dlSize       = document.getElementById('dlSize');
+  var dlBtn        = document.getElementById('dlBtn');
+  var errorCard    = document.getElementById('errorCard');
+  var errorText    = document.getElementById('errorText');
+  var retryLink    = document.getElementById('retryLink');
+  var domainDisplay = document.getElementById('domainDisplay');
+
+  /* --- Anti-phishing: show domain --- */
+  domainDisplay.textContent = location.hostname;
+
+  /* --- Pre-fill token from URL --- */
+  var params = new URLSearchParams(location.search);
+  var urlToken = params.get('token');
+  if (urlToken) tokenInput.value = urlToken;
+
+  /* --- State --- */
+  var needsPassword = false;
+
+  /* --- Error mapping --- */
+  var ERROR_MAP = {
+    404: 'Invalid or revoked link',
+    410: 'This link has expired',
+    429: 'Too many attempts. Please wait and try again.'
+  };
+
+  function showError(msg) {
+    errorText.textContent = msg;
+    errorCard.style.display = 'block';
+  }
+
+  function hideError() {
+    errorCard.style.display = 'none';
+  }
+
+  function setLoading(on) {
+    accessBtn.disabled = on;
+    accessBtn.textContent = on ? 'Accessing...' : (needsPassword ? 'Submit' : 'Access File');
+  }
+
+  function reset() {
+    hideError();
+    formCard.classList.remove('hidden');
+    dlCard.style.display = 'none';
+    passwordField.classList.add('hidden');
+    passwordInput.value = '';
+    tokenInput.readOnly = false;
+    needsPassword = false;
+    setLoading(false);
+  }
+
+  function showPasswordField() {
+    needsPassword = true;
+    passwordField.classList.remove('hidden');
+    tokenInput.readOnly = true;
+    accessBtn.textContent = 'Submit';
+    passwordInput.focus();
+  }
+
+  function showDownload(data) {
+    formCard.classList.add('hidden');
+    hideError();
+    dlCard.style.display = 'block';
+    dlName.textContent = data.filename || 'file';
+    dlType.textContent = data.contentType || 'unknown';
+    dlSize.textContent = formatSize(data.size);
+
+    var mime = safeMime(data.contentType || '');
+    dlBtn.href = 'data:' + mime + ';base64,' + (data.content || '');
+    dlBtn.download = data.filename || 'file';
+    dlBtn.rel = 'noopener noreferrer';
+  }
+
+  /* --- API call --- */
+  function accessFile() {
+    var token = tokenInput.value.trim();
+    if (!token) { showError('Please enter a share token.'); return; }
+
+    hideError();
+    setLoading(true);
+
+    var body = { shareToken: token };
+    if (needsPassword) {
+      var pw = passwordInput.value;
+      if (!pw) { showError('Please enter the password.'); setLoading(false); return; }
+      body.password = pw;
+    }
+
+    fetch('/v1/shares/access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    .then(function(res) {
+      if (res.ok) return res.json().then(function(d) { showDownload(d); setLoading(false); });
+
+      var status = res.status;
+
+      /* 403 handling */
+      if (status === 403) {
+        return res.json().catch(function() { return {}; }).then(function(j) {
+          if (!needsPassword && (j.passwordRequired || (j.message && /password/i.test(j.message)))) {
+            showPasswordField();
+          } else if (needsPassword) {
+            showError('Incorrect password');
+          } else {
+            showError('Invalid or revoked link');
+          }
+          setLoading(false);
+        });
+      }
+
+      /* Known status codes */
+      if (ERROR_MAP[status]) {
+        showError(ERROR_MAP[status]);
+      } else {
+        showError('Unable to access this file');
+      }
+      setLoading(false);
+    })
+    .catch(function() {
+      showError('Unable to access this file');
+      setLoading(false);
+    });
+  }
+
+  /* --- Events --- */
+  accessBtn.addEventListener('click', accessFile);
+
+  tokenInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') accessFile();
+  });
+  passwordInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') accessFile();
+  });
+
+  retryLink.addEventListener('click', reset);
+})();
+</script>
+</body>
+</html>
