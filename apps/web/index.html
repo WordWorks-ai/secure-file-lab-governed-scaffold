@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="no-referrer">
 <title>SFL Test Harness</title>
 <style>
 :root {
@@ -25,6 +27,7 @@ body { display:flex; flex-direction:column; }
 /* Header */
 #header { display:flex; align-items:center; gap:12px; padding:8px 16px; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; min-height:44px; }
 #header .title { font-size:14px; font-weight:700; color:var(--accent); white-space:nowrap; }
+#header .shortcuts-hint { font-size:10px; color:var(--dim); white-space:nowrap; }
 #header .auth-status { display:flex; align-items:center; gap:8px; margin-left:auto; font-size:12px; }
 .dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
 .dot-green { background:var(--green); }
@@ -32,27 +35,34 @@ body { display:flex; flex-direction:column; }
 .role-badge { font-size:10px; padding:2px 6px; border-radius:3px; background:var(--border); color:var(--yellow); text-transform:uppercase; }
 
 /* Buttons */
-.btn { font-family:var(--mono); font-size:12px; padding:4px 12px; border:1px solid var(--border); border-radius:4px; cursor:pointer; background:var(--surface); color:var(--text); }
+.btn { font-family:var(--mono); font-size:12px; padding:4px 12px; border:1px solid var(--border); border-radius:4px; cursor:pointer; background:var(--surface); color:var(--text); transition:opacity 0.15s; }
 .btn:hover { border-color:var(--accent); }
+.btn:disabled { opacity:0.5; cursor:not-allowed; }
 .btn-send { background:var(--accent); color:#000; border-color:var(--accent); font-weight:700; }
-.btn-send:hover { opacity:0.85; }
+.btn-send:hover:not(:disabled) { opacity:0.85; }
 .btn-danger { background:var(--red); color:#fff; border-color:var(--red); }
-.btn-danger:hover { opacity:0.85; }
+.btn-danger:hover:not(:disabled) { opacity:0.85; }
 .btn-copy { font-size:10px; padding:2px 8px; }
 .btn-sm { font-size:11px; padding:2px 8px; }
 
 /* Tabs */
 #tabs { display:flex; gap:0; border-bottom:1px solid var(--border); background:var(--surface); flex-shrink:0; overflow-x:auto; }
-#tabs button { font-family:var(--mono); font-size:12px; padding:8px 16px; border:none; background:none; color:var(--dim); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; }
+#tabs button { font-family:var(--mono); font-size:12px; padding:8px 16px; border:none; background:none; color:var(--dim); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; transition:color 0.15s; }
 #tabs button:hover { color:var(--text); }
 #tabs button.active { color:var(--accent); border-bottom-color:var(--accent); }
+#tabs .tab-key { font-size:9px; color:var(--dim); margin-left:4px; opacity:0.5; vertical-align:super; }
 
 /* Main + Log split */
 #main-split { flex:1; display:flex; flex-direction:column; overflow:hidden; }
 #content { flex:1; overflow-y:auto; padding:16px; }
-#log-panel { height:35vh; min-height:120px; border-top:2px solid var(--border); display:flex; flex-direction:column; background:var(--surface); }
-#log-header { display:flex; align-items:center; justify-content:space-between; padding:6px 16px; border-bottom:1px solid var(--border); flex-shrink:0; }
+#log-panel { height:35vh; min-height:0; border-top:2px solid var(--border); display:flex; flex-direction:column; background:var(--surface); transition:height 0.2s ease; }
+#log-panel.collapsed { height:32px; min-height:32px; }
+#log-panel.collapsed #log-body { display:none; }
+#log-header { display:flex; align-items:center; justify-content:space-between; padding:6px 16px; border-bottom:1px solid var(--border); flex-shrink:0; cursor:pointer; user-select:none; }
 #log-header span { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:0.5px; }
+#log-header .log-toggle { font-size:10px; color:var(--dim); transition:transform 0.2s; }
+#log-panel.collapsed #log-header .log-toggle { transform:rotate(180deg); }
+#log-header .log-count { font-size:10px; color:var(--accent); margin-left:6px; }
 #log-body { flex:1; overflow-y:auto; padding:8px 16px; }
 
 /* Tab panels */
@@ -60,8 +70,11 @@ body { display:flex; flex-direction:column; }
 .tab-panel.active { display:block; }
 
 /* Sections */
-.section { margin-bottom:20px; padding:12px; border:1px solid var(--border); border-radius:6px; background:var(--surface); }
+.section { margin-bottom:20px; padding:12px; border:1px solid var(--border); border-radius:6px; background:var(--surface); transition:border-color 0.3s ease; }
+.section.flash-ok { border-color:var(--green); }
+.section.flash-err { border-color:var(--red); }
 .section-title { font-size:12px; font-weight:700; color:var(--accent); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+.section-label { font-size:11px; color:var(--dim); font-weight:400; }
 .section-group { font-size:11px; font-weight:700; color:var(--dim); text-transform:uppercase; letter-spacing:1px; margin:16px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--border); }
 .admin-badge { font-size:9px; padding:1px 5px; border-radius:3px; background:var(--orange); color:#000; text-transform:uppercase; font-weight:700; }
 .noauth-badge { font-size:9px; padding:1px 5px; border-radius:3px; background:var(--green); color:#000; text-transform:uppercase; font-weight:700; }
@@ -83,7 +96,11 @@ body { display:flex; flex-direction:column; }
 /* Inline result */
 .result-box { margin-top:8px; padding:8px; background:var(--bg); border:1px solid var(--border); border-radius:4px; overflow-x:auto; max-height:300px; overflow-y:auto; position:relative; }
 .result-box pre { white-space:pre-wrap; word-break:break-all; font-size:12px; }
-.result-box .btn-copy { position:absolute; top:4px; right:4px; }
+.result-box .result-actions { position:absolute; top:4px; right:4px; display:flex; gap:4px; }
+.result-status { font-size:10px; padding:1px 6px; border-radius:3px; font-weight:700; display:inline-block; margin-bottom:4px; }
+.result-status.s-ok { background:var(--green); color:#000; }
+.result-status.s-err { background:var(--red); color:#fff; }
+.result-status.s-warn { background:var(--yellow); color:#000; }
 
 /* Log entries */
 .log-entry { margin-bottom:4px; }
@@ -118,6 +135,7 @@ body { display:flex; flex-direction:column; }
 <!-- Header -->
 <div id="header">
   <span class="title">SFL Test Harness</span>
+  <span class="shortcuts-hint" title="Keyboard shortcuts: 1-6 switch tabs, Ctrl+Enter submits forms">1-6 tabs &middot; Ctrl+Enter send</span>
   <div class="auth-status" id="auth-status">
     <span class="dot dot-red"></span>
     <span id="auth-label">Unauthenticated</span>
@@ -128,12 +146,12 @@ body { display:flex; flex-direction:column; }
 
 <!-- Tabs -->
 <div id="tabs">
-  <button class="active" data-tab="system">System</button>
-  <button data-tab="auth">Auth</button>
-  <button data-tab="files">Files</button>
-  <button data-tab="shares">Shares</button>
-  <button data-tab="search">Search</button>
-  <button data-tab="audit">Audit</button>
+  <button class="active" data-tab="system">System<span class="tab-key">1</span></button>
+  <button data-tab="auth">Auth<span class="tab-key">2</span></button>
+  <button data-tab="files">Files<span class="tab-key">3</span></button>
+  <button data-tab="shares">Shares<span class="tab-key">4</span></button>
+  <button data-tab="search">Search<span class="tab-key">5</span></button>
+  <button data-tab="audit">Audit<span class="tab-key">6</span></button>
 </div>
 
 <div id="main-split">
@@ -143,25 +161,25 @@ body { display:flex; flex-direction:column; }
 <div class="tab-panel active" data-tab="system">
 
   <div class="section">
-    <div class="section-title">GET /v1/health/live</div>
+    <div class="section-title">GET /v1/health/live <span class="section-label">Liveness probe</span></div>
     <form data-action="healthLive"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
   <div class="section">
-    <div class="section-title">GET /v1/health/ready</div>
+    <div class="section-title">GET /v1/health/ready <span class="section-label">Readiness check (DB, deps)</span></div>
     <form data-action="healthReady"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
   <div class="section">
-    <div class="section-title">GET /v1/system/info</div>
+    <div class="section-title">GET /v1/system/info <span class="section-label">Version and runtime info</span></div>
     <form data-action="systemInfo"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
   <div class="section">
-    <div class="section-title">POST /v1/system/echo</div>
+    <div class="section-title">POST /v1/system/echo <span class="section-label">Echo test</span></div>
     <form data-action="systemEcho">
       <div class="form-row">
         <div class="form-field"><label>message</label><input type="text" name="message" placeholder="Hello, SFL"></div>
@@ -172,7 +190,7 @@ body { display:flex; flex-direction:column; }
   </div>
 
   <div class="section">
-    <div class="section-title">GET /v1/metrics</div>
+    <div class="section-title">GET /v1/metrics <span class="section-label">Prometheus metrics</span></div>
     <form data-action="metrics"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
@@ -185,11 +203,11 @@ body { display:flex; flex-direction:column; }
   <div class="section-group">Session</div>
 
   <div class="section">
-    <div class="section-title">POST /v1/auth/login</div>
+    <div class="section-title">POST /v1/auth/login <span class="section-label">Sign in with credentials</span></div>
     <form data-action="login">
       <div class="form-row">
         <div class="form-field"><label>email</label><input type="text" name="email" placeholder="admin@local.test"></div>
-        <div class="form-field"><label>password</label><input type="password" name="password"></div>
+        <div class="form-field"><label>password</label><input type="password" name="password" autocomplete="off"></div>
         <div class="form-field"><label>totpCode <span class="opt">[opt]</span></label><input type="text" name="totpCode" maxlength="6" placeholder="000000"></div>
       </div>
       <details style="margin-top:6px">
@@ -208,10 +226,10 @@ body { display:flex; flex-direction:column; }
   </div>
 
   <div class="section">
-    <div class="section-title">POST /v1/auth/refresh</div>
+    <div class="section-title">POST /v1/auth/refresh <span class="section-label">Rotate access token</span></div>
     <form data-action="refresh">
       <div class="form-row">
-        <div class="form-field" style="flex:1"><label>refreshToken</label><textarea name="refreshToken" rows="2" id="refresh-token-input"></textarea></div>
+        <div class="form-field" style="flex:1"><label>refreshToken</label><textarea name="refreshToken" rows="2" id="refresh-token-input" autocomplete="off"></textarea></div>
         <button type="submit" class="btn btn-send">Refresh</button>
       </div>
     </form>
@@ -219,10 +237,10 @@ body { display:flex; flex-direction:column; }
   </div>
 
   <div class="section">
-    <div class="section-title">POST /v1/auth/logout</div>
+    <div class="section-title">POST /v1/auth/logout <span class="section-label">End session</span></div>
     <form data-action="logout">
       <div class="form-row">
-        <div class="form-field" style="flex:1"><label>refreshToken</label><textarea name="refreshToken" rows="2" id="logout-token-input"></textarea></div>
+        <div class="form-field" style="flex:1"><label>refreshToken</label><textarea name="refreshToken" rows="2" id="logout-token-input" autocomplete="off"></textarea></div>
         <button type="submit" class="btn btn-send">Logout</button>
       </div>
     </form>
@@ -230,10 +248,10 @@ body { display:flex; flex-direction:column; }
   </div>
 
   <div class="section">
-    <div class="section-title">POST /v1/auth/sso/exchange</div>
+    <div class="section-title">POST /v1/auth/sso/exchange <span class="section-label">Swap SSO token for session</span></div>
     <form data-action="ssoExchange">
       <div class="form-row">
-        <div class="form-field" style="flex:1"><label>accessToken</label><input type="text" name="accessToken"></div>
+        <div class="form-field" style="flex:1"><label>accessToken</label><input type="text" name="accessToken" autocomplete="off"></div>
         <button type="submit" class="btn btn-send">Exchange</button>
       </div>
     </form>
@@ -243,13 +261,13 @@ body { display:flex; flex-direction:column; }
   <div class="section-group">Identity</div>
 
   <div class="section">
-    <div class="section-title">GET /v1/auth/me</div>
+    <div class="section-title">GET /v1/auth/me <span class="section-label">Current user profile</span></div>
     <form data-action="me"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
   <div class="section">
-    <div class="section-title">GET /v1/auth/admin-check <span class="admin-badge">admin</span></div>
+    <div class="section-title">GET /v1/auth/admin-check <span class="section-label">Verify admin role</span> <span class="admin-badge">admin</span></div>
     <form data-action="adminCheck"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
@@ -257,19 +275,19 @@ body { display:flex; flex-direction:column; }
   <div class="section-group">MFA &mdash; TOTP</div>
 
   <div class="section">
-    <div class="section-title">GET /v1/auth/mfa/status</div>
+    <div class="section-title">GET /v1/auth/mfa/status <span class="section-label">Check MFA enrollment</span></div>
     <form data-action="mfaStatus"><button type="submit" class="btn btn-send">Send</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
   <div class="section">
-    <div class="section-title">POST /v1/auth/mfa/totp/enroll</div>
+    <div class="section-title">POST /v1/auth/mfa/totp/enroll <span class="section-label">Start TOTP setup</span></div>
     <form data-action="totpEnroll"><button type="submit" class="btn btn-send">Enroll</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
   <div class="section">
-    <div class="section-title">POST /v1/auth/mfa/totp/verify</div>
+    <div class="section-title">POST /v1/auth/mfa/totp/verify <span class="section-label">Confirm TOTP code</span></div>
     <form data-action="totpVerify">
       <div class="form-row">
         <div class="form-field"><label>code</label><input type="text" name="code" maxlength="6" placeholder="000000"></div>
@@ -280,7 +298,7 @@ body { display:flex; flex-direction:column; }
   </div>
 
   <div class="section">
-    <div class="section-title">DELETE /v1/auth/mfa/totp</div>
+    <div class="section-title">DELETE /v1/auth/mfa/totp <span class="section-label">Remove TOTP factor</span></div>
     <form data-action="totpDisable"><button type="submit" class="btn btn-danger">Disable TOTP</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
@@ -288,13 +306,13 @@ body { display:flex; flex-direction:column; }
   <div class="section-group">MFA &mdash; WebAuthn</div>
 
   <div class="section">
-    <div class="section-title">POST /v1/auth/mfa/webauthn/register/options</div>
+    <div class="section-title">POST /v1/auth/mfa/webauthn/register/options <span class="section-label">Get WebAuthn challenge</span></div>
     <form data-action="webauthnRegOptions"><button type="submit" class="btn btn-send">Get Options</button></form>
     <div class="result-box" style="display:none"></div>
   </div>
 
   <div class="section">
-    <div class="section-title">POST /v1/auth/mfa/webauthn/register/verify</div>
+    <div class="section-title">POST /v1/auth/mfa/webauthn/register/verify <span class="section-label">Complete WebAuthn registration</span></div>
     <form data-action="webauthnRegVerify">
       <div class="form-row">
         <div class="form-field"><label>challengeToken</label><input type="text" name="challengeToken"></div>
@@ -318,7 +336,7 @@ body { display:flex; flex-direction:column; }
 <div class="tab-panel" data-tab="files">
 
   <div class="section">
-    <div class="section-title">POST /v1/files/upload</div>
+    <div class="section-title">POST /v1/files/upload <span class="section-label">Upload a file</span></div>
     <div class="file-picker-row">
       <label>Pick a file to auto-fill:</label>
       <input type="file" id="file-picker">
@@ -345,7 +363,7 @@ body { display:flex; flex-direction:column; }
   </div>
 
   <div class="section">
-    <div class="section-title">POST /v1/files/:fileId/activate <span class="admin-badge">admin</span></div>
+    <div class="section-title">POST /v1/files/:fileId/activate <span class="section-label">Approve file for use</span> <span class="admin-badge">admin</span></div>
     <form data-action="fileActivate">
       <div class="form-row">
         <div class="form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
@@ -356,7 +374,7 @@ body { display:flex; flex-direction:column; }
   </div>
 
   <div class="section">
-    <div class="section-title">GET /v1/files/:fileId</div>
+    <div class="section-title">GET /v1/files/:fileId <span class="section-label">File metadata</span></div>
     <form data-action="fileMetadata">
       <div class="form-row">
         <div class="form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
@@ -367,7 +385,7 @@ body { display:flex; flex-direction:column; }
   </div>
 
   <div class="section">
-    <div class="section-title">GET /v1/files/:fileId/artifacts</div>
+    <div class="section-title">GET /v1/files/:fileId/artifacts <span class="section-label">Extracted artifacts (OCR, DLP, etc.)</span></div>
     <form data-action="fileArtifacts">
       <div class="form-row">
         <div class="form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
@@ -378,7 +396,7 @@ body { display:flex; flex-direction:column; }
   </div>
 
   <div class="section">
-    <div class="section-title">GET /v1/files/:fileId/download</div>
+    <div class="section-title">GET /v1/files/:fileId/download <span class="section-label">Download file content</span></div>
     <form data-action="fileDownload">
       <div class="form-row">
         <div class="form-field"><label>fileId</label><input type="text" name="fileId" class="file-id-input" placeholder="uuid"></div>
@@ -394,7 +412,7 @@ body { display:flex; flex-direction:column; }
 <div class="tab-panel" data-tab="shares">
 
   <div class="section">
-    <div class="section-title">POST /v1/shares</div>
+    <div class="section-title">POST /v1/shares <span class="section-label">Create a share link</span></div>
     <form data-action="shareCreate">
       <div class="form-row">
         <div class="form-field"><label>fileId</label><input type="text" name="fileId" placeholder="uuid" id="share-fileId"></div>
@@ -402,7 +420,7 @@ body { display:flex; flex-direction:column; }
         <div class="form-field"><label>maxDownloads <span class="opt">[opt]</span></label><input type="number" name="maxDownloads" min="1" placeholder="10"></div>
       </div>
       <div class="form-row">
-        <div class="form-field"><label>password <span class="opt">[opt]</span></label><input type="text" name="password" placeholder="min 8 chars"></div>
+        <div class="form-field"><label>password <span class="opt">[opt]</span></label><input type="text" name="password" placeholder="min 8 chars" autocomplete="off"></div>
       </div>
       <details style="margin-top:6px">
         <summary style="font-size:11px;color:var(--dim);cursor:pointer">DLP Override (admin)</summary>
@@ -417,7 +435,7 @@ body { display:flex; flex-direction:column; }
   </div>
 
   <div class="section">
-    <div class="section-title">POST /v1/shares/:shareId/revoke</div>
+    <div class="section-title">POST /v1/shares/:shareId/revoke <span class="section-label">Revoke a share link</span></div>
     <form data-action="shareRevoke">
       <div class="form-row">
         <div class="form-field"><label>shareId</label><input type="text" name="shareId" id="share-revokeId" placeholder="uuid"></div>
@@ -428,11 +446,11 @@ body { display:flex; flex-direction:column; }
   </div>
 
   <div class="section">
-    <div class="section-title">POST /v1/shares/access <span class="noauth-badge">no auth</span></div>
+    <div class="section-title">POST /v1/shares/access <span class="section-label">Access shared file</span> <span class="noauth-badge">no auth</span></div>
     <form data-action="shareAccess">
       <div class="form-row">
         <div class="form-field" style="flex:1"><label>shareToken</label><input type="text" name="shareToken" id="share-accessToken"></div>
-        <div class="form-field"><label>password <span class="opt">[opt]</span></label><input type="text" name="password"></div>
+        <div class="form-field"><label>password <span class="opt">[opt]</span></label><input type="text" name="password" autocomplete="off"></div>
         <button type="submit" class="btn btn-send">Access</button>
       </div>
     </form>
@@ -445,7 +463,7 @@ body { display:flex; flex-direction:column; }
 <div class="tab-panel" data-tab="search">
 
   <div class="section">
-    <div class="section-title">GET /v1/search/files</div>
+    <div class="section-title">GET /v1/search/files <span class="section-label">Full-text file search</span></div>
     <form data-action="searchFiles">
       <div class="form-row">
         <div class="form-field"><label>q</label><input type="text" name="q" placeholder="search query"></div>
@@ -512,7 +530,7 @@ body { display:flex; flex-direction:column; }
 <!-- Response Log -->
 <div id="log-panel">
   <div id="log-header">
-    <span>Request Log</span>
+    <span>Request Log<span class="log-count" id="log-count"></span> <span class="log-toggle" id="log-toggle">&#9662;</span></span>
     <button class="btn btn-sm" id="btn-clear-log">Clear</button>
   </div>
   <div id="log-body"></div>
@@ -563,6 +581,8 @@ body { display:flex; flex-direction:column; }
 
   // ── API Client ─────────────────────────────────────────────
   const API = {
+    _activeBtn: null,
+
     async request(method, path, opts) {
       opts = opts || {};
       const url = '/v1/' + path.replace(/^\//, '');
@@ -617,7 +637,7 @@ body { display:flex; flex-direction:column; }
         ms: Date.now() - t0,
         method: method,
         url: fullUrl,
-        reqHeaders: Object.assign({}, headers),
+        reqHeaders: redactHeaders(headers),
         reqBody: opts.body ? JSON.stringify(opts.body, null, 2) : null,
         status: status,
         resBody: rawBody
@@ -634,7 +654,26 @@ body { display:flex; flex-direction:column; }
   // ── Helpers ────────────────────────────────────────────────
   function esc(s) {
     if (typeof s !== 'string') s = String(s);
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function isValidUUID(s) { return typeof s === 'string' && UUID_RE.test(s); }
+
+  var SAFE_MIME_RE = /^[a-zA-Z0-9][a-zA-Z0-9!#$&\-^_.+]*\/[a-zA-Z0-9][a-zA-Z0-9!#$&\-^_.+]*$/;
+  function safeMime(s) { return (typeof s === 'string' && SAFE_MIME_RE.test(s)) ? s : 'application/octet-stream'; }
+
+  function redactHeaders(headers) {
+    var safe = {};
+    for (var k in headers) {
+      if (k.toLowerCase() === 'authorization') {
+        safe[k] = headers[k].substring(0, 12) + '***REDACTED***';
+      } else {
+        safe[k] = headers[k];
+      }
+    }
+    return safe;
   }
 
   function statusClass(code) {
@@ -647,6 +686,9 @@ body { display:flex; flex-direction:column; }
 
   function pad2(n) { return String(n).padStart(2, '0'); }
 
+  // ── Tab key map ────────────────────────────────────────────
+  var TAB_KEYS = ['system', 'auth', 'files', 'shares', 'search', 'audit'];
+
   // ── UI ─────────────────────────────────────────────────────
   const UI = {
     init: function() {
@@ -655,28 +697,39 @@ body { display:flex; flex-direction:column; }
         btn.addEventListener('click', function() { UI.switchTab(btn.dataset.tab); });
       });
 
-      // Form submissions
+      // Form submissions with loading state
       document.querySelectorAll('form[data-action]').forEach(function(form) {
         form.addEventListener('submit', function(e) {
           e.preventDefault();
           var action = form.dataset.action;
-          if (Actions[action]) Actions[action](form);
+          if (Actions[action]) {
+            var btn = form.querySelector('button[type="submit"]');
+            UI.withLoading(btn, function() { return Actions[action](form); });
+          }
         });
       });
 
-      // Audit buttons
+      // Audit buttons with loading state
       document.querySelectorAll('[data-audit]').forEach(function(btn) {
         btn.addEventListener('click', function() {
           var type = btn.dataset.audit;
-          if (Actions['audit_' + type]) Actions['audit_' + type]();
+          if (Actions['audit_' + type]) {
+            UI.withLoading(btn, function() { return Actions['audit_' + type](); });
+          }
         });
       });
 
-      // Ctrl+Enter / Cmd+Enter submit
+      // Ctrl+Enter / Cmd+Enter submit, number keys for tabs
       document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
           var form = e.target.closest('form');
           if (form) { e.preventDefault(); form.requestSubmit(); }
+        }
+        // Number keys 1-6 for tab switching (only when not in an input)
+        var tag = e.target.tagName;
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+          var n = parseInt(e.key, 10);
+          if (n >= 1 && n <= 6) { UI.switchTab(TAB_KEYS[n - 1]); }
         }
       });
 
@@ -689,14 +742,42 @@ body { display:flex; flex-direction:column; }
         if (State.accessToken) UI.copyToClipboard(State.accessToken, document.getElementById('btn-copy-token'));
       });
       document.getElementById('btn-header-logout').addEventListener('click', function() { Actions.logout(); });
-      document.getElementById('btn-clear-log').addEventListener('click', function() {
+      document.getElementById('btn-clear-log').addEventListener('click', function(e) {
+        e.stopPropagation();
         State.history = [];
         UI.renderHistory();
+      });
+
+      // Log panel toggle
+      document.getElementById('log-header').addEventListener('click', function() {
+        document.getElementById('log-panel').classList.toggle('collapsed');
       });
 
       // Defaults
       UI.setDefaultExpiry();
       UI.renderAuthStatus();
+    },
+
+    withLoading: function(btn, fn) {
+      if (!btn || btn.disabled) return;
+      var orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Sending\u2026';
+      Promise.resolve(fn()).then(function() {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }).catch(function() {
+        btn.disabled = false;
+        btn.textContent = orig;
+      });
+    },
+
+    flashSection: function(el, ok) {
+      var section = el ? el.closest('.section') : null;
+      if (!section) return;
+      var cls = ok ? 'flash-ok' : 'flash-err';
+      section.classList.add(cls);
+      setTimeout(function() { section.classList.remove(cls); }, 1200);
     },
 
     switchTab: function(key) {
@@ -725,6 +806,8 @@ body { display:flex; flex-direction:column; }
     },
 
     renderHistory: function() {
+      var countEl = document.getElementById('log-count');
+      if (countEl) countEl.textContent = State.history.length ? ' (' + State.history.length + ')' : '';
       var container = document.getElementById('log-body');
       var html = '';
       for (var i = 0; i < State.history.length; i++) {
@@ -761,17 +844,40 @@ body { display:flex; flex-direction:column; }
       });
     },
 
-    showResult: function(formOrEl, data, isText) {
+    showResult: function(formOrEl, data, isText, statusCode) {
       var section = formOrEl.closest('.section');
       var box = section ? section.querySelector('.result-box') : document.getElementById('audit-result');
       if (!box) return;
       box.style.display = 'block';
       var str = isText ? String(data) : (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
-      box.innerHTML = '<pre>' + esc(str) + '</pre>' +
-        '<button class="btn btn-copy" id="_result_copy">Copy</button>';
-      box.querySelector('#_result_copy').addEventListener('click', function() {
-        UI.copyToClipboard(str, box.querySelector('#_result_copy'));
+
+      // Build status badge from most recent history entry if not provided
+      var sc = statusCode || (State.history.length ? State.history[0].status : 0);
+      var statusHtml = '';
+      if (sc) {
+        var sCls = sc < 300 ? 's-ok' : (sc < 500 ? 's-warn' : 's-err');
+        statusHtml = '<span class="result-status ' + sCls + '">' + sc + '</span> ';
+      }
+
+      box.innerHTML = statusHtml + '<pre>' + esc(str) + '</pre>' +
+        '<span class="result-actions">' +
+        '<button class="btn btn-copy" data-role="copy-result">Copy</button>' +
+        '<button class="btn btn-copy" data-role="clear-result">Clear</button>' +
+        '</span>';
+      box.querySelector('[data-role="copy-result"]').addEventListener('click', function() {
+        UI.copyToClipboard(str, box.querySelector('[data-role="copy-result"]'));
       });
+      box.querySelector('[data-role="clear-result"]').addEventListener('click', function() {
+        box.style.display = 'none';
+        box.innerHTML = '';
+      });
+
+      // Flash section border
+      var ok = sc && sc < 400;
+      UI.flashSection(formOrEl, ok);
+
+      // Auto-scroll result into view
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     },
 
     getFormData: function(form) {
@@ -958,31 +1064,36 @@ body { display:flex; flex-direction:column; }
 
     fileActivate: async function(form) {
       var d = UI.getFormData(form);
+      if (!isValidUUID(d.fileId)) return UI.showResult(form, { error: 'Invalid fileId — must be a UUID' });
       var r = await API.post('files/' + d.fileId + '/activate', undefined);
       UI.showResult(form, r.data);
     },
 
     fileMetadata: async function(form) {
       var d = UI.getFormData(form);
+      if (!isValidUUID(d.fileId)) return UI.showResult(form, { error: 'Invalid fileId — must be a UUID' });
       var r = await API.get('files/' + d.fileId);
       UI.showResult(form, r.data);
     },
 
     fileArtifacts: async function(form) {
       var d = UI.getFormData(form);
+      if (!isValidUUID(d.fileId)) return UI.showResult(form, { error: 'Invalid fileId — must be a UUID' });
       var r = await API.get('files/' + d.fileId + '/artifacts');
       UI.showResult(form, r.data);
     },
 
     fileDownload: async function(form) {
       var d = UI.getFormData(form);
+      if (!isValidUUID(d.fileId)) return UI.showResult(form, { error: 'Invalid fileId — must be a UUID' });
       var r = await API.get('files/' + d.fileId + '/download');
       UI.showResult(form, r.data);
       if (r.ok && r.data && r.data.contentBase64) {
         var box = form.closest('.section').querySelector('.result-box');
         var link = document.createElement('a');
-        link.href = 'data:' + (r.data.contentType || 'application/octet-stream') + ';base64,' + r.data.contentBase64;
+        link.href = 'data:' + safeMime(r.data.contentType) + ';base64,' + r.data.contentBase64;
         link.download = r.data.filename || 'download';
+        link.rel = 'noopener noreferrer';
         link.textContent = 'Save File: ' + (r.data.filename || 'download');
         link.style.cssText = 'display:block;margin-top:6px;color:var(--accent);font-size:12px;';
         box.appendChild(link);
@@ -1008,6 +1119,7 @@ body { display:flex; flex-direction:column; }
 
     shareRevoke: async function(form) {
       var d = UI.getFormData(form);
+      if (!isValidUUID(d.shareId)) return UI.showResult(form, { error: 'Invalid shareId — must be a UUID' });
       var r = await API.post('shares/' + d.shareId + '/revoke', undefined);
       UI.showResult(form, r.data);
     },
@@ -1021,8 +1133,9 @@ body { display:flex; flex-direction:column; }
       if (r.ok && r.data && r.data.contentBase64) {
         var box = form.closest('.section').querySelector('.result-box');
         var link = document.createElement('a');
-        link.href = 'data:' + (r.data.contentType || 'application/octet-stream') + ';base64,' + r.data.contentBase64;
+        link.href = 'data:' + safeMime(r.data.contentType) + ';base64,' + r.data.contentBase64;
         link.download = r.data.filename || 'download';
+        link.rel = 'noopener noreferrer';
         link.textContent = 'Save File: ' + (r.data.filename || 'download');
         link.style.cssText = 'display:block;margin-top:6px;color:var(--accent);font-size:12px;';
         box.appendChild(link);
@@ -1046,11 +1159,22 @@ body { display:flex; flex-direction:column; }
       var box = document.getElementById('audit-result');
       box.style.display = 'block';
       var str = typeof r.data === 'string' ? r.data : JSON.stringify(r.data, null, 2);
-      box.innerHTML = '<pre>' + esc(str) + '</pre>' +
-        '<button class="btn btn-copy" id="_audit_copy">Copy</button>';
-      box.querySelector('#_audit_copy').addEventListener('click', function() {
-        UI.copyToClipboard(str, box.querySelector('#_audit_copy'));
+      var sc = r.status || 0;
+      var sCls = sc < 300 ? 's-ok' : (sc < 500 ? 's-warn' : 's-err');
+      var statusHtml = sc ? '<span class="result-status ' + sCls + '">' + sc + '</span> ' : '';
+      box.innerHTML = statusHtml + '<pre>' + esc(str) + '</pre>' +
+        '<span class="result-actions">' +
+        '<button class="btn btn-copy" data-role="copy-audit">Copy</button>' +
+        '<button class="btn btn-copy" data-role="clear-audit">Clear</button>' +
+        '</span>';
+      box.querySelector('[data-role="copy-audit"]').addEventListener('click', function() {
+        UI.copyToClipboard(str, box.querySelector('[data-role="copy-audit"]'));
       });
+      box.querySelector('[data-role="clear-audit"]').addEventListener('click', function() {
+        box.style.display = 'none';
+        box.innerHTML = '';
+      });
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     },
 
     audit_events: async function() {
