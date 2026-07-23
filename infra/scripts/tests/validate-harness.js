@@ -98,12 +98,12 @@ const requiredStrings = [
   'audit/events',
   'health/live',
   'search/files',
-  'data-tab="system"',
-  'data-tab="auth"',
-  'data-tab="files"',
-  'data-tab="shares"',
-  'data-tab="search"',
-  'data-tab="audit"',
+  'data-view="files"',
+  'data-view="upload"',
+  'data-view="shares"',
+  'data-view="search"',
+  'data-view="security"',
+  'data-view="developer"',
 ];
 
 const missing = requiredStrings.filter((s) => !content.includes(s));
@@ -113,5 +113,5 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-console.log('PASS: All required endpoint references and tabs present');
+console.log('PASS: All required endpoint references and views present');
 console.log(`Harness validated: ${resolved} (${content.length} bytes)`);
