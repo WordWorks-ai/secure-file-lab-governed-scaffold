@@ -17,28 +17,28 @@
     "prisma:migrate:deploy": "prisma migrate deploy --schema prisma/schema.prisma"
   },
   "dependencies": {
-    "@fastify/cors": "^11.2.0",
-    "@fastify/helmet": "^13.0.2",
-    "@nestjs/common": "^11.0.11",
-    "@nestjs/config": "^4.0.2",
-    "@nestjs/core": "^11.0.11",
-    "@nestjs/platform-fastify": "^11.1.17",
-    "@nestjs/terminus": "^11.0.0",
+    "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.1.0",
+    "@nestjs/common": "^11.1.28",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "^11.1.28",
+    "@nestjs/platform-fastify": "^11.1.28",
+    "@nestjs/terminus": "^11.1.1",
     "@nestjs/throttler": "^6.5.0",
     "@node-rs/argon2": "^2.0.2",
-    "@prisma/client": "^6.4.1",
-    "bullmq": "^5.43.1",
+    "@prisma/client": "^6.19.3",
+    "bullmq": "5.70.1",
     "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.1",
+    "class-validator": "^0.14.4",
     "ioredis": "5.9.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.0.11",
+    "@nestjs/testing": "^11.1.28",
     "@types/supertest": "^6.0.3",
-    "prisma": "^6.4.1",
-    "supertest": "^7.0.0",
-    "tsx": "^4.19.3"
+    "prisma": "^6.19.3",
+    "supertest": "^7.2.2",
+    "tsx": "^4.23.1"
   }
 }
